@@ -96,7 +96,7 @@ public class GitCodeHash {
 	
 	/**
 	 * @param gitDir is a .git directory.
-	 * @param target is a revision.
+	 * @param target is a list of source files in the repo (.tsv files including SHA1, file name, and LANGUAGE).
 	 */
 	public void parseGitRepository(File gitDir, LineNumberReader target, PrintWriter w) {
 		FileRepositoryBuilder b = new FileRepositoryBuilder();
@@ -105,7 +105,7 @@ public class GitCodeHash {
 			try (ObjectReader r = repo.getObjectDatabase().newReader()) {
 
 				for (String line = target.readLine(); line != null; line = target.readLine()) {
-					String[] tokens = line.split(",");
+					String[] tokens = line.split("\t");
 					
 					FileType t = FileType.getFileType(tokens[2]);
 					if (t != FileType.UNSUPPORTED) {
