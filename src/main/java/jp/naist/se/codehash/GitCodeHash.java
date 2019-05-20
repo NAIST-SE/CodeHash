@@ -1,5 +1,7 @@
 package jp.naist.se.codehash;
 
+import java.io.BufferedWriter;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
@@ -30,7 +32,7 @@ public class GitCodeHash {
 	public static void main(String[] args) { 
 		GitCodeHash analyzer = new GitCodeHash();
 		
-		try (LineNumberReader outcsv = new LineNumberReader(new FileReader(args[0]))) {
+		try (LineNumberReader outcsv = new LineNumberReader(new FileReader(args[0]), 65536)) {
 
 			for (String line = outcsv.readLine(); line != null; line = outcsv.readLine()) {
 				String[] tokens = line.split(",");
@@ -40,7 +42,7 @@ public class GitCodeHash {
 				String filelist = "filelist/" + repoId + ".txt";
 				String outputFile = "codehash/" + repoId + "-j.txt";
 				try (LineNumberReader reader = new LineNumberReader(new FileReader(filelist))) {
-					try (PrintWriter w = new PrintWriter(new FileWriter(outputFile))) {
+					try (PrintWriter w = new PrintWriter(new BufferedWriter(new FileWriter(outputFile), 65536))) {
 						analyzer.parseGitRepository(gitDir, reader, w);
 					} 
 				} catch (IOException e) {
@@ -105,37 +107,40 @@ public class GitCodeHash {
 			try (ObjectReader r = repo.getObjectDatabase().newReader()) {
 
 				for (String line = target.readLine(); line != null; line = target.readLine()) {
-					String[] tokens = line.split("\t");
-					
-					FileType t = FileType.getFileType(tokens[2]);
+					int index = line.lastIndexOf('\t');
+					String filetype = line.substring(index+1, line.length());
+					FileType t = FileType.getFileType(filetype);
 					if (t != FileType.UNSUPPORTED) {
-						ObjectId id = ObjectId.fromString(tokens[0]);
+						index = line.indexOf('\t');
+						String sha1 = line.substring(0, index);
+						ObjectId id = ObjectId.fromString(sha1);
 						
 						try {
 							ObjectLoader l = r.open(id);
 							TokenReader tokenReader = FileType.createReader(t, l.openStream());
 							long size = l.getSize();
 							
-							digest.reset();
+							ByteArrayOutputStream buf = new ByteArrayOutputStream((int)size);
 							int tokenCount = 0;
 							while (tokenReader.next()) {
-								digest.update(tokenReader.getText().getBytes());
-								digest.update((byte)0);
+								buf.write(tokenReader.getText().getBytes());
+								buf.write(0);
 								tokenCount++;
 							}
-							byte[] codehashBytes = digest.digest();
+							byte[] codehashBytes = digest.digest(buf.toByteArray());
 							String codehash = bytesToHex(codehashBytes);
 							
-							w.print(tokens[0]);
-							w.print("\t");
-							w.print(tokens[2]);
-							w.print("\t");
-							w.print(codehash);
-							w.print("\t");
-							w.print(size);
-							w.print("\t");
-							w.print(tokenCount);
-							w.println();
+							StringBuilder result = new StringBuilder(256);
+							result.append(sha1);
+							result.append("\t");
+							result.append(filetype);
+							result.append("\t");
+							result.append(codehash);
+							result.append("\t");
+							result.append(size);
+							result.append("\t");
+							result.append(tokenCount);
+							w.println(result.toString());
 							
 						} catch (MissingObjectException e) {
 							// Ignore missing objects
