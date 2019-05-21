@@ -1,9 +1,7 @@
 package jp.naist.se.codehash;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.charset.Charset;
 import java.util.HashMap;
 
 import org.antlr.v4.runtime.CaseChangingCharStream;
@@ -71,25 +69,6 @@ public enum FileType {
 		return filetype != FileType.UNSUPPORTED;
 	}
 
-	/**
-	 * Create a stream for an ANTLR lexer.
-	 * This method handles UTF-8/16 BOM.
-	 * @param buf bytes be parsed.
-	 * @return an instance of ANTLR CharStream.
-	 * @throws IOException may be thrown if instantiation failed.
-	 */
-	private static CharStream createStream(byte[] buf) throws IOException {
-		if (buf.length >= 3 && 
-			buf[0] == (byte)0xEF && buf[1] == (byte)0xBB && buf[2] == (byte)0xBF) {
-			return CharStreams.fromStream(new ByteArrayInputStream(buf, 3, buf.length-3));
-		} else if (buf.length >= 2 && buf[0] == (byte)0xFE && buf[1] == (byte)0xFF) {
-			return CharStreams.fromStream(new ByteArrayInputStream(buf, 2, buf.length-2), Charset.forName("UTF-16BE"));
-		} else if (buf.length >= 2 && buf[0] == (byte)0xFF && buf[1] == (byte)0xFE) {
-			return CharStreams.fromStream(new ByteArrayInputStream(buf, 2, buf.length-2), Charset.forName("UTF-16LE"));
-		} else {
-			return CharStreams.fromStream(new ByteArrayInputStream(buf));
-		}
-	}
 	
 	public static TokenReader createReader(FileType filetype, InputStream input) {
 		try {

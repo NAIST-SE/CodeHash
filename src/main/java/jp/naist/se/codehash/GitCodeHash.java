@@ -1,7 +1,6 @@
 package jp.naist.se.codehash;
 
 import java.io.BufferedWriter;
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
@@ -40,13 +39,17 @@ public class GitCodeHash {
 				
 				File gitDir = new File(REPO_ROOT + repoId);
 				String filelist = "filelist/" + repoId + ".txt";
-				String outputFile = "codehash/" + repoId + "-j.txt";
-				try (LineNumberReader reader = new LineNumberReader(new FileReader(filelist))) {
-					try (PrintWriter w = new PrintWriter(new BufferedWriter(new FileWriter(outputFile), 65536))) {
-						analyzer.parseGitRepository(gitDir, reader, w);
-					} 
-				} catch (IOException e) {
-					e.printStackTrace();
+				File outputFile = new File("codehash/" + repoId + "-j.txt");
+				if (!outputFile.exists()) {
+					File outputFileTemp = new File("codehash/" + repoId + "-j.txt.tmp");
+					try (LineNumberReader reader = new LineNumberReader(new FileReader(filelist))) {
+						try (PrintWriter w = new PrintWriter(new BufferedWriter(new FileWriter(outputFileTemp), 65536))) {
+							analyzer.parseGitRepository(gitDir, reader, w);
+						} 
+						outputFileTemp.renameTo(outputFile);
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
 				}
 			}
 
@@ -120,14 +123,18 @@ public class GitCodeHash {
 							TokenReader tokenReader = FileType.createReader(t, l.openStream());
 							long size = l.getSize();
 							
-							ByteArrayOutputStream buf = new ByteArrayOutputStream((int)size);
+							StringBuilder builder = new StringBuilder((int)size);
 							int tokenCount = 0;
 							while (tokenReader.next()) {
-								buf.write(tokenReader.getText().getBytes());
-								buf.write(0);
-								tokenCount++;
+								String token = tokenReader.getText();
+								// PHPLexer may return null
+								if (token != null) { 
+									builder.append(token);
+									builder.append('\0');
+									tokenCount++;
+								}
 							}
-							byte[] codehashBytes = digest.digest(buf.toByteArray());
+							byte[] codehashBytes = digest.digest(builder.toString().getBytes());
 							String codehash = bytesToHex(codehashBytes);
 							
 							StringBuilder result = new StringBuilder(256);
