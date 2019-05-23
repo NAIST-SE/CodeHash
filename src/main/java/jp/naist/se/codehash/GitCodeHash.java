@@ -10,26 +10,31 @@ import java.io.LineNumberReader;
 import java.io.PrintWriter;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Iterator;
 
 import org.eclipse.jgit.errors.MissingObjectException;
+import org.eclipse.jgit.lib.AsyncObjectLoaderQueue;
+import org.eclipse.jgit.lib.Constants;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.ObjectLoader;
 import org.eclipse.jgit.lib.ObjectReader;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
+import org.eclipse.jgit.util.RawParseUtils;
 
 
 
 public class GitCodeHash {
 
-	public static final String REPO_ROOT = "/data/repo-2019-hata/";
+	//public static final String REPO_ROOT = "/data/repo-2019-hata/";
 	
 	/**
 	 * Extract all comments from Git directories.
-	 * @param args specify a directory and a list of SHA1.
+	 * @param args specify a list of repos and repo root dir.
 	 */
 	public static void main(String[] args) { 
 		GitCodeHash analyzer = new GitCodeHash();
+		String REPO_ROOT = args[1];
 		
 		try (LineNumberReader outcsv = new LineNumberReader(new FileReader(args[0]), 65536)) {
 
@@ -97,6 +102,142 @@ public class GitCodeHash {
 			}
 		}
 		return null;
+	}
+	
+	public void parseRepositoryFaster(File gitDir, LineNumberReader target, PrintWriter w) {
+		FileRepositoryBuilder b = new FileRepositoryBuilder();
+		b.setGitDir(gitDir);
+		try (Repository repo = b.build()) {
+			try (ObjectReader r = repo.getObjectDatabase().newReader()) {
+				AsyncObjectLoaderQueue<ObjectIdWithLang> loader = r.open(new Sha1Provider(target), false);
+				while (loader.next()) {
+					
+					ObjectIdWithLang current = loader.getCurrent();
+					ObjectLoader l = loader.open();
+					try {
+						TokenReader tokenReader = FileType.createReader(current.getLang(), l.openStream());
+						long size = l.getSize();
+						
+						StringBuilder builder = new StringBuilder((int)size);
+						int tokenCount = 0;
+						while (tokenReader.next()) {
+							String token = tokenReader.getText();
+							// PHPLexer may return null
+							if (token != null) { 
+								builder.append(token);
+								builder.append('\0');
+								tokenCount++;
+							}
+						}
+						byte[] codehashBytes = digest.digest(builder.toString().getBytes());
+						String codehash = bytesToHex(codehashBytes);
+						
+						StringBuilder result = new StringBuilder(256);
+						result.append(current.getSHA1());
+						result.append("\t");
+						result.append(current.getLangName());
+						result.append("\t");
+						result.append(codehash);
+						result.append("\t");
+						result.append(size);
+						result.append("\t");
+						result.append(tokenCount);
+						w.println(result.toString());
+						
+					} catch (MissingObjectException e) {
+						// Ignore missing objects
+					} catch (IOException e) {
+						// Ignore 
+					}
+				}
+			}
+		} catch (IOException e) {	
+			e.printStackTrace();
+		}
+	}
+	
+	static class Sha1Provider implements Iterable<ObjectIdWithLang>, Iterator<ObjectIdWithLang> {
+		
+		private LineNumberReader target;
+		private ObjectIdWithLang nextElement;
+
+		public Sha1Provider(LineNumberReader target) {
+			this.target = target;
+			nextElement = readNext();
+		}
+		
+		private ObjectIdWithLang readNext() {
+			try {
+				for (String line = target.readLine(); line != null; line = target.readLine()) {
+					int index = line.lastIndexOf('\t');
+					String filetype = line.substring(index+1, line.length());
+					FileType t = FileType.getFileType(filetype);
+					if (t != FileType.UNSUPPORTED) {
+						index = line.indexOf('\t');
+						String sha1 = line.substring(0, index);
+						return new ObjectIdWithLang(sha1, filetype, t);
+					}
+				}
+			} catch (IOException e) {
+			}
+			return null;
+		}
+		
+		@Override
+		public Iterator<ObjectIdWithLang> iterator() {
+			return this;
+		}
+		
+		@Override
+		public boolean hasNext() {
+			return nextElement != null;
+		}
+		
+		@Override
+		public ObjectIdWithLang next() {
+			ObjectIdWithLang element = nextElement;
+			nextElement = readNext();
+			return element;
+		}
+		
+		@Override
+		public void remove() {
+			// ignore the method
+		}
+	}
+	
+	static class ObjectIdWithLang extends ObjectId {
+
+		private String sha1;
+		private String langName;
+		private FileType lang;
+		
+		public ObjectIdWithLang(String s, String langName, FileType lang) {
+			this(Constants.encodeASCII(s), lang);
+			this.sha1 = s;
+			this.langName = langName;
+		}
+		
+		private ObjectIdWithLang(byte[] bs, FileType lang) {
+			super(RawParseUtils.parseHexInt32(bs, 0),
+					RawParseUtils.parseHexInt32(bs, 8),
+					RawParseUtils.parseHexInt32(bs, 16),
+					RawParseUtils.parseHexInt32(bs, 24),
+					RawParseUtils.parseHexInt32(bs, 32));
+			this.lang = lang;
+		}
+		
+		public FileType getLang() {
+			return lang;
+		}
+		
+		public String getLangName() {
+			return langName;
+		}
+		
+		public String getSHA1() {
+			return sha1;
+		}
 	}
 	
 	/**
