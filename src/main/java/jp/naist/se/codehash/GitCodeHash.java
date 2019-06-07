@@ -8,48 +8,54 @@ import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.LineNumberReader;
 import java.io.PrintWriter;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.util.Iterator;
 
 import org.eclipse.jgit.errors.MissingObjectException;
-import org.eclipse.jgit.lib.AsyncObjectLoaderQueue;
-import org.eclipse.jgit.lib.Constants;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.ObjectLoader;
 import org.eclipse.jgit.lib.ObjectReader;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
-import org.eclipse.jgit.util.RawParseUtils;
 
 
 
 public class GitCodeHash {
 
 	//public static final String REPO_ROOT = "/data/repo-2019-hata/";
+	private enum HashType { CodeHash, NgramMinHash };
+	private int BBITMINHASH_BITCOUNT = 2048;
+	private int BBITMINHASH_NGRAM_SIZE = 3;
 	
 	/**
 	 * Extract all comments from Git directories.
-	 * @param args specify a list of repos and repo root dir.
+	 * @param args The first argument specifies a CSV file including a list of repos 
+	 * in the first column.  
+	 * The second argument is a relative path of repos (e.g. "/data/my-git-repos/") 
+	 * which is concatenated to each repo path in a CSV.
+	 * The third argument is a hash type.  If "minhash" is provided, it computes a hash.
+	 * If the third argument is not provided, then the program computes 
+	 * hash of source code ignoring comments and white space.
 	 */
 	public static void main(String[] args) { 
 		GitCodeHash analyzer = new GitCodeHash();
-		String REPO_ROOT = args[1];
+		String inputFileName = args[0];
+		String repoRoot = args[1];
+		HashType t = (args.length > 2) && args[2].equals("minhash") ? HashType.NgramMinHash : HashType.CodeHash;
 		
-		try (LineNumberReader outcsv = new LineNumberReader(new FileReader(args[0]), 65536)) {
+		
+		try (LineNumberReader outcsv = new LineNumberReader(new FileReader(inputFileName), 65536)) {
 
 			for (String line = outcsv.readLine(); line != null; line = outcsv.readLine()) {
 				String[] tokens = line.split(",");
 				String repoId = tokens[0];
 				
-				File gitDir = new File(REPO_ROOT + repoId);
+				File gitDir = new File(repoRoot + repoId);
 				String filelist = "filelist/" + repoId + ".txt";
 				File outputFile = new File("codehash/" + repoId + "-j.txt");
 				if (!outputFile.exists()) {
 					File outputFileTemp = new File("codehash/" + repoId + "-j.txt.tmp");
 					try (LineNumberReader reader = new LineNumberReader(new FileReader(filelist))) {
 						try (PrintWriter w = new PrintWriter(new BufferedWriter(new FileWriter(outputFileTemp), 65536))) {
-							analyzer.parseGitRepository(gitDir, reader, w);
+							analyzer.parseGitRepository(gitDir, reader, w, t);
 						} 
 						outputFileTemp.renameTo(outputFile);
 					} catch (IOException e) {
@@ -64,14 +70,7 @@ public class GitCodeHash {
 		
 	}
 
-	private MessageDigest digest;
-
 	public GitCodeHash() {
-		try {
-			digest = MessageDigest.getInstance("SHA-1");
-		} catch (NoSuchAlgorithmException e) {
-			throw new RuntimeException("Failed to compute SHA-1 hash", e);
-		}
 	}
 	
 	/**
@@ -104,147 +103,12 @@ public class GitCodeHash {
 		return null;
 	}
 	
-	public void parseRepositoryFaster(File gitDir, LineNumberReader target, PrintWriter w) {
-		FileRepositoryBuilder b = new FileRepositoryBuilder();
-		b.setGitDir(gitDir);
-		try (Repository repo = b.build()) {
-			try (ObjectReader r = repo.getObjectDatabase().newReader()) {
-				AsyncObjectLoaderQueue<ObjectIdWithLang> loader = r.open(new Sha1Provider(target), false);
-				while (loader.next()) {
-					
-					ObjectIdWithLang current = loader.getCurrent();
-					ObjectLoader l = loader.open();
-					try {
-						TokenReader tokenReader = FileType.createReader(current.getLang(), l.openStream());
-						long size = l.getSize();
-						
-						StringBuilder builder = new StringBuilder((int)size);
-						int tokenCount = 0;
-						while (tokenReader.next()) {
-							String token = tokenReader.getText();
-							// PHPLexer may return null
-							if (token != null) { 
-								builder.append(token);
-								builder.append('\0');
-								tokenCount++;
-							}
-						}
-						byte[] codehashBytes = digest.digest(builder.toString().getBytes());
-						String codehash = bytesToHex(codehashBytes);
-						
-						StringBuilder result = new StringBuilder(256);
-						result.append(current.getSHA1());
-						result.append("\t");
-						result.append(current.getLangName());
-						result.append("\t");
-						result.append(codehash);
-						result.append("\t");
-						result.append(size);
-						result.append("\t");
-						result.append(tokenCount);
-						w.println(result.toString());
-						
-					} catch (MissingObjectException e) {
-						// Ignore missing objects
-					} catch (IOException e) {
-						// Ignore 
-					}
-				}
-			}
-		} catch (IOException e) {	
-			e.printStackTrace();
-		}
-	}
-	
-	static class Sha1Provider implements Iterable<ObjectIdWithLang>, Iterator<ObjectIdWithLang> {
-		
-		private LineNumberReader target;
-		private ObjectIdWithLang nextElement;
-
-		public Sha1Provider(LineNumberReader target) {
-			this.target = target;
-			nextElement = readNext();
-		}
-		
-		private ObjectIdWithLang readNext() {
-			try {
-				for (String line = target.readLine(); line != null; line = target.readLine()) {
-					int index = line.lastIndexOf('\t');
-					String filetype = line.substring(index+1, line.length());
-					FileType t = FileType.getFileType(filetype);
-					if (t != FileType.UNSUPPORTED) {
-						index = line.indexOf('\t');
-						String sha1 = line.substring(0, index);
-						return new ObjectIdWithLang(sha1, filetype, t);
-					}
-				}
-			} catch (IOException e) {
-			}
-			return null;
-		}
-		
-		@Override
-		public Iterator<ObjectIdWithLang> iterator() {
-			return this;
-		}
-		
-		@Override
-		public boolean hasNext() {
-			return nextElement != null;
-		}
-		
-		@Override
-		public ObjectIdWithLang next() {
-			ObjectIdWithLang element = nextElement;
-			nextElement = readNext();
-			return element;
-		}
-		
-		@Override
-		public void remove() {
-			// ignore the method
-		}
-	}
-	
-	static class ObjectIdWithLang extends ObjectId {
-
-		private String sha1;
-		private String langName;
-		private FileType lang;
-		
-		public ObjectIdWithLang(String s, String langName, FileType lang) {
-			this(Constants.encodeASCII(s), lang);
-			this.sha1 = s;
-			this.langName = langName;
-		}
-		
-		private ObjectIdWithLang(byte[] bs, FileType lang) {
-			super(RawParseUtils.parseHexInt32(bs, 0),
-					RawParseUtils.parseHexInt32(bs, 8),
-					RawParseUtils.parseHexInt32(bs, 16),
-					RawParseUtils.parseHexInt32(bs, 24),
-					RawParseUtils.parseHexInt32(bs, 32));
-			this.lang = lang;
-		}
-		
-		public FileType getLang() {
-			return lang;
-		}
-		
-		public String getLangName() {
-			return langName;
-		}
-		
-		public String getSHA1() {
-			return sha1;
-		}
-	}
 	
 	/**
 	 * @param gitDir is a .git directory.
 	 * @param target is a list of source files in the repo (.tsv files including SHA1, file name, and LANGUAGE).
 	 */
-	public void parseGitRepository(File gitDir, LineNumberReader target, PrintWriter w) {
+	public void parseGitRepository(File gitDir, LineNumberReader target, PrintWriter w, HashType hashType) {
 		FileRepositoryBuilder b = new FileRepositoryBuilder();
 		b.setGitDir(gitDir);
 		try (Repository repo = b.build()) {
@@ -263,20 +127,14 @@ public class GitCodeHash {
 							ObjectLoader l = r.open(id);
 							TokenReader tokenReader = FileType.createReader(t, l.openStream());
 							long size = l.getSize();
-							
-							StringBuilder builder = new StringBuilder((int)size);
-							int tokenCount = 0;
-							while (tokenReader.next()) {
-								String token = tokenReader.getText();
-								// PHPLexer may return null
-								if (token != null) { 
-									builder.append(token);
-									builder.append('\0');
-									tokenCount++;
-								}
+
+							IHash h;
+							if (hashType == HashType.CodeHash) {
+								h = new MinHash(BBITMINHASH_BITCOUNT, BBITMINHASH_NGRAM_SIZE, tokenReader);
+							} else {
+								h = new CodeHash(tokenReader, size);
 							}
-							byte[] codehashBytes = digest.digest(builder.toString().getBytes());
-							String codehash = bytesToHex(codehashBytes);
+							String codehash = bytesToHex(h.getHash());
 							
 							StringBuilder result = new StringBuilder(256);
 							result.append(sha1);
@@ -287,7 +145,7 @@ public class GitCodeHash {
 							result.append("\t");
 							result.append(size);
 							result.append("\t");
-							result.append(tokenCount);
+							result.append(h.getTokenCount());
 							w.println(result.toString());
 							
 						} catch (MissingObjectException e) {
