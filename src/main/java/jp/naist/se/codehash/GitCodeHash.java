@@ -27,40 +27,40 @@ public class GitCodeHash {
 	
 	/**
 	 * Extract all comments from Git directories.
-	 * @param args The first argument specifies a CSV file including a list of repos 
-	 * in the first column.  
-	 * The second argument is a relative path of repos (e.g. "/data/my-git-repos/") 
-	 * which is concatenated to each repo path in a CSV.
-	 * The third argument is a hash type.  If "minhash" is provided, it computes a hash.
-	 * If the third argument is not provided, then the program computes 
-	 * hash of source code ignoring comments and white space.
+	 * @param args The first argument specifies a CSV file.
+	 * The file must includes a repo path, a csv file path including blob hash and 
+	 * language to be processed, an output file path, and a hash type (codehash or minhash).   
 	 */
 	public static void main(String[] args) { 
 		GitCodeHash analyzer = new GitCodeHash();
 		String inputFileName = args[0];
-		String repoRoot = args[1];
-		HashType t = (args.length > 2) && args[2].equals("minhash") ? HashType.NgramMinHash : HashType.CodeHash;
-		
 		
 		try (LineNumberReader outcsv = new LineNumberReader(new FileReader(inputFileName), 65536)) {
 
 			for (String line = outcsv.readLine(); line != null; line = outcsv.readLine()) {
 				String[] tokens = line.split(",");
-				String repoId = tokens[0];
-				
-				File gitDir = new File(repoRoot + repoId);
-				String filelist = "filelist/" + repoId + ".txt";
-				File outputFile = new File("codehash/" + repoId + "-j.txt");
-				if (!outputFile.exists()) {
-					File outputFileTemp = new File("codehash/" + repoId + "-j.txt.tmp");
-					try (LineNumberReader reader = new LineNumberReader(new FileReader(filelist))) {
-						try (PrintWriter w = new PrintWriter(new BufferedWriter(new FileWriter(outputFileTemp), 65536))) {
-							analyzer.parseGitRepository(gitDir, reader, w, t);
-						} 
-						outputFileTemp.renameTo(outputFile);
-					} catch (IOException e) {
-						e.printStackTrace();
+				try {
+					String repoPath = tokens[0];
+					String filelistPath = tokens[1];
+					String outputFilePath = tokens[2];
+					String hashtype = tokens[3];
+					HashType t = hashtype.equals("minhash") ? HashType.NgramMinHash : HashType.CodeHash;
+					
+					File gitDir = new File(repoPath);
+					File outputFile = new File(outputFilePath);
+					if (!outputFile.exists()) {
+						File outputFileTemp = new File(outputFilePath + ".tmp");
+						try (LineNumberReader reader = new LineNumberReader(new FileReader(filelistPath))) {
+							try (PrintWriter w = new PrintWriter(new BufferedWriter(new FileWriter(outputFileTemp), 65536))) {
+								analyzer.parseGitRepository(gitDir, reader, w, t);
+							} 
+							outputFileTemp.renameTo(outputFile);
+						} catch (IOException e) {
+							e.printStackTrace();
+						}
 					}
+				} catch (Throwable e) {
+					e.printStackTrace();
 				}
 			}
 
@@ -129,7 +129,7 @@ public class GitCodeHash {
 							long size = l.getSize();
 
 							IHash h;
-							if (hashType == HashType.CodeHash) {
+							if (hashType == HashType.NgramMinHash) {
 								h = new MinHash(BBITMINHASH_BITCOUNT, BBITMINHASH_NGRAM_SIZE, tokenReader);
 							} else {
 								h = new CodeHash(tokenReader, size);
