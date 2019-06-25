@@ -17,16 +17,18 @@ import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
 
 
-
+/**
+ * The main class for this project.
+ * @author ishio
+ */
 public class GitCodeHash {
 
-	//public static final String REPO_ROOT = "/data/repo-2019-hata/";
 	private enum HashType { CodeHash, NgramMinHash };
 	private int BBITMINHASH_BITCOUNT = 2048;
 	private int BBITMINHASH_NGRAM_SIZE = 3;
 	
 	/**
-	 * Extract all comments from Git directories.
+	 * Extract hash values for source file contents excluding whitespace and comments from Git directories.
 	 * @param args The first argument specifies a CSV file.
 	 * The file must includes a repo path, a csv file path including blob hash and 
 	 * language to be processed, an output file path, and a hash type (codehash or minhash).   
