@@ -23,6 +23,7 @@ Each file list is a tsv file.  Each line must include three items:
  - Blob ID
  - File name (if available)
  - Programming language type: C, JAVA, JAVASCRIPT, PHP, PYTHON. 
+   - For Ruby language, a separated program is available in the repository. 
  
 Example for this repository:
 >        c01a38dd1b6f66f59515032fd22c9f5b9e46ffce	src/main/java/jp/naist/se/codehash/AntlrTokenReader.java	JAVA
