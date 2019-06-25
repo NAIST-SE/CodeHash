@@ -10,7 +10,8 @@ Each line must include four items:
  - Git repository path
  - A lit of blobs with file names
  - An output file path
- - Type of computed hash: either codehash or minhash.
+ - Type of computed hash: either codehash or minhash.  
+   - You should try codehash first, since minhash mode takes significantly longer time compared with codehash.
 
 Example:
 >        path/to/first/.git,filelist1.txt,output-codehash.txt,codehash
@@ -40,6 +41,8 @@ An output file is a tsv file comprising five columns.
    - Min-hash: 2048-bit vector of 1-bit min-hash for trigrams of the file.  The hamming distance between a pair of min-hash values can be used to approximate the similarity of the file pair.   The details are described in a technical paper: https://doi.org/10.1109/MSR.2017.19
  - File size 
  - The number of tokens in the file
+
+The file may miss files whose contents cannot be processed due to grammatical errors or unavailability (e.g. deleted from the repository).
 
 Example of Code Hash Mode Result:
 
