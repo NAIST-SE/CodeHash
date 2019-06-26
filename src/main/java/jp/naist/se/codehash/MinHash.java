@@ -28,57 +28,34 @@ public class MinHash implements IHash {
 			minhash = new long[k];
 			Arrays.fill(minhash, Long.MAX_VALUE);
 
-			byte[][] tokens = new byte[N][];
-			boolean hasElement = true;
-			while (hasElement) {
-				hasElement = false;
-
-				// Shift tokens 
-				for (int i=0; i<tokens.length-1; ++i) {
-					tokens[i] = tokens[i+1];
-					if (tokens[i] != null) hasElement = true;
+			NgramReader ngramReader = new NgramReader(N, reader);
+			while (ngramReader.next()) {
+				// Calculate a hash for the N-gram 
+				for (int i=0; i<N; i++) {
+					if (ngramReader.getToken(i) != null) {
+						digest.update(ngramReader.getToken(i));
+					} else {
+						digest.update((byte)i);
+					}
+					digest.update((byte)0);
 				}
 				
-				// Read a next token
-				if (reader.next()) {
-					String t = reader.getText();
-					tokens[tokens.length-1] = (t != null) ? t.getBytes("UTF-8"): null;
-					hasElement = true;
-					tokenCount++;
-				} else {
-					tokens[tokens.length-1] = null;
-				}
-				
-				if (hasElement) {
-					// Calculate a hash for the N-gram 
-					for (int i=0; i<N; i++) {
-						if (tokens[i] != null) {
-							digest.update(tokens[i]);
-						} else {
-							digest.update((byte)i);
-						}
-						digest.update((byte)0);
+				// Update minhash 
+				byte[] h = digest.digest();
+				for (int i=0; i<k; i++) {
+					if (i > 0) {
+						h = digest.digest(h);
 					}
 					
-					// Update minhash 
-					byte[] h = digest.digest();
-					for (int i=0; i<k; i++) {
-						if (i > 0) {
-							h = digest.digest(h);
-						}
-						
-						long hash = extractLongHash(h);
-						if (hash < minhash[i]) {
-							minhash[i] = hash;
-						}
+					long hash = extractLongHash(h);
+					if (hash < minhash[i]) {
+						minhash[i] = hash;
 					}
 				}
 			}
 			
 			
 		} catch (NoSuchAlgorithmException e) {
-			throw new RuntimeException(e);
-		} catch (UnsupportedEncodingException e) {
 			throw new RuntimeException(e);
 		}
 	}
