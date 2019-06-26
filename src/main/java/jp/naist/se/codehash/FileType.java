@@ -8,6 +8,7 @@ import org.antlr.v4.runtime.CaseChangingCharStream;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.Token;
+import org.eclipse.jgit.util.FileUtil;
 
 import jp.naist.se.commentlister.lexer.CPP14Lexer;
 import jp.naist.se.commentlister.lexer.ECMAScriptLexer;
@@ -21,35 +22,39 @@ public enum FileType {
 	UNSUPPORTED, CPP, JAVA, ECMASCRIPT, CSHARP, PYTHON, PHP, RUBY;
 
 	private static HashMap<String, FileType> filetype;
+	private static HashMap<String, FileType> extToFiletype;
+	
 	static {
 		filetype = new HashMap<>(64);
-//		filetype.put("c", FileType.CPP);
-//		filetype.put("cc", FileType.CPP);
-//		filetype.put("cp", FileType.CPP);
-//		filetype.put("cpp", FileType.CPP);
-//		filetype.put("cx", FileType.CPP);
-//		filetype.put("cxx", FileType.CPP);
-//		filetype.put("c+", FileType.CPP);
-//		filetype.put("c++", FileType.CPP);
-//		filetype.put("h", FileType.CPP);
-//		filetype.put("hh", FileType.CPP);
-//		filetype.put("hxx", FileType.CPP);
-//		filetype.put("h+", FileType.CPP);
-//		filetype.put("h++", FileType.CPP);
-//		filetype.put("hp", FileType.CPP);
-//		filetype.put("hpp", FileType.CPP);
-//		filetype.put("java", FileType.JAVA);
-//		filetype.put("js", FileType.ECMASCRIPT);
-//		filetype.put("cs", FileType.CSHARP);
-//		filetype.put("py", FileType.PYTHON);
-//		filetype.put("php", FileType.PHP);
-//		filetype.put("rb", FileType.RUBY);
-		
 		filetype.put("C", FileType.CPP);
 		filetype.put("JAVA", FileType.JAVA);
 		filetype.put("JAVASCRIPT", FileType.ECMASCRIPT);
 		filetype.put("PYTHON", FileType.PYTHON);
 		filetype.put("PHP", FileType.PHP);
+
+		extToFiletype = new HashMap(128);
+		extToFiletype.put("c", FileType.CPP);
+		extToFiletype.put("cc", FileType.CPP);
+		extToFiletype.put("cp", FileType.CPP);
+		extToFiletype.put("cpp", FileType.CPP);
+		extToFiletype.put("cx", FileType.CPP);
+		extToFiletype.put("cxx", FileType.CPP);
+		extToFiletype.put("c+", FileType.CPP);
+		extToFiletype.put("c++", FileType.CPP);
+		extToFiletype.put("h", FileType.CPP);
+		extToFiletype.put("hh", FileType.CPP);
+		extToFiletype.put("hxx", FileType.CPP);
+		extToFiletype.put("h+", FileType.CPP);
+		extToFiletype.put("h++", FileType.CPP);
+		extToFiletype.put("hp", FileType.CPP);
+		extToFiletype.put("hpp", FileType.CPP);
+		extToFiletype.put("java", FileType.JAVA);
+		extToFiletype.put("js", FileType.ECMASCRIPT);
+		extToFiletype.put("cs", FileType.CSHARP);
+		extToFiletype.put("py", FileType.PYTHON);
+		extToFiletype.put("php", FileType.PHP);
+		extToFiletype.put("rb", FileType.RUBY);
+
 	}
 	
 	public static FileType getFileType(String typename) {
@@ -61,8 +66,16 @@ public enum FileType {
 		}
 	}
 
-	public static boolean isSupported(String filename) {
-		return isSupported(getFileType(filename));
+	public static FileType getFileTypeFromName(String filename) {
+		int idx = filename.lastIndexOf('.');
+		if (idx >= 0) {
+			String ext = filename.substring(idx+1).toLowerCase();
+			FileType type = extToFiletype.get(ext);
+			if (type != null) {
+				return type;
+			}
+		}
+		return FileType.UNSUPPORTED;
 	}
 
 	public static boolean isSupported(FileType filetype) {
