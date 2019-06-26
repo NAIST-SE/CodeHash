@@ -36,11 +36,15 @@ Example for this repository:
 >        430582dd4efc0de59502947e5bbd0063cbd73ea1	src/main/java/jp/naist/se/codehash/GitCodeHash.java	JAVA
 
 
+
 ## Analyzing files
 
 Another main class `FileCodeHash` accepts file names (or directory names) and options `-codehash` and `-minhash` to choose hash types.
 The main class reports hash values for each file using file names instead of blob IDs.  
 
+The following command line is an example to compute minhash values for source files in `src` directory.
+
+>        java -classpath CodeHash.jar FileCodeHash -minhash src
 
 ## Output Format
 
