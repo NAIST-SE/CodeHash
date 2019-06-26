@@ -4,7 +4,6 @@ import java.nio.charset.StandardCharsets;
 
 public class NgramReader {
 
-	private int tokenCount;
 	private int ngramCount;
 
 	private TokenReader reader;
@@ -33,7 +32,6 @@ public class NgramReader {
 			String t = reader.getText();
 			tokens[tokens.length-1] = (t != null) ? t.getBytes(StandardCharsets.UTF_8): null;
 			hasElement = true;
-			tokenCount++;
 		} else {
 			tokens[tokens.length-1] = null;
 		}
@@ -49,13 +47,6 @@ public class NgramReader {
 	 */
 	public byte[] getToken(int i) { 
 		return tokens[i];
-	}
-	
-	/**
-	 * @return The number of tokens read by the reader.
-	 */
-	public int getTokenCount() {
-		return tokenCount;
 	}
 	
 	/**

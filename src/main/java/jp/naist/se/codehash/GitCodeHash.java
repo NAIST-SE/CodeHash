@@ -23,9 +23,9 @@ import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
  */
 public class GitCodeHash {
 
-	private enum HashType { CodeHash, NgramMinHash };
-	private int BBITMINHASH_BITCOUNT = 2048;
-	private int BBITMINHASH_NGRAM_SIZE = 3;
+	public static enum HashType { CodeHash, NgramMinHash };
+	public static int BBITMINHASH_BITCOUNT = 2048;
+	public static int BBITMINHASH_NGRAM_SIZE = 3;
 	
 	/**
 	 * Extract hash values for source file contents excluding whitespace and comments from Git directories.
@@ -130,13 +130,7 @@ public class GitCodeHash {
 							TokenReader tokenReader = FileType.createReader(t, l.openStream());
 							long size = l.getSize();
 
-							IHash h;
-							if (hashType == HashType.NgramMinHash) {
-								h = new MinHash(BBITMINHASH_BITCOUNT, BBITMINHASH_NGRAM_SIZE, tokenReader);
-							} else {
-								h = new CodeHash(tokenReader, size);
-							}
-							String codehash = bytesToHex(h.getHash());
+							String codehash = computeHash(tokenReader, size, hashType);
 							
 							StringBuilder result = new StringBuilder(256);
 							result.append(sha1);
@@ -147,9 +141,9 @@ public class GitCodeHash {
 							result.append("\t");
 							result.append(size);
 							result.append("\t");
-							result.append(h.getTokenCount());
+							result.append(tokenReader.getTokenCount());
 							w.println(result.toString());
-							
+
 						} catch (MissingObjectException e) {
 							// Ignore missing objects
 						} catch (IOException e) {
@@ -161,6 +155,16 @@ public class GitCodeHash {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+	}
+	
+	public static String computeHash(TokenReader tokenReader, long fileSize, HashType type) {
+		IHash h;
+		if (type == HashType.NgramMinHash) {
+			h = new MinHash(BBITMINHASH_BITCOUNT, BBITMINHASH_NGRAM_SIZE, tokenReader);
+		} else {
+			h = new CodeHash(tokenReader, fileSize);
+		}
+		return bytesToHex(h.getHash());
 	}
 	
 	private final static char[] hexArray = "0123456789abcdef".toCharArray();

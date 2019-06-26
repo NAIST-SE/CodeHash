@@ -5,7 +5,10 @@ This tool computes source file hash for comparing contents ignoring whitespace a
 Build the project using maven.
 >        mvn package
 
-The tool takes as input a CSV file.
+
+## Analyzing a Git repository
+
+The main class `GitCodeHash` takes as input a CSV file.
 Each line must include four items: 
  - Git repository path
  - A lit of blobs with file names
@@ -31,6 +34,13 @@ Example for this repository:
 >        5cf76dd798f47ca7e296fa0582888ff1787f97ce	src/main/java/jp/naist/se/codehash/FileType.java	JAVA
 >        8005e63674d37076fdd36e70291c8573324dd3ff	src/main/java/jp/naist/se/codehash/GitCodeHash.java	JAVA
 >        430582dd4efc0de59502947e5bbd0063cbd73ea1	src/main/java/jp/naist/se/codehash/GitCodeHash.java	JAVA
+
+
+## Analyzing files
+
+Another main class `FileCodeHash` accepts file names (or directory names) and options `-codehash` and `-minhash` to choose hash types.
+The main class reports hash values for each file using file names instead of blob IDs.  
+
 
 ## Output Format
 

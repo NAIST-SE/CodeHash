@@ -8,7 +8,6 @@ import org.antlr.v4.runtime.CaseChangingCharStream;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.Token;
-import org.eclipse.jgit.util.FileUtil;
 
 import jp.naist.se.commentlister.lexer.CPP14Lexer;
 import jp.naist.se.commentlister.lexer.ECMAScriptLexer;
@@ -19,7 +18,7 @@ import jp.naist.se.commentlister.lexer.Python3Lexer;
 
 public enum FileType {
 
-	UNSUPPORTED, CPP, JAVA, ECMASCRIPT, CSHARP, PYTHON, PHP, RUBY;
+	UNSUPPORTED, CPP, JAVA, ECMASCRIPT, CSHARP, PYTHON, PHP;
 
 	private static HashMap<String, FileType> filetype;
 	private static HashMap<String, FileType> extToFiletype;
@@ -27,12 +26,13 @@ public enum FileType {
 	static {
 		filetype = new HashMap<>(64);
 		filetype.put("C", FileType.CPP);
+		filetype.put("CPP", FileType.CPP);
 		filetype.put("JAVA", FileType.JAVA);
 		filetype.put("JAVASCRIPT", FileType.ECMASCRIPT);
 		filetype.put("PYTHON", FileType.PYTHON);
 		filetype.put("PHP", FileType.PHP);
 
-		extToFiletype = new HashMap(128);
+		extToFiletype = new HashMap<>(128);
 		extToFiletype.put("c", FileType.CPP);
 		extToFiletype.put("cc", FileType.CPP);
 		extToFiletype.put("cp", FileType.CPP);
@@ -53,7 +53,6 @@ public enum FileType {
 		extToFiletype.put("cs", FileType.CSHARP);
 		extToFiletype.put("py", FileType.PYTHON);
 		extToFiletype.put("php", FileType.PHP);
-		extToFiletype.put("rb", FileType.RUBY);
 
 	}
 	
@@ -140,11 +139,6 @@ public enum FileType {
 								t.getChannel() != PhpLexer.ErrorLexem;
 					}
 				});
-			}
-			case RUBY:
-			{
-				// unsupported 
-				return null;
 			}
 			default:
 				return null;

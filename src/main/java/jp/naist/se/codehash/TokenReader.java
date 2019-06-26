@@ -7,5 +7,5 @@ public interface TokenReader {
 	public String getText();
 	public int getLine();
 	public int getCharPositionInLine();
-
+	public int getTokenCount();
 }

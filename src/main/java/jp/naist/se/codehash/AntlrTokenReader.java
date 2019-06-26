@@ -9,9 +9,12 @@ public class AntlrTokenReader implements TokenReader {
 	private Filter filter;
 	private Token current;
 	
+	private int tokenCount;
+	
 	public AntlrTokenReader(Lexer lexer, Filter filter) {
 		this.lexer = lexer;
 		this.filter = filter;
+		this.tokenCount = 0;
 	}
 	
 	@Override
@@ -20,7 +23,9 @@ public class AntlrTokenReader implements TokenReader {
 		while (!filter.accept(current) && current.getType() != Lexer.EOF) {
 			current = lexer.nextToken();
 		}
-		return current.getType() != Lexer.EOF;
+		boolean hasToken = current.getType() != Lexer.EOF;
+		if (hasToken) tokenCount++;
+		return hasToken;
 	}
 	
 	@Override
@@ -36,6 +41,11 @@ public class AntlrTokenReader implements TokenReader {
 	@Override
 	public int getCharPositionInLine() {
 		return current.getCharPositionInLine();
+	}
+	
+	@Override
+	public int getTokenCount() {
+		return tokenCount;
 	}
 	
 	public static interface Filter {
