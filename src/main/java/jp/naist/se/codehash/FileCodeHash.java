@@ -19,26 +19,29 @@ public class FileCodeHash {
 	public static final String FILEHASH_ALGORITHM = "SHA-1";
 	
 	public static void main(String[] args) {
-		HashType type = HashType.CodeHash;
+		boolean generateCodehash = true; // for compatibility
+		boolean generateMinhash = false;
 		LinkedList<File> files = new LinkedList<>();
 		for (String arg: args) {
 			if (arg.equals(ARG_MINHASH)) {
-				type = HashType.NgramMinHash;
+				generateMinhash = true;
 			} else if (arg.equals(ARG_CODEHASH)) {
-				type = HashType.CodeHash;
+				generateCodehash = true;
 			} else {
 				files.add(new File(arg));
 			}
 		}
 		
-		FileCodeHash h = new FileCodeHash(type);
+		FileCodeHash h = new FileCodeHash(generateCodehash, generateMinhash);
 		h.scan(files);
 	}
 	
-	private HashType hashType;
+	private boolean outputCodeHash;
+	private boolean outputMinHash;
 	
-	public FileCodeHash(HashType hashtype) {
-		this.hashType = hashtype;
+	public FileCodeHash(boolean codehash, boolean minhash) {
+		this.outputCodeHash = codehash;
+		this.outputMinHash = minhash;
 	}
 	
 	public void scan(LinkedList<File> files) {
@@ -70,8 +73,15 @@ public class FileCodeHash {
 					byte[] content = Files.readAllBytes(f.toPath());
 					MessageDigest d = MessageDigest.getInstance(FILEHASH_ALGORITHM);
 					String sha1 = GitCodeHash.bytesToHex(d.digest(content));
+					String codehash = null;
+					String minhash = null;
 					TokenReader tokenReader = FileType.createReader(t, new ByteArrayInputStream(content));
-					String codehash = GitCodeHash.computeHash(tokenReader, f.length(), hashType);
+					codehash = GitCodeHash.computeHash(tokenReader, f.length(), HashType.CodeHash);
+					if (outputMinHash) {
+						TokenReader anotherTokenReader = FileType.createReader(t, new ByteArrayInputStream(content));
+						minhash = GitCodeHash.computeHash(anotherTokenReader, f.length(), HashType.NgramMinHash);
+					}
+					
 					
 					StringBuilder result = new StringBuilder(256);
 					result.append(path);
@@ -80,8 +90,14 @@ public class FileCodeHash {
 					result.append("\t");
 					result.append(t.name());
 					result.append("\t");
-					result.append(codehash);
-					result.append("\t");
+					if (outputCodeHash) {
+						result.append(codehash);
+						result.append("\t");
+					}
+					if (outputMinHash) {
+						result.append(minhash);
+						result.append("\t");
+					}
 					result.append(f.length());
 					result.append("\t");
 					result.append(tokenReader.getTokenCount());
