@@ -32,8 +32,12 @@ public class FileCodeHash {
 			}
 		}
 		
-		FileCodeHash h = new FileCodeHash(generateCodehash, generateMinhash);
-		h.scan(files);
+		if (!files.isEmpty()) {
+			FileCodeHash h = new FileCodeHash(generateCodehash, generateMinhash);
+			h.scan(files);
+		}  else {
+			System.err.println("No files are specified.");
+		}
 	}
 	
 	private boolean outputCodeHash;
