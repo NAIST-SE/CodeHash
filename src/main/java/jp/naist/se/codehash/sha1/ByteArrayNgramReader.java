@@ -1,15 +1,18 @@
-package jp.naist.se.codehash;
+package jp.naist.se.codehash.sha1;
 
+import java.nio.charset.StandardCharsets;
 
-public class NgramReader {
+import jp.naist.se.codehash.TokenReader;
+
+public class ByteArrayNgramReader {
 
 	private int ngramCount;
 
 	private TokenReader reader;
-	private String[] tokens;
+	private byte[][] tokens;
 	
-	public NgramReader(int N, TokenReader reader) {
-		this.tokens = new String[N];
+	public ByteArrayNgramReader(int N, TokenReader reader) {
+		this.tokens = new byte[N][];
 		this.reader = reader;
 	}
 	
@@ -28,7 +31,8 @@ public class NgramReader {
 			
 		// Read a next token
 		if (reader.next()) {
-			tokens[tokens.length-1] = reader.getText();
+			String t = reader.getText();
+			tokens[tokens.length-1] = (t != null) ? t.getBytes(StandardCharsets.UTF_8): null;
 			hasElement = true;
 		} else {
 			tokens[tokens.length-1] = null;
@@ -43,7 +47,7 @@ public class NgramReader {
 	 * @param i specifies an index (0 <= i < N).
 	 * @return the content of i-th token.  It may be null if the token is unavailable (at the begin/end of a file). 
 	 */
-	public String getToken(int i) { 
+	public byte[] getToken(int i) { 
 		return tokens[i];
 	}
 	

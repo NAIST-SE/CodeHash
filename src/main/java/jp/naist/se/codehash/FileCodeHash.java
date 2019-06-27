@@ -9,42 +9,37 @@ import java.security.NoSuchAlgorithmException;
 import java.util.LinkedList;
 
 
-import jp.naist.se.codehash.GitCodeHash.HashType;
-
 
 public class FileCodeHash {
 
 	public static final String ARG_MINHASH = "-minhash";
+	public static final String ARG_SHA1_MINHASH = "-sha1minhash";
 	public static final String ARG_CODEHASH = "-codehash";
 	public static final String FILEHASH_ALGORITHM = "SHA-1";
 	
 	public static void main(String[] args) {
-		boolean generateCodehash = true; // for compatibility
 		boolean generateMinhash = false;
 		LinkedList<File> files = new LinkedList<>();
 		for (String arg: args) {
 			if (arg.equals(ARG_MINHASH)) {
 				generateMinhash = true;
 			} else if (arg.equals(ARG_CODEHASH)) {
-				generateCodehash = true;
 			} else {
 				files.add(new File(arg));
 			}
 		}
 		
 		if (!files.isEmpty()) {
-			FileCodeHash h = new FileCodeHash(generateCodehash, generateMinhash);
+			FileCodeHash h = new FileCodeHash(generateMinhash);
 			h.scan(files);
 		}  else {
 			System.err.println("No files are specified.");
 		}
 	}
 	
-	private boolean outputCodeHash;
 	private boolean outputMinHash;
 	
-	public FileCodeHash(boolean codehash, boolean minhash) {
-		this.outputCodeHash = codehash;
+	public FileCodeHash(boolean minhash) {
 		this.outputMinHash = minhash;
 	}
 	
@@ -80,12 +75,15 @@ public class FileCodeHash {
 					String codehash = null;
 					String minhash = null;
 					TokenReader tokenReader = FileType.createReader(t, new ByteArrayInputStream(content));
-					codehash = GitCodeHash.computeHash(tokenReader, f.length(), HashType.CodeHash);
 					if (outputMinHash) {
-						TokenReader anotherTokenReader = FileType.createReader(t, new ByteArrayInputStream(content));
-						minhash = GitCodeHash.computeHash(anotherTokenReader, f.length(), HashType.NgramMinHash);
+						CodeHashTokenReader wrapper = new CodeHashTokenReader(tokenReader, f.length());
+						MurmurMinHash h = new MurmurMinHash(GitCodeHash.BBITMINHASH_BITCOUNT, GitCodeHash.BBITMINHASH_NGRAM_SIZE, wrapper);
+						minhash = GitCodeHash.bytesToHex(h.getHash());
+						codehash = GitCodeHash.bytesToHex(wrapper.getHash());
+					} else {
+						CodeHash h = new CodeHash(tokenReader, f.length());
+						codehash =  GitCodeHash.bytesToHex(h.getHash());
 					}
-					
 					
 					StringBuilder result = new StringBuilder(256);
 					result.append(path);
@@ -94,10 +92,8 @@ public class FileCodeHash {
 					result.append("\t");
 					result.append(t.name());
 					result.append("\t");
-					if (outputCodeHash) {
-						result.append(codehash);
-						result.append("\t");
-					}
+					result.append(codehash);
+					result.append("\t");
 					if (outputMinHash) {
 						result.append(minhash);
 						result.append("\t");

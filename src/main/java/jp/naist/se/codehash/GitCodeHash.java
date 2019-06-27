@@ -16,6 +16,8 @@ import org.eclipse.jgit.lib.ObjectReader;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
 
+import jp.naist.se.codehash.sha1.SHA1MinHash;
+
 
 /**
  * The main class for this project.
@@ -23,7 +25,7 @@ import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
  */
 public class GitCodeHash {
 
-	public static enum HashType { CodeHash, NgramMinHash };
+	public static enum HashType { CodeHash, SHA1MinHash, Murmur3MinHash };
 	public static int BBITMINHASH_BITCOUNT = 2048;
 	public static int BBITMINHASH_NGRAM_SIZE = 3;
 	
@@ -31,7 +33,7 @@ public class GitCodeHash {
 	 * Extract hash values for source file contents excluding whitespace and comments from Git directories.
 	 * @param args The first argument specifies a CSV file.
 	 * The file must includes a repo path, a csv file path including blob hash and 
-	 * language to be processed, an output file path, and a hash type (codehash or minhash).   
+	 * language to be processed, an output file path, and a hash type (codehash, minhash, or sha1minhash).   
 	 */
 	public static void main(String[] args) { 
 		GitCodeHash analyzer = new GitCodeHash();
@@ -46,7 +48,12 @@ public class GitCodeHash {
 					String filelistPath = tokens[1];
 					String outputFilePath = tokens[2];
 					String hashtype = tokens[3];
-					HashType t = hashtype.equals("minhash") ? HashType.NgramMinHash : HashType.CodeHash;
+					HashType t = HashType.CodeHash;
+					if (hashtype.equals("minhash")) {
+						t = HashType.Murmur3MinHash;
+					} else if (hashtype.equals("sha1minhash")) {
+						t = HashType.SHA1MinHash;
+					}
 					
 					File gitDir = new File(repoPath);
 					File outputFile = new File(outputFilePath);
@@ -117,12 +124,21 @@ public class GitCodeHash {
 			try (ObjectReader r = repo.getObjectDatabase().newReader()) {
 
 				for (String line = target.readLine(); line != null; line = target.readLine()) {
-					int index = line.lastIndexOf('\t');
-					String filetype = line.substring(index+1, line.length());
-					FileType t = FileType.getFileType(filetype);
+					int firstTabIndex = line.indexOf('\t');
+					int lastTabIndex = line.lastIndexOf('\t');
+					if (firstTabIndex < 0) continue; // Skip a bad format line
+
+					FileType t;
+					if (firstTabIndex == lastTabIndex) { // 2-columns format (blob-id,filename)
+						String filename = line.substring(firstTabIndex+1, line.length());
+						t = FileType.getFileTypeFromName(filename);
+					} else { // 3-column format (blob-id,filename,lang)
+						String filetype = line.substring(lastTabIndex+1, line.length());
+						t = FileType.getFileType(filetype);
+					}
+					
 					if (t != FileType.UNSUPPORTED) {
-						index = line.indexOf('\t');
-						String sha1 = line.substring(0, index);
+						String sha1 = line.substring(0, firstTabIndex);
 						ObjectId id = ObjectId.fromString(sha1);
 						
 						try {
@@ -130,15 +146,34 @@ public class GitCodeHash {
 							TokenReader tokenReader = FileType.createReader(t, l.openStream());
 							long size = l.getSize();
 
-							String codehash = computeHash(tokenReader, size, hashType);
+							String codehash, minhash;
+							if (hashType == HashType.Murmur3MinHash) {
+								CodeHashTokenReader wrapper = new CodeHashTokenReader(tokenReader, size);
+								MurmurMinHash h = new MurmurMinHash(BBITMINHASH_BITCOUNT, BBITMINHASH_NGRAM_SIZE, wrapper);
+								minhash = bytesToHex(h.getHash());
+								codehash = bytesToHex(wrapper.getHash());
+							} else if (hashType == HashType.SHA1MinHash) {
+								CodeHashTokenReader wrapper = new CodeHashTokenReader(tokenReader, size);
+								SHA1MinHash h = new SHA1MinHash(BBITMINHASH_BITCOUNT, BBITMINHASH_NGRAM_SIZE, wrapper);
+								minhash = bytesToHex(h.getHash());
+								codehash = bytesToHex(wrapper.getHash());
+							} else {
+								CodeHash h = new CodeHash(tokenReader, size);
+								codehash = bytesToHex(h.getHash());
+								minhash = null;
+							}
 							
 							StringBuilder result = new StringBuilder(256);
 							result.append(sha1);
 							result.append("\t");
-							result.append(filetype);
+							result.append(t.name());
 							result.append("\t");
 							result.append(codehash);
 							result.append("\t");
+							if (minhash != null) {
+								result.append(minhash);
+								result.append("\t");
+							}
 							result.append(size);
 							result.append("\t");
 							result.append(tokenReader.getTokenCount());
@@ -157,15 +192,6 @@ public class GitCodeHash {
 		}
 	}
 	
-	public static String computeHash(TokenReader tokenReader, long fileSize, HashType type) {
-		IHash h;
-		if (type == HashType.NgramMinHash) {
-			h = new MinHash(BBITMINHASH_BITCOUNT, BBITMINHASH_NGRAM_SIZE, tokenReader);
-		} else {
-			h = new CodeHash(tokenReader, fileSize);
-		}
-		return bytesToHex(h.getHash());
-	}
 	
 	private final static char[] hexArray = "0123456789abcdef".toCharArray();
 	public static String bytesToHex(byte[] bytes) {

@@ -1,15 +1,16 @@
-package jp.naist.se.codehash;
+package jp.naist.se.codehash.sha1;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 
-public class MinHash implements IHash {
+import jp.naist.se.codehash.TokenReader;
+
+public class SHA1MinHash {
 
 	private static final String HASH_FUNCTION = "SHA-1"; // Chosen for performance
 
 	private long[] minhash;
-	private int tokenCount;
 	
 	/**
 	 * 1-bit minhash using k hash functions for N-gram Jaccard Index.  
@@ -17,7 +18,7 @@ public class MinHash implements IHash {
 	 * @param N
 	 * @param reader
 	 */
-	public MinHash(int k, int N, TokenReader reader) {
+	public SHA1MinHash(int k, int N, TokenReader reader) {
 		try {
 			if (k <= 0) throw new IllegalArgumentException("k must be a positive integer. " + k);
 
@@ -27,7 +28,7 @@ public class MinHash implements IHash {
 			minhash = new long[k];
 			Arrays.fill(minhash, Long.MAX_VALUE);
 
-			NgramReader ngramReader = new NgramReader(N, reader);
+			ByteArrayNgramReader ngramReader = new ByteArrayNgramReader(N, reader);
 			while (ngramReader.next()) {
 				// Calculate a hash for the N-gram 
 				for (int i=0; i<N; i++) {
@@ -90,11 +91,6 @@ public class MinHash implements IHash {
 		}
 		
 		return bitminhash;
-	}
-	
-	@Override
-	public int getTokenCount() {
-		return tokenCount;
 	}
 
 }

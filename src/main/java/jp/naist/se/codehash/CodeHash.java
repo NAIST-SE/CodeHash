@@ -3,23 +3,23 @@ package jp.naist.se.codehash;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
-public class CodeHash implements IHash {
+/**
+ * A hash computation that ignores comments and white space in the content
+ */
+public class CodeHash {
 
 	private byte[] codehash;
-	private int tokenCount;
 	
 	public CodeHash(TokenReader tokenReader, long size) {
 		try {
 			MessageDigest digest = MessageDigest.getInstance("SHA-1");
 			StringBuilder builder = new StringBuilder((int)size);
-			tokenCount = 0;
 			while (tokenReader.next()) {
 				String token = tokenReader.getText();
 				// PHPLexer may return null
 				if (token != null) { 
 					builder.append(token);
 					builder.append('\0');
-					tokenCount++;
 				}
 			}
 			codehash = digest.digest(builder.toString().getBytes());
@@ -28,13 +28,8 @@ public class CodeHash implements IHash {
 		}
 	}
 	
-	@Override
 	public byte[] getHash() {
 		return codehash;
 	}
 	
-	@Override
-	public int getTokenCount() {
-		return tokenCount;
-	}
 }
