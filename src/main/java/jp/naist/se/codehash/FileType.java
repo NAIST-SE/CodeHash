@@ -18,7 +18,7 @@ import jp.naist.se.commentlister.lexer.Python3Lexer;
 
 public enum FileType {
 
-	UNSUPPORTED, CPP, JAVA, ECMASCRIPT, CSHARP, PYTHON, PHP;
+	UNSUPPORTED, CPP, JAVA, ECMASCRIPT, PYTHON, PHP;
 
 	private static HashMap<String, FileType> filetype;
 	private static HashMap<String, FileType> extToFiletype;
@@ -50,7 +50,6 @@ public enum FileType {
 		extToFiletype.put("hpp", FileType.CPP);
 		extToFiletype.put("java", FileType.JAVA);
 		extToFiletype.put("js", FileType.ECMASCRIPT);
-		extToFiletype.put("cs", FileType.CSHARP);
 		extToFiletype.put("py", FileType.PYTHON);
 		extToFiletype.put("php", FileType.PHP);
 
