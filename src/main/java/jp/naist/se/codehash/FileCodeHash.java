@@ -1,9 +1,11 @@
 package jp.naist.se.codehash;
 
-import java.io.BufferedInputStream;
+import java.io.ByteArrayInputStream;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.LinkedList;
 
 
@@ -14,6 +16,7 @@ public class FileCodeHash {
 
 	public static final String ARG_MINHASH = "-minhash";
 	public static final String ARG_CODEHASH = "-codehash";
+	public static final String FILEHASH_ALGORITHM = "SHA-1";
 	
 	public static void main(String[] args) {
 		HashType type = HashType.CodeHash;
@@ -63,20 +66,28 @@ public class FileCodeHash {
 			String path = f.getAbsolutePath();
 			FileType t = FileType.getFileTypeFromName(path);
 			if (FileType.isSupported(t)) {
-				TokenReader tokenReader = FileType.createReader(t, new BufferedInputStream(new FileInputStream(f)));
-				String codehash = GitCodeHash.computeHash(tokenReader, f.length(), hashType);
-				
-				StringBuilder result = new StringBuilder(256);
-				result.append(path);
-				result.append("\t");
-				result.append(t.name());
-				result.append("\t");
-				result.append(codehash);
-				result.append("\t");
-				result.append(f.length());
-				result.append("\t");
-				result.append(tokenReader.getTokenCount());
-				System.out.println(result.toString());
+				try {
+					byte[] content = Files.readAllBytes(f.toPath());
+					MessageDigest d = MessageDigest.getInstance(FILEHASH_ALGORITHM);
+					String sha1 = GitCodeHash.bytesToHex(d.digest(content));
+					TokenReader tokenReader = FileType.createReader(t, new ByteArrayInputStream(content));
+					String codehash = GitCodeHash.computeHash(tokenReader, f.length(), hashType);
+					
+					StringBuilder result = new StringBuilder(256);
+					result.append(path);
+					result.append("\t");
+					result.append(sha1);
+					result.append("\t");
+					result.append(t.name());
+					result.append("\t");
+					result.append(codehash);
+					result.append("\t");
+					result.append(f.length());
+					result.append("\t");
+					result.append(tokenReader.getTokenCount());
+					System.out.println(result.toString());
+				} catch (NoSuchAlgorithmException e) {
+				}
 			}
 
 		} catch (IOException e) {

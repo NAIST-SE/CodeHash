@@ -40,7 +40,7 @@ Example for this repository:
 ## Analyzing files
 
 Another main class `FileCodeHash` accepts file names (or directory names) and options `-codehash` and `-minhash` to choose hash types.
-The main class reports hash values for each file using file names instead of blob IDs.  
+The main class reports hash values for each file with file names in addition to SHA-1 hash.  
 
 The following command line is an example to compute minhash values for source files in `src` directory.
 
