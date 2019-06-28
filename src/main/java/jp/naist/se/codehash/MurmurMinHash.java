@@ -2,9 +2,12 @@ package jp.naist.se.codehash;
 
 import java.util.Arrays;
 
+import jp.naist.se.codehash.util.StringMultiset;
+
 public class MurmurMinHash {
 
 	private int[] minhash;
+	private int ngramCount;
 	
 	/**
 	 * 1-bit minhash using k hash functions for N-gram Jaccard Index.  
@@ -18,7 +21,8 @@ public class MurmurMinHash {
 		// Initialize minhash
 		minhash = new int[k];
 		Arrays.fill(minhash, Integer.MAX_VALUE);
-
+		
+		StringMultiset mset = new StringMultiset(2048);
 		NgramReader ngramReader = new NgramReader(N, reader);
 		while (ngramReader.next()) {
 			// Calculate a hash for the N-gram 
@@ -31,9 +35,13 @@ public class MurmurMinHash {
 				}
 				builder.append((char)0);
 			}
+			String s = builder.toString();
+			// Distinguish multiple occurrences of the same n-gram
+			int count = mset.add(s);
+			builder.append((char)count);
+			s = builder.toString();
 			
 			// Update minhash 
-			String s = builder.toString();
 			int h = MurmurHash3.murmurhash3_x86_32(s, 0, s.length(), 0);
 			for (int i=0; i<k; i++) {
 				if (h < minhash[i]) {
@@ -42,6 +50,8 @@ public class MurmurMinHash {
 				h = MurmurHash3.fmix32(h);
 			}
 		}
+		
+		ngramCount = ngramReader.getNgramCount();
 	}
 	
 	/**
@@ -67,6 +77,10 @@ public class MurmurMinHash {
 		}
 		
 		return bitminhash;
+	}
+	
+	public int getNgramCount() {
+		return ngramCount;
 	}
 	
 }
