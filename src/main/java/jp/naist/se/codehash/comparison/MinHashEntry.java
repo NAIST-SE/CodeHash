@@ -60,7 +60,7 @@ public class MinHashEntry {
 			BitSet copy = (BitSet)thisSet.clone(); 
 			copy.xor(anotherSet);
 			int differentBitCount = copy.cardinality();
-			double sim = 1 - (differentBitCount * 1.0 / (copy.length() / 2));
+			double sim = 1 - (differentBitCount * 1.0 / (copy.size() / 2));
 			// The upper bound of similarity can be computed from N-gram set size
 			double maxSim = Math.min(this.size, another.size) * 1.0 / Math.max(this.size, another.size);
 			return Math.min(sim, maxSim);
