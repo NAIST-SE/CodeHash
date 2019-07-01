@@ -33,13 +33,16 @@ public class MurmurMinHash {
 
 		// Compute hash
 		for (String key: mset.keySet()) {
-			String s = key + "\0" + Integer.toString(mset.get(key));
-			int h = MurmurHash3.murmurhash3_x86_32(s, 0, s.length(), 0);
-			for (int i=0; i<k; i++) {
-				if (h < hash[i]) {
-					hash[i] = h;
+			int count = mset.get(key);
+			for (int c=0; c<count; c++) {
+				String s = key + "\0" + Integer.toString(c);
+				int h = MurmurHash3.murmurhash3_x86_32(s, 0, s.length(), 0);
+				for (int i=0; i<k; i++) {
+					if (h < hash[i]) {
+						hash[i] = h;
+					}
+					h = MurmurHash3.fmix32(h);
 				}
-				h = MurmurHash3.fmix32(h);
 			}
 		}
 		
