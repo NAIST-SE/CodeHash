@@ -15,6 +15,10 @@ public class NgramReader {
 		this.reader = reader;
 	}
 	
+	public int getN() {
+		return tokens.length;
+	}
+	
 	/**
 	 * Proceed to the next n-gram.
 	 * @return true if the next n-gram is available.

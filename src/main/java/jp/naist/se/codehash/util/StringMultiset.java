@@ -1,6 +1,7 @@
 package jp.naist.se.codehash.util;
 
 import java.util.HashMap;
+import java.util.Set;
 
 public class StringMultiset {
 
@@ -52,6 +53,10 @@ public class StringMultiset {
 		} else {
 			return 0;
 		}
+	}
+	
+	public Set<String> keySet() {
+		return counters.keySet();
 	}
 	
 	public int intersection(StringMultiset another) {

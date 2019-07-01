@@ -74,17 +74,19 @@ public class FileCodeHash {
 					String sha1 = GitCodeHash.bytesToHex(d.digest(content));
 					String codehash = null;
 					String minhash = null;
+					String normalizedMinhash = null;
 					int ngramCount = 0;
 					TokenReader tokenReader = FileType.createReader(t, new ByteArrayInputStream(content));
 					if (outputMinHash) {
 						CodeHashTokenReader wrapper = new CodeHashTokenReader(tokenReader, f.length());
 						MurmurMinHash h = new MurmurMinHash(GitCodeHash.BBITMINHASH_BITCOUNT, GitCodeHash.BBITMINHASH_NGRAM_SIZE, wrapper);
 						minhash = GitCodeHash.bytesToHex(h.getHash());
+						normalizedMinhash = GitCodeHash.bytesToHex(h.getNormalizedHash());
 						codehash = GitCodeHash.bytesToHex(wrapper.getHash());
 						ngramCount = h.getNgramCount();
 					} else {
 						CodeHash h = new CodeHash(tokenReader, f.length());
-						codehash =  GitCodeHash.bytesToHex(h.getHash());
+						codehash = GitCodeHash.bytesToHex(h.getHash());
 					}
 					
 					StringBuilder result = new StringBuilder(256);
@@ -98,6 +100,8 @@ public class FileCodeHash {
 					result.append("\t");
 					if (outputMinHash) {
 						result.append(minhash);
+						result.append("\t");
+						result.append(normalizedMinhash);
 						result.append("\t");
 					}
 					result.append(f.length());
