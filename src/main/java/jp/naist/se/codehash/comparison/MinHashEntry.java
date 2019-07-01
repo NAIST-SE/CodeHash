@@ -8,14 +8,18 @@ public class MinHashEntry {
 	private String filename;
 	private String sha1;
 	private String lang;
+	private String codehash;
 	private BitSet minhash;
+	private BitSet normalizedMinhash;
 	private int size;
 	
-	public MinHashEntry(String filename, String sha1, String lang, String bits, int size) {
+	public MinHashEntry(String filename, String sha1, String lang, String codehash, String bits, String normalizedBits, int size) {
 		this.filename = filename;
 		this.sha1 = sha1;
 		this.lang = lang;
+		this.codehash = codehash;
 		this.minhash = BitSet.valueOf(hexStringToByteArray(bits));
+		this.normalizedMinhash = BitSet.valueOf(hexStringToByteArray(normalizedBits));
 		this.size = size;
 	}
 	
@@ -25,6 +29,10 @@ public class MinHashEntry {
 	
 	public String getSha1() {
 		return sha1;
+	}
+	
+	public String getCodehash() {
+		return codehash;
 	}
 	
 	public boolean equivalent(MinHashEntry another) {
@@ -47,10 +55,10 @@ public class MinHashEntry {
 	    return data;
 	}
 	
-	public double estimateSimilarity(MinHashEntry another) {
+	private double estimateSimilarity(MinHashEntry another, BitSet thisSet, BitSet anotherSet) {
 		if (this.lang.equals(another.lang)) {
-			BitSet copy = (BitSet)minhash.clone(); 
-			copy.xor(another.minhash);
+			BitSet copy = (BitSet)thisSet.clone(); 
+			copy.xor(anotherSet);
 			int differentBitCount = copy.cardinality();
 			double sim = 1 - (differentBitCount * 1.0 / (copy.length() / 2));
 			// The upper bound of similarity can be computed from N-gram set size
@@ -60,5 +68,14 @@ public class MinHashEntry {
 			return 0;
 		}
 	}
+	
+	public double estimateSimilarity(MinHashEntry another) {
+		return estimateSimilarity(another, this.minhash, another.minhash);
+	}
+
+	public double estimateNormalizedSimilarity(MinHashEntry another) {
+		return estimateSimilarity(another, this.normalizedMinhash, another.normalizedMinhash);
+	}
+
 
 }
