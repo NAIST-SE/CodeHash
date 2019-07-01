@@ -130,6 +130,11 @@ public class MinHashTest {
 		}
 		
 		@Override
+		public String getNormalizedText() {
+			return "$p";
+		}
+		
+		@Override
 		public int getLine() {
 			return index;
 		}
