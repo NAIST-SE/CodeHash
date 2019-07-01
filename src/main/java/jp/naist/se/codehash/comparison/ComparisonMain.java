@@ -24,7 +24,7 @@ public class ComparisonMain {
 		}
 		
 		System.err.println(entries.size() + " unique files found.");
-		
+		System.out.println("CodeHash1\tCodeHash2\tEstimatedSim\tEstimatedSimWithNormalization");
 		// Compare all pairs
 		for (int i=0; i<entries.size(); i++) {
 			MinHashEntry e1 = entries.get(i);
