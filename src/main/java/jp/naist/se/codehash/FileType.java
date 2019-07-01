@@ -9,6 +9,8 @@ import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.Token;
 
+import jp.naist.se.codehash.normalizer.CPP14Normalizer;
+import jp.naist.se.codehash.normalizer.Java8Normalizer;
 import jp.naist.se.commentlister.lexer.CPP14Lexer;
 import jp.naist.se.commentlister.lexer.ECMAScriptLexer;
 import jp.naist.se.commentlister.lexer.Java8Lexer;
@@ -93,7 +95,7 @@ public enum FileType {
 					public boolean accept(Token t) {
 						return t.getChannel() != Java8Lexer.HIDDEN;
 					}
-				});
+				}, new Java8Normalizer());
 			}
 			case CPP:
 			{
@@ -105,7 +107,7 @@ public enum FileType {
 					public boolean accept(Token t) {
 						return t.getChannel() != CPP14Lexer.HIDDEN;
 					}
-				});
+				}, new CPP14Normalizer());
 			}
 			case ECMASCRIPT:
 			{
@@ -115,7 +117,7 @@ public enum FileType {
 					public boolean accept(Token t) {
 						return t.getChannel() != ECMAScriptLexer.HIDDEN;
 					}
-				});
+				}, null);
 			}
 			case PYTHON:
 			{
@@ -125,7 +127,7 @@ public enum FileType {
 					public boolean accept(Token t) {
 						return (t.getChannel() != Python3Lexer.HIDDEN);
 					}
-				});
+				}, null);
 			}
 			case PHP:
 			{
@@ -137,7 +139,7 @@ public enum FileType {
 								t.getChannel() != PhpLexer.SkipChannel &&
 								t.getChannel() != PhpLexer.ErrorLexem;
 					}
-				});
+				}, null);
 			}
 			default:
 				return null;

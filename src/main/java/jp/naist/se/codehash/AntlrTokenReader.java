@@ -3,17 +3,21 @@ package jp.naist.se.codehash;
 import org.antlr.v4.runtime.Lexer;
 import org.antlr.v4.runtime.Token;
 
+import jp.naist.se.codehash.normalizer.Normalizer;
+
 public class AntlrTokenReader implements TokenReader {
 
 	private Lexer lexer;
 	private Filter filter;
+	private Normalizer normalizer;
 	private Token current;
 	
 	private int tokenCount;
 	
-	public AntlrTokenReader(Lexer lexer, Filter filter) {
+	public AntlrTokenReader(Lexer lexer, Filter filter, Normalizer normalizer) {
 		this.lexer = lexer;
 		this.filter = filter;
+		this.normalizer = normalizer;
 		this.tokenCount = 0;
 	}
 	
@@ -31,6 +35,15 @@ public class AntlrTokenReader implements TokenReader {
 	@Override
 	public String getText() {
 		return current.getText();
+	}
+	
+	@Override
+	public String getNormalizedText() {
+		if (normalizer != null) {
+			return normalizer.normalize(current);
+		} else {
+			return getText();
+		}
 	}
 	
 	@Override
