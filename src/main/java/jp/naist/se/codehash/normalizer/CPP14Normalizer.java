@@ -8,6 +8,11 @@ import jp.naist.se.commentlister.lexer.CPP14Lexer;
 
 public class CPP14Normalizer implements Normalizer {
 
+	public static final String NORMALIZED_TOKEN = "$p";
+	/**
+	 * Ignore the differences of identifiers and literal
+	 * but keep type names
+	 */
 	@Override
 	public String normalize(Token t) {
 		switch (t.getType()) {
@@ -24,7 +29,7 @@ public class CPP14Normalizer implements Normalizer {
 		case CPP14Lexer.Userdefinedfloatingliteral:
 		case CPP14Lexer.Userdefinedintegerliteral:
 		case CPP14Lexer.Userdefinedstringliteral:
-			return "$p";
+			return NORMALIZED_TOKEN;
 		}
 		return t.getText();
 	}
