@@ -11,15 +11,19 @@ public class MinHashEntry {
 	private String codehash;
 	private BitSet minhash;
 	private BitSet normalizedMinhash;
+	private int fileLength;
+	private int tokenLength;
 	private int size;
 	
-	public MinHashEntry(String filename, String sha1, String lang, String codehash, String bits, String normalizedBits, int size) {
+	public MinHashEntry(String filename, String sha1, String lang, String codehash, String bits, String normalizedBits, int fileLength, int tokenLength, int size) {
 		this.filename = filename;
 		this.sha1 = sha1;
 		this.lang = lang;
 		this.codehash = codehash;
 		this.minhash = BitSet.valueOf(hexStringToByteArray(bits));
 		this.normalizedMinhash = BitSet.valueOf(hexStringToByteArray(normalizedBits));
+		this.fileLength = fileLength;
+		this.tokenLength = tokenLength;
 		this.size = size;
 	}
 	
@@ -37,6 +41,14 @@ public class MinHashEntry {
 	
 	public boolean equivalent(MinHashEntry another) {
 		return this.sha1.equals(another.sha1);
+	}
+	
+	public int getFileLength() {
+		return fileLength;
+	}
+	
+	public int getTokenLength() {
+		return tokenLength;
 	}
 	
 	/**
