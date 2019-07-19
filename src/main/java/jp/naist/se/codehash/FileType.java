@@ -10,8 +10,10 @@ import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.Token;
 
 import jp.naist.se.codehash.normalizer.CPP14Normalizer;
+import jp.naist.se.codehash.normalizer.CSharpNormalizer;
 import jp.naist.se.codehash.normalizer.Java8Normalizer;
 import jp.naist.se.commentlister.lexer.CPP14Lexer;
+import jp.naist.se.commentlister.lexer.CSharpLexer;
 import jp.naist.se.commentlister.lexer.ECMAScriptLexer;
 import jp.naist.se.commentlister.lexer.Java8Lexer;
 import jp.naist.se.commentlister.lexer.PhpLexer;
@@ -20,7 +22,7 @@ import jp.naist.se.commentlister.lexer.Python3Lexer;
 
 public enum FileType {
 
-	UNSUPPORTED, CPP, JAVA, ECMASCRIPT, PYTHON, PHP;
+	UNSUPPORTED, CPP, JAVA, ECMASCRIPT, PYTHON, PHP, CSHARP;
 
 	private static HashMap<String, FileType> filetype;
 	private static HashMap<String, FileType> extToFiletype;
@@ -33,6 +35,7 @@ public enum FileType {
 		filetype.put("JAVASCRIPT", FileType.ECMASCRIPT);
 		filetype.put("PYTHON", FileType.PYTHON);
 		filetype.put("PHP", FileType.PHP);
+		filetype.put("CSHARP", FileType.CSHARP);
 
 		extToFiletype = new HashMap<>(128);
 		extToFiletype.put("c", FileType.CPP);
@@ -54,6 +57,7 @@ public enum FileType {
 		extToFiletype.put("js", FileType.ECMASCRIPT);
 		extToFiletype.put("py", FileType.PYTHON);
 		extToFiletype.put("php", FileType.PHP);
+		extToFiletype.put("cs", FileType.CSHARP);
 
 	}
 	
@@ -140,6 +144,17 @@ public enum FileType {
 								t.getChannel() != PhpLexer.ErrorLexem;
 					}
 				}, null);
+			}
+			case CSHARP:
+			{
+				CSharpLexer lexer = new CSharpLexer(stream);
+				return new AntlrTokenReader(lexer, new AntlrTokenReader.Filter() {
+					@Override
+					public boolean accept(Token t) {
+						return (t.getChannel() != CSharpLexer.HIDDEN) &&
+								(t.getChannel() != CSharpLexer.COMMENTS_CHANNEL);
+					}
+				}, new CSharpNormalizer());
 			}
 			default:
 				return null;
