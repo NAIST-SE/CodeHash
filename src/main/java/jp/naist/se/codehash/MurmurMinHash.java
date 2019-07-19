@@ -6,9 +6,8 @@ import jp.naist.se.codehash.util.StringMultiset;
 
 public class MurmurMinHash {
 
-	private byte[] minhash;
-	private byte[] normalizedMinHash;
-	private int ngramCount;
+	private int k;
+	private NgramMultiset ngramMultiset;
 	
 	/**
 	 * 1-bit minhash using k hash functions for N-gram Jaccard Index.  
@@ -19,11 +18,8 @@ public class MurmurMinHash {
 	public MurmurMinHash(int k, int N, TokenReader reader) {
 		if (k <= 0) throw new IllegalArgumentException("k must be a positive integer. " + k);
 
-		// Initialize minhash
-		NgramMultiset ngramMultiset = new NgramMultiset(new NgramReader(N, reader));
-		minhash = computeMinHash(k, ngramMultiset.getRegular());
-		normalizedMinHash = computeMinHash(k, ngramMultiset.getNormalized());
-		ngramCount = ngramMultiset.getNgramCount();
+		this.k = k;
+		this.ngramMultiset = new NgramMultiset(new NgramReader(N, reader));
 	}
 	
 	private byte[] computeMinHash(int k, StringMultiset mset) {
@@ -71,15 +67,27 @@ public class MurmurMinHash {
 	 * @return 1-bit minhash array.
 	 */
 	public byte[] getHash() {
-		return minhash;
+		return computeMinHash(k, ngramMultiset.getRegular());
 	}
 	
 	public byte[] getNormalizedHash() {
-		return normalizedMinHash;
+		return computeMinHash(k, ngramMultiset.getNormalized());
 	}
 	
 	public int getNgramCount() {
-		return ngramCount;
+		return ngramMultiset.getNgramCount();
+	}
+	
+	public byte[] getHashIgnoreDuplicatedElements() {
+		return computeMinHash(k, ngramMultiset.getRegular().toOrdinarySet());
+	}
+
+	public byte[] getNormalizedHashIgnoreDuplicatedElements() {
+		return computeMinHash(k, ngramMultiset.getNormalized().toOrdinarySet());
+	}
+
+	public int getUniqueNgramCount() {
+		return ngramMultiset.getUniqueNgramCount();
 	}
 	
 }

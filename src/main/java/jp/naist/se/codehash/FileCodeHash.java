@@ -13,24 +13,27 @@ import java.util.LinkedList;
 public class FileCodeHash {
 
 	public static final String ARG_MINHASH = "-minhash";
+	public static final String ARG_MINHASH_IGNORE_DUPLICATION = "-ignoreduplication";
 	public static final String ARG_SHA1_MINHASH = "-sha1minhash";
 	public static final String ARG_CODEHASH = "-codehash";
 	public static final String FILEHASH_ALGORITHM = "SHA-1";
 	
 	public static void main(String[] args) {
 		boolean generateMinhash = false;
+		boolean ignoreDuplication = false;
 		LinkedList<File> files = new LinkedList<>();
 		for (String arg: args) {
 			if (arg.equals(ARG_MINHASH)) {
 				generateMinhash = true;
-			} else if (arg.equals(ARG_CODEHASH)) {
+			} else if (arg.equals(ARG_MINHASH_IGNORE_DUPLICATION)) {
+				ignoreDuplication = true;
 			} else {
 				files.add(new File(arg));
 			}
 		}
 		
 		if (!files.isEmpty()) {
-			FileCodeHash h = new FileCodeHash(generateMinhash);
+			FileCodeHash h = new FileCodeHash(generateMinhash, ignoreDuplication);
 			h.scan(files);
 		}  else {
 			System.err.println("No files are specified.");
@@ -38,9 +41,11 @@ public class FileCodeHash {
 	}
 	
 	private boolean outputMinHash;
+	private boolean ignoreDuplication;
 	
-	public FileCodeHash(boolean minhash) {
+	public FileCodeHash(boolean minhash, boolean ignoreDuplication) {
 		this.outputMinHash = minhash;
+		this.ignoreDuplication = ignoreDuplication;
 	}
 	
 	public void scan(LinkedList<File> files) {
@@ -80,8 +85,13 @@ public class FileCodeHash {
 					if (outputMinHash) {
 						CodeHashTokenReader wrapper = new CodeHashTokenReader(tokenReader, f.length());
 						MurmurMinHash h = new MurmurMinHash(GitCodeHash.BBITMINHASH_BITCOUNT, GitCodeHash.BBITMINHASH_NGRAM_SIZE, wrapper);
-						minhash = GitCodeHash.bytesToHex(h.getHash());
-						normalizedMinhash = GitCodeHash.bytesToHex(h.getNormalizedHash());
+						if (ignoreDuplication) {
+							minhash = GitCodeHash.bytesToHex(h.getHashIgnoreDuplicatedElements());
+							normalizedMinhash = GitCodeHash.bytesToHex(h.getNormalizedHashIgnoreDuplicatedElements());
+						} else {
+							minhash = GitCodeHash.bytesToHex(h.getHash());
+							normalizedMinhash = GitCodeHash.bytesToHex(h.getNormalizedHash());
+						}
 						codehash = GitCodeHash.bytesToHex(wrapper.getHash());
 						ngramCount = h.getNgramCount();
 					} else {

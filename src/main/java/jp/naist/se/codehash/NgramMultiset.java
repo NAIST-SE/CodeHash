@@ -52,5 +52,9 @@ public class NgramMultiset {
 	public int getNgramCount() {
 		return ngramCount;
 	}
-	
+
+	public int getUniqueNgramCount() {
+		return regular.size();
+	}
+
 }
