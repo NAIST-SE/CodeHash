@@ -150,16 +150,16 @@ public class GitCodeHash {
 							if (hashType == HashType.Murmur3MinHash) {
 								CodeHashTokenReader wrapper = new CodeHashTokenReader(tokenReader, size);
 								MurmurMinHash h = new MurmurMinHash(BBITMINHASH_BITCOUNT, BBITMINHASH_NGRAM_SIZE, wrapper);
-								minhash = bytesToHex(h.getHash());
-								codehash = bytesToHex(wrapper.getHash());
+								minhash = HashStringUtil.bytesToHex(h.getHash());
+								codehash = HashStringUtil.bytesToHex(wrapper.getHash());
 							} else if (hashType == HashType.SHA1MinHash) {
 								CodeHashTokenReader wrapper = new CodeHashTokenReader(tokenReader, size);
 								SHA1MinHash h = new SHA1MinHash(BBITMINHASH_BITCOUNT, BBITMINHASH_NGRAM_SIZE, wrapper);
-								minhash = bytesToHex(h.getHash());
-								codehash = bytesToHex(wrapper.getHash());
+								minhash = HashStringUtil.bytesToHex(h.getHash());
+								codehash = HashStringUtil.bytesToHex(wrapper.getHash());
 							} else {
 								CodeHash h = new CodeHash(tokenReader, size);
-								codehash = bytesToHex(h.getHash());
+								codehash = HashStringUtil.bytesToHex(h.getHash());
 								minhash = null;
 							}
 							
@@ -190,18 +190,6 @@ public class GitCodeHash {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-	}
-	
-	
-	private final static char[] hexArray = "0123456789abcdef".toCharArray();
-	public static String bytesToHex(byte[] bytes) {
-	    char[] hexChars = new char[bytes.length * 2];
-	    for ( int j = 0; j < bytes.length; j++ ) {
-	        int v = bytes[j] & 0xFF;
-	        hexChars[j * 2] = hexArray[v >>> 4];
-	        hexChars[j * 2 + 1] = hexArray[v & 0x0F];
-	    }
-	    return new String(hexChars);
 	}
 
 }

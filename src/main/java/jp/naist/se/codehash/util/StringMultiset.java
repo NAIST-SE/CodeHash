@@ -66,4 +66,17 @@ public class StringMultiset {
 		}
 		return count;
 	}
+	
+	/**
+	 * @return a set removing duplicated elements. 
+	 * In other words, this.toSet().get(s) == 1 for any string in this set.
+	 */
+	public StringMultiset toOrdinarySet() {
+		StringMultiset ordinary = new StringMultiset(counters.size() * 2);
+		for (String s: keySet()) {
+			ordinary.add(s);
+		}
+		return ordinary;
+	}
+	
 }

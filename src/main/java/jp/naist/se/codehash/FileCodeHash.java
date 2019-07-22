@@ -76,7 +76,7 @@ public class FileCodeHash {
 				try {
 					byte[] content = Files.readAllBytes(f.toPath());
 					MessageDigest d = MessageDigest.getInstance(FILEHASH_ALGORITHM);
-					String sha1 = GitCodeHash.bytesToHex(d.digest(content));
+					String sha1 = HashStringUtil.bytesToHex(d.digest(content));
 					String codehash = null;
 					String minhash = null;
 					String normalizedMinhash = null;
@@ -86,17 +86,17 @@ public class FileCodeHash {
 						CodeHashTokenReader wrapper = new CodeHashTokenReader(tokenReader, f.length());
 						MurmurMinHash h = new MurmurMinHash(GitCodeHash.BBITMINHASH_BITCOUNT, GitCodeHash.BBITMINHASH_NGRAM_SIZE, wrapper);
 						if (ignoreDuplication) {
-							minhash = GitCodeHash.bytesToHex(h.getHashIgnoreDuplicatedElements());
-							normalizedMinhash = GitCodeHash.bytesToHex(h.getNormalizedHashIgnoreDuplicatedElements());
+							minhash = HashStringUtil.bytesToHex(h.getHashIgnoreDuplicatedElements());
+							normalizedMinhash = HashStringUtil.bytesToHex(h.getNormalizedHashIgnoreDuplicatedElements());
 						} else {
-							minhash = GitCodeHash.bytesToHex(h.getHash());
-							normalizedMinhash = GitCodeHash.bytesToHex(h.getNormalizedHash());
+							minhash = HashStringUtil.bytesToHex(h.getHash());
+							normalizedMinhash = HashStringUtil.bytesToHex(h.getNormalizedHash());
 						}
-						codehash = GitCodeHash.bytesToHex(wrapper.getHash());
+						codehash = HashStringUtil.bytesToHex(wrapper.getHash());
 						ngramCount = h.getNgramCount();
 					} else {
 						CodeHash h = new CodeHash(tokenReader, f.length());
-						codehash = GitCodeHash.bytesToHex(h.getHash());
+						codehash = HashStringUtil.bytesToHex(h.getHash());
 					}
 					
 					StringBuilder result = new StringBuilder(256);

@@ -2,6 +2,8 @@ package jp.naist.se.codehash.comparison;
 
 import java.util.BitSet;
 
+import jp.naist.se.codehash.HashStringUtil;
+
 
 public class MinHashEntry {
 
@@ -20,8 +22,8 @@ public class MinHashEntry {
 		this.sha1 = sha1;
 		this.lang = lang;
 		this.codehash = codehash;
-		this.minhash = BitSet.valueOf(hexStringToByteArray(bits));
-		this.normalizedMinhash = BitSet.valueOf(hexStringToByteArray(normalizedBits));
+		this.minhash = BitSet.valueOf(HashStringUtil.hexToBytes(bits));
+		this.normalizedMinhash = BitSet.valueOf(HashStringUtil.hexToBytes(normalizedBits));
 		this.fileLength = fileLength;
 		this.tokenLength = tokenLength;
 		this.size = size;
@@ -49,22 +51,6 @@ public class MinHashEntry {
 	
 	public int getTokenLength() {
 		return tokenLength;
-	}
-	
-	/**
-	 * This code comes from StackOverflow, June 2019.
-	 * https://stackoverflow.com/questions/140131/convert-a-string-representation-of-a-hex-dump-to-a-byte-array-using-java
-	 * @param s
-	 * @return
-	 */
-	public static byte[] hexStringToByteArray(String s) {
-	    int len = s.length();
-	    byte[] data = new byte[len / 2];
-	    for (int i = 0; i < len; i += 2) {
-	        data[i / 2] = (byte) ((Character.digit(s.charAt(i), 16) << 4)
-	                             + Character.digit(s.charAt(i+1), 16));
-	    }
-	    return data;
 	}
 	
 	private double estimateSimilarity(MinHashEntry another, BitSet thisSet, BitSet anotherSet) {
