@@ -1,5 +1,6 @@
 package jp.naist.se.codehash.comparison;
 
+import java.io.BufferedInputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
 
@@ -23,7 +24,7 @@ public class FileTokenizerMain {
 					gen.writeStringField("Type", t.name());
 					gen.writeStringField("Name", filename);
 					gen.writeArrayFieldStart("Tokens");
-					try (FileInputStream input = new FileInputStream(filename)) {
+					try (BufferedInputStream input = new BufferedInputStream(new FileInputStream(filename))) {
 						TokenReader r = FileType.createReader(t, input);
 						while (r.next()) {
 							gen.writeStartObject();

@@ -1,18 +1,18 @@
 /*******************************************************************************
  * The MIT License (MIT)
- *
+ * 
  * Copyright (c) 2015 Camilo Sanchez (Camiloasc1)
- *
+ * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- *
+ * 
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
- *
+ * 
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -23,15 +23,31 @@
  ******************************************************************************/
 
 /*******************************************************************************
+ * Modified C++14 Grammar for Lexical Analysis using ANTLR v4
+ * 
+ * The original grammar skips preprocessor directives as follows.
+ * 
+ *    Directive
+ *    : '#' ~[\r\n]* -> skip;
+ * 
+ * This grammar recognizes a token after "#" as a preprocessor directive.
+ * For example, a line "# define A_MACRO" is recognized as two tokens "#define" and "A_MACRO".
+ * The grammar also recognizes a file name such as "<stdio.h>" for "#include" directive
+ * as a single token.  A typical grammar often recognizes it "<", "stdio", ".", "h", and ">". 
+ * 
+ * The grammar also recognizes a backslash at the end of a line for line continuation
+ * as a single token.
+ ******************************************************************************/
+/*******************************************************************************
  * C++14 Grammar for ANTLR v4
  *
  * Based on n4140 draft paper
  * https://github.com/cplusplus/draft/blob/master/papers/n4140.pdf
  * and
  * http://www.nongnu.org/hcb/
- *
+ * 
  * Possible Issues:
- *
+ * 
  * Input must avoid conditional compilation blocks (this grammar ignores any preprocessor directive)
  * GCC extensions not yet supported (do not try to parse the preprocessor output)
  * Right angle bracket (C++11) - Solution '>>' and '>>=' are not tokens, only '>'
@@ -91,7 +107,7 @@ qualifiedid
 nestednamespecifier
 :
 	'::'
-	| thetypename '::'
+	| typename '::'
 	| namespacename '::'
 	| decltypespecifier '::'
 	| nestednamespecifier Identifier '::'
@@ -168,12 +184,12 @@ postfixexpression
 	| postfixexpression '->' pseudodestructorname
 	| postfixexpression '++'
 	| postfixexpression '--'
-	| Dynamic_cast '<' thetypeid '>' '(' expression ')'
-	| Static_cast '<' thetypeid '>' '(' expression ')'
-	| Reinterpret_cast '<' thetypeid '>' '(' expression ')'
-	| Const_cast '<' thetypeid '>' '(' expression ')'
+	| Dynamic_cast '<' typeid '>' '(' expression ')'
+	| Static_cast '<' typeid '>' '(' expression ')'
+	| Reinterpret_cast '<' typeid '>' '(' expression ')'
+	| Const_cast '<' typeid '>' '(' expression ')'
 	| Typeid '(' expression ')'
-	| Typeid '(' thetypeid ')'
+	| Typeid '(' typeid ')'
 ;
 
 expressionlist
@@ -183,9 +199,9 @@ expressionlist
 
 pseudodestructorname
 :
-	nestednamespecifier? thetypename '::' '~' thetypename
-	| nestednamespecifier Template simpletemplateid '::' '~' thetypename
-	| nestednamespecifier? '~' thetypename
+	nestednamespecifier? typename '::' '~' typename
+	| nestednamespecifier Template simpletemplateid '::' '~' typename
+	| nestednamespecifier? '~' typename
 	| '~' decltypespecifier
 ;
 
@@ -196,9 +212,9 @@ unaryexpression
 	| '--' castexpression
 	| unaryoperator castexpression
 	| Sizeof unaryexpression
-	| Sizeof '(' thetypeid ')'
+	| Sizeof '(' typeid ')'
 	| Sizeof '...' '(' Identifier ')'
-	| Alignof '(' thetypeid ')'
+	| Alignof '(' typeid ')'
 	| noexceptexpression
 	| newexpression
 	| deleteexpression
@@ -218,7 +234,7 @@ unaryoperator
 newexpression
 :
 	'::'? New newplacement? newtypeid newinitializer?
-	| '::'? New newplacement? '(' thetypeid ')' newinitializer?
+	| '::'? New newplacement? '(' typeid ')' newinitializer?
 ;
 
 newplacement
@@ -263,7 +279,7 @@ noexceptexpression
 castexpression
 :
 	unaryexpression
-	| '(' thetypeid ')' castexpression
+	| '(' typeid ')' castexpression
 ;
 
 pmexpression
@@ -502,7 +518,7 @@ blockdeclaration
 
 aliasdeclaration
 :
-	Using Identifier attributespecifierseq? '=' thetypeid ';'
+	Using Identifier attributespecifierseq? '=' typeid ';'
 ;
 
 simpledeclaration
@@ -592,7 +608,7 @@ trailingtypespecifierseq
 
 simpletypespecifier
 :
-	nestednamespecifier? thetypename
+	nestednamespecifier? typename
 	| nestednamespecifier Template simpletemplateid
 	| Char
 	| Char16
@@ -611,7 +627,7 @@ simpletypespecifier
 	| decltypespecifier
 ;
 
-thetypename
+typename
 :
 	classname
 	| enumname
@@ -778,7 +794,7 @@ attributespecifier
 
 alignmentspecifier
 :
-	Alignas '(' thetypeid '...'? ')'
+	Alignas '(' typeid '...'? ')'
 	| Alignas '(' constantexpression '...'? ')'
 ;
 
@@ -903,7 +919,7 @@ declaratorid
 	'...'? idexpression
 ;
 
-thetypeid
+typeid
 :
 	typespecifierseq abstractdeclarator?
 ;
@@ -1177,7 +1193,7 @@ meminitializerid
 /*Overloading*/
 operatorfunctionid
 :
-	Operator theoperator
+	Operator operator
 ;
 
 literaloperatorid
@@ -1207,9 +1223,9 @@ templateparameter
 typeparameter
 :
 	Class '...'? Identifier?
-	| Class Identifier? '=' thetypeid
+	| Class Identifier? '=' typeid
 	| Typename '...'? Identifier?
-	| Typename Identifier? '=' thetypeid
+	| Typename Identifier? '=' typeid
 	| Template '<' templateparameterlist '>' Class '...'? Identifier?
 	| Template '<' templateparameterlist '>' Class Identifier? '=' idexpression
 ;
@@ -1239,8 +1255,8 @@ templateargumentlist
 
 templateargument
 :
-	thetypeid
-	| constantexpression
+	constantexpression
+	| typeid
 	| idexpression
 ;
 
@@ -1306,8 +1322,8 @@ dynamicexceptionspecification
 
 typeidlist
 :
-	thetypeid '...'?
-	| typeidlist ',' thetypeid '...'?
+	typeid '...'?
+	| typeidlist ',' typeid '...'?
 ;
 
 noexceptspecification
@@ -1317,16 +1333,22 @@ noexceptspecification
 ;
 
 /*Preprocessing directives*/
-
-MultiLineMacro
-:
-    '#' (~[\n]*? '\\' '\r'? '\n')+ ~[\n]+ -> skip
-;
-
 Directive
 :
-    '#' ~[\n]* -> skip
+	'#' Whitespace* ~[ \t\r\n<"]+ 
+	{ setText(getText().replaceAll("\\s+","")); }
 ;
+
+
+DirectiveFileName
+:
+	'<' ~[ \t\r\n]+ '>'
+	| '"' ~[ \t\r\n]+ '"'
+;
+	
+LineContinue
+    :  '\\' Newline { setText("\\\\n"); }
+    ;
 
 /*Lexer*/
 
@@ -1954,7 +1976,7 @@ Ellipsis
 	'...'
 ;
 
-theoperator
+operator
 :
 	New
 	| Delete
@@ -2194,6 +2216,7 @@ Simpleescapesequence
 	| '\\r'
 	| '\\t'
 	| '\\v'
+	| '\\%'  // Non-standard, but exists in several source files
 ;
 
 fragment
@@ -2270,8 +2293,15 @@ fragment
 Schar
 :
 	~["\\\r\n]
+	| EscapedNewLineInLiteral
 	| Escapesequence
 	| Universalcharactername
+;
+
+fragment
+EscapedNewLineInLiteral
+:
+	'\\' '\r'? '\n'
 ;
 
 fragment
@@ -2342,17 +2372,29 @@ Newline
 	) -> skip
 ;
 
+// Characters included in some source files.
+NonstandardTokens
+:  
+    '$' 
+;
+
+// Characters included in some source files.
+// This rule is introduced to reduce the number of token recognition errors.
+InvalidCharacter
+    :
+	'\f' -> skip
+    ;
+
+
 BlockComment
 :
-	'/*' .*? '*/' -> channel(HIDDEN)
+	'/*' .*? '*/' -> skip
 ;
 
 LineComment
 :
-	'//' ~[\r\n]* -> channel(HIDDEN)
+	'//' ~[\r\n]* -> skip
 ;
 
-ERROR_CHARACTER
-: 
-	.
-;
+// If a lexical error is found, keep the error characters as is.    
+ErrorCharacter : . ;
