@@ -3,6 +3,9 @@ package jp.naist.se.codehash.comparison;
 import java.io.BufferedInputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.LineNumberReader;
+import java.io.StringReader;
 
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
@@ -12,12 +15,28 @@ import jp.naist.se.codehash.TokenReader;
 
 public class FileTokenizerMain {
 
+	private static StringReader toReader(String[] args) {
+		StringBuilder buf = new StringBuilder();
+		for (String arg: args) {
+			buf.append(arg);
+			buf.append("\n");
+		}
+		return new StringReader(buf.toString());
+	}
+	
 	public static void main(String[] args) {
+		LineNumberReader reader;
+		if (args.length == 1 && args[0].equals("-")) {
+			reader = new LineNumberReader(new InputStreamReader(System.in));
+		} else {
+			reader = new LineNumberReader(toReader(args));
+		}
+
 		JsonFactory f = new JsonFactory();
 		try (JsonGenerator gen = f.createGenerator(System.out)) {
 			gen.writeStartObject();
 			gen.writeArrayFieldStart("Files");
-			for (String filename: args) {
+			for (String filename = reader.readLine(); filename != null; filename = reader.readLine()) {
 				FileType t = FileType.getFileTypeFromName(filename);
 				if (FileType.isSupported(t)) {
 					gen.writeStartObject();
@@ -44,8 +63,10 @@ public class FileTokenizerMain {
 			}
 			gen.writeEndArray();
 			gen.writeEndObject();
+			reader.close();
 		} catch (IOException e) {
 			e.printStackTrace();
+		} finally {
 		}
 	}
 
