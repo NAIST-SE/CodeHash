@@ -17,6 +17,7 @@ import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
 
 import jp.naist.se.codehash.sha1.SHA1MinHash;
+import jp.naist.se.codehash.sha1.SHA1MinHashOld;
 
 
 /**
@@ -25,7 +26,7 @@ import jp.naist.se.codehash.sha1.SHA1MinHash;
  */
 public class GitCodeHash {
 
-	public static enum HashType { CodeHash, SHA1MinHash, Murmur3MinHash };
+	public static enum HashType { CodeHash, SHA1MinHash, Murmur3MinHash, SHA1MinHashInPaper };
 	public static int BBITMINHASH_BITCOUNT = 2048;
 	public static int BBITMINHASH_NGRAM_SIZE = 3;
 	
@@ -53,6 +54,8 @@ public class GitCodeHash {
 						t = HashType.Murmur3MinHash;
 					} else if (hashtype.equals("sha1minhash")) {
 						t = HashType.SHA1MinHash;
+					} else if (hashtype.equals("sha1minhashInPaper")) {
+						t = HashType.SHA1MinHashInPaper;
 					}
 					
 					File gitDir = new File(repoPath);
@@ -155,6 +158,11 @@ public class GitCodeHash {
 							} else if (hashType == HashType.SHA1MinHash) {
 								CodeHashTokenReader wrapper = new CodeHashTokenReader(tokenReader, size);
 								SHA1MinHash h = new SHA1MinHash(BBITMINHASH_BITCOUNT, BBITMINHASH_NGRAM_SIZE, wrapper);
+								minhash = HashStringUtil.bytesToHex(h.getHash());
+								codehash = HashStringUtil.bytesToHex(wrapper.getHash());
+							} else if (hashType == HashType.SHA1MinHashInPaper) {
+								CodeHashTokenReader wrapper = new CodeHashTokenReader(tokenReader, size);
+								SHA1MinHashOld h = new SHA1MinHashOld(BBITMINHASH_BITCOUNT, BBITMINHASH_NGRAM_SIZE, wrapper);
 								minhash = HashStringUtil.bytesToHex(h.getHash());
 								codehash = HashStringUtil.bytesToHex(wrapper.getHash());
 							} else {
