@@ -17,7 +17,7 @@ import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
 
 import jp.naist.se.codehash.sha1.SHA1MinHash;
-import jp.naist.se.codehash.sha1.SHA1MinHashOld;
+import jp.naist.se.codehash.sha1.SHA1MinHashMSR2017;
 
 
 /**
@@ -162,7 +162,7 @@ public class GitCodeHash {
 								codehash = HashStringUtil.bytesToHex(wrapper.getHash());
 							} else if (hashType == HashType.SHA1MinHashInPaper) {
 								CodeHashTokenReader wrapper = new CodeHashTokenReader(tokenReader, size);
-								SHA1MinHashOld h = new SHA1MinHashOld(BBITMINHASH_BITCOUNT, BBITMINHASH_NGRAM_SIZE, wrapper);
+								SHA1MinHashMSR2017 h = new SHA1MinHashMSR2017(BBITMINHASH_BITCOUNT, BBITMINHASH_NGRAM_SIZE, wrapper);
 								minhash = HashStringUtil.bytesToHex(h.getHash());
 								codehash = HashStringUtil.bytesToHex(wrapper.getHash());
 							} else {

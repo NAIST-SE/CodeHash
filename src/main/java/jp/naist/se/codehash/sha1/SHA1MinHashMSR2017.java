@@ -10,9 +10,11 @@ import jp.naist.se.codehash.TokenReader;
 import jp.naist.se.codehash.util.StringMultiset;
 
 /**
- * This class implements a b-bit minhash calculation used in some publications.
+ * This class implements a b-bit minhash calculation used in the following publication.
+ * Takashi Ishio, Yusuke Sakaguchi, Kaoru Ito and Katsuro Inoue:
+ * Source File Set Search for Clone-and-Own Reuse Analysis, In Proc. of MSR 2017.
  */
-public class SHA1MinHashOld {
+public class SHA1MinHashMSR2017 {
 
 	private static final String HASH_FUNCTION = "SHA-1"; // Chosen for performance
 
@@ -30,7 +32,7 @@ public class SHA1MinHashOld {
 	 * @param N
 	 * @param reader
 	 */
-	public SHA1MinHashOld(int k, int N, TokenReader reader) {
+	public SHA1MinHashMSR2017(int k, int N, TokenReader reader) {
 		try {
 			if (k <= 0) throw new IllegalArgumentException("k must be a positive integer. " + k);
 
