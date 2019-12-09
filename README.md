@@ -54,7 +54,9 @@ An output file is a tsv file comprising five columns.
  - Programming language type
  - Source code hash: content hash excluding whitespace and comments.  Each token is concatenated by a NUL character.
  - Min-hash (optional): 2048-bit vector of 1-bit min-hash for trigrams of the file.  
-   - The hamming distance between a pair of min-hash values can be used to approximate the similarity of the file pair: `Estimated-similarity = 1 - (The-cardinality-of-XOR-of-two-vectors / 1024)`.   The estimated value may have some error; a pair of file having actual similarity 0.7 may have an estimated value 0.8.  The details are described in a technical paper: https://doi.org/10.1109/MSR.2017.19
+   - The hamming distance between a pair of min-hash values can be used to approximate the similarity of the file pair: `Estimated-similarity = 1 - (The-cardinality-of-XOR-of-two-vectors / 1024)`.   The estimated value may have some error; a pair of file having actual similarity 0.7 may have an estimated value 0.8.  
+     - The details are described in our technical paper: Takashi Ishio, Yusuke Sakaguchi, Kaoru Ito and Katsuro Inoue: Source File Set Search for Clone-and-Own Reuse Analysis, In Proc. of MSR 2017.
+ <https://doi.org/10.1109/MSR.2017.19>
  - File size 
  - The number of tokens in the file
 
