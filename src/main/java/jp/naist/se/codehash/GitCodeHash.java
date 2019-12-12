@@ -34,7 +34,7 @@ public class GitCodeHash {
 	 * Extract hash values for source file contents excluding whitespace and comments from Git directories.
 	 * @param args The first argument specifies a CSV file.
 	 * The file must includes a repo path, a csv file path including blob hash and 
-	 * language to be processed, an output file path, and a hash type (codehash, minhash, or sha1minhash).   
+	 * an output file path, and a hash type (codehash, minhash, or sha1minhash).   
 	 */
 	public static void main(String[] args) { 
 		GitCodeHash analyzer = new GitCodeHash();
