@@ -11,6 +11,7 @@ import org.antlr.v4.runtime.Token;
 
 import jp.naist.se.codehash.normalizer.CPP14Normalizer;
 import jp.naist.se.codehash.normalizer.CSharpNormalizer;
+import jp.naist.se.codehash.normalizer.ECMAScriptNormalizer;
 import jp.naist.se.codehash.normalizer.Java8Normalizer;
 import jp.naist.se.codehash.normalizer.Python3Normalizer;
 import jp.naist.se.commentlister.lexer.CPP14Lexer;
@@ -123,7 +124,7 @@ public enum FileType {
 					public boolean accept(Token t) {
 						return t.getChannel() != ECMAScriptLexer.HIDDEN;
 					}
-				}, null);
+				}, new ECMAScriptNormalizer());
 			}
 			case PYTHON:
 			{
