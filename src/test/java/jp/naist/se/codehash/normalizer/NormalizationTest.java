@@ -95,5 +95,54 @@ public class NormalizationTest {
 		Assert.assertFalse(ngrams.next());
 
 	}
+	
+	
+	@Test
+	public void testPythonNgrams() {
+		String sample = "def f(n):\n  if not n >= 0:\n    x = 1\n  x = 2\n  return x\n";
+		TokenReader r = FileType.createReader(FileType.PYTHON, new ByteArrayInputStream(sample.getBytes(StandardCharsets.UTF_8)));
+		Assert.assertTrue(r.next());
+		Assert.assertEquals("def", r.getNormalizedText());
+		Assert.assertTrue(r.next());
+		Assert.assertEquals(Python3Normalizer.NORMALIZED_TOKEN, r.getNormalizedText());
+		Assert.assertTrue(r.next());
+		Assert.assertEquals("(", r.getNormalizedText());
+		Assert.assertTrue(r.next());
+		Assert.assertEquals(Python3Normalizer.NORMALIZED_TOKEN, r.getNormalizedText());
+		Assert.assertTrue(r.next());
+		Assert.assertEquals(")", r.getNormalizedText());
+		Assert.assertTrue(r.next());
+		Assert.assertEquals(":", r.getNormalizedText());
+		Assert.assertTrue(r.next());
+		Assert.assertEquals("if", r.getNormalizedText());
+		Assert.assertTrue(r.next());
+		Assert.assertEquals("not", r.getNormalizedText());
+		Assert.assertTrue(r.next());
+		Assert.assertEquals(Python3Normalizer.NORMALIZED_TOKEN, r.getNormalizedText());
+		Assert.assertTrue(r.next());
+		Assert.assertEquals(">=", r.getNormalizedText());
+		Assert.assertTrue(r.next());
+		Assert.assertEquals("0", r.getNormalizedText());
+		Assert.assertTrue(r.next());
+		Assert.assertEquals(":", r.getNormalizedText());
+		Assert.assertTrue(r.next());
+		Assert.assertEquals(Python3Normalizer.NORMALIZED_TOKEN, r.getNormalizedText());
+		Assert.assertTrue(r.next());
+		Assert.assertEquals("=", r.getNormalizedText());
+		Assert.assertTrue(r.next());
+		Assert.assertEquals("1", r.getNormalizedText());
+		Assert.assertTrue(r.next());
+		Assert.assertEquals(Python3Normalizer.NORMALIZED_TOKEN, r.getNormalizedText());
+		Assert.assertTrue(r.next());
+		Assert.assertEquals("=", r.getNormalizedText());
+		Assert.assertTrue(r.next());
+		Assert.assertEquals("2", r.getNormalizedText());
+		Assert.assertTrue(r.next());
+		Assert.assertEquals("return", r.getNormalizedText());
+		Assert.assertTrue(r.next());
+		Assert.assertEquals(Python3Normalizer.NORMALIZED_TOKEN, r.getNormalizedText());
+		Assert.assertFalse(r.next());
+
+	}
 
 }

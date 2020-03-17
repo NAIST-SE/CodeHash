@@ -3,12 +3,13 @@ package jp.naist.se.codehash.normalizer;
 
 import org.antlr.v4.runtime.Token;
 
-import jp.naist.se.commentlister.lexer.Java8Lexer;
+import jp.naist.se.commentlister.lexer.Python3Lexer;
 
 
-public class Java8Normalizer implements Normalizer {
+public class Python3Normalizer implements Normalizer {
 
 	public static final String NORMALIZED_TOKEN = "$p";
+
 
 	/**
 	 * A simple normalization for Java8.
@@ -18,13 +19,7 @@ public class Java8Normalizer implements Normalizer {
 	@Override
 	public String normalize(Token t) {
 		switch (t.getType()) {
-		case Java8Lexer.Identifier:
-		case Java8Lexer.IntegerLiteral:
-		case Java8Lexer.FloatingPointLiteral:
-		case Java8Lexer.BooleanLiteral: 
-		case Java8Lexer.CharacterLiteral:
-		case Java8Lexer.StringLiteral:
-		case Java8Lexer.NullLiteral: 
+		case Python3Lexer.NAME:
 			return NORMALIZED_TOKEN;
 		}
 		return t.getText();
