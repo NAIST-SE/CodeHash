@@ -13,11 +13,11 @@ public class MinHashEntry {
 	private String codehash;
 	private BitSet minhash;
 	private BitSet normalizedMinhash;
-	private int fileLength;
+	private long fileLength;
 	private int tokenLength;
 	private int size;
 	
-	public MinHashEntry(String filename, String sha1, String lang, String codehash, String bits, String normalizedBits, int fileLength, int tokenLength, int size) {
+	public MinHashEntry(String filename, String sha1, String lang, String codehash, String bits, String normalizedBits, long fileLength, int tokenLength, int size) {
 		this.filename = filename;
 		this.sha1 = sha1;
 		this.lang = lang;
@@ -45,7 +45,7 @@ public class MinHashEntry {
 		return this.sha1.equals(another.sha1);
 	}
 	
-	public int getFileLength() {
+	public long getFileLength() {
 		return fileLength;
 	}
 	

@@ -1,5 +1,7 @@
 package jp.naist.se.codehash;
 
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 
 import jp.naist.se.codehash.util.StringMultiset;
@@ -42,6 +44,10 @@ public class MurmurMinHash {
 			}
 		}
 		
+		return packMinHash(hash);
+	}
+	
+	private byte[] packMinHash(int[] hash) {
 		// Translate b-bit minhash
 		byte[] bitminhash = new byte[hash.length / 8];
 		for (int i=0; i<hash.length; i++) {
@@ -63,6 +69,46 @@ public class MurmurMinHash {
 		return bitminhash;
 	}
 	
+	private byte[] getSHA1MinHash(int k, StringMultiset mset) {
+		try {
+			MessageDigest digest = MessageDigest.getInstance("SHA-1");
+			
+			// Initialize minhash
+			int[] minhash = new int[k];
+			Arrays.fill(minhash, Integer.MAX_VALUE);
+	
+			// Compute hash
+			for (String key: mset.keySet()) {
+				int count = mset.get(key);
+				for (int c=0; c<count; c++) {
+					String s = key + "\0" + Integer.toString(c);
+					byte[] hash = digest.digest(s.getBytes());
+					for (int i=0; i<k; i++) {
+						int h = extractIntHash(hash);
+						if (h < minhash[i]) {
+							minhash[i] = h;
+						}
+						hash = digest.digest(hash);
+					}
+					
+				}
+			}
+			
+			return packMinHash(minhash);
+		} catch (NoSuchAlgorithmException e) {
+			e.printStackTrace();
+			return null;
+		}
+	}
+	
+	private int extractIntHash(byte[] digest) {
+		int hash = 0;
+		for (int i=0; i<4; i++) {
+			hash = (hash << 4) + digest[i];
+		}
+		return hash;
+	}
+	
 	/**
 	 * @return 1-bit minhash array.
 	 */
@@ -72,6 +118,14 @@ public class MurmurMinHash {
 	
 	public byte[] getNormalizedHash() {
 		return computeMinHash(k, ngramMultiset.getNormalized());
+	}
+	
+	public byte[] getSHA1MinHash() {
+		return getSHA1MinHash(k, ngramMultiset.getRegular());
+	}
+	
+	public byte[] getNormalizedSHA1MinHash() {
+		return getSHA1MinHash(k, ngramMultiset.getNormalized());
 	}
 	
 	public int getNgramCount() {
@@ -90,4 +144,12 @@ public class MurmurMinHash {
 		return ngramMultiset.getUniqueNgramCount();
 	}
 	
+	public StringMultiset getNgramMultiset() {
+		return ngramMultiset.getRegular();
+	}
+
+	public StringMultiset getNormalizedNgramMultiset() {
+		return ngramMultiset.getNormalized();
+	}
+
 }
