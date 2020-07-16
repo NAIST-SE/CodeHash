@@ -1,9 +1,72 @@
 # CodeHash Tool
 
-This tool computes source file hash for comparing contents ignoring whitespace and comments. 
+This tool computes source file similarity using 3-gram multiset ignoring whitespace and comments.
+The implementation is a revised version that has used in our technical paper: 
+>        Takashi Ishio, Yusuke Sakaguchi, Kaoru Ito and Katsuro Inoue: 
+>        Source File Set Search for Clone-and-Own Reuse Analysis, In Proc. of MSR 2017.
+>        <https://doi.org/10.1109/MSR.2017.19>
 
-Build the project using maven.
+
+The source code is written in Java.  You can build the project using Maven.
 >        mvn package
+
+## Compare source files 
+
+The main class `jp.naist.se.codehash.comparison.DirectComparisonMain` compares a set of files.
+
+It takes as command line arguments source file names on your disk.  For example:
+>        java -classpath target/CodeHash.jar jp.naist.se.codehash.comparison.DirectComparisonMain 001.c 002.c
+
+The program produces a JSON format.
+
+        {
+          "Files":[ 
+            {index":0,"path":"001.c","lang":"CPP","byte-length":2071,"token-length":662,"ngram-count":664},
+            {index":1,"path":"002.c","lang":"CPP","byte-length":947,"token-length":270,"ngram-count":272}
+          ],
+          "Pairs": [
+            {
+              "index1":0,
+              "index2":1,
+              "jaccard":0.18032786885245902,
+              "estimated-jaccard":0.1826171875,
+              "inclusion1":0.21536144578313254,
+              "inclusion2":0.5257352941176471,
+              "normalization-jaccard":0.32954545454545453,
+              "normalization-estimated-jaccard":0.3203125,
+              "normalization-inclusion1":0.3493975903614458,
+              "normalization-inclusion2":0.8529411764705882
+            }
+          ]
+        }
+
+The JSON format is an object comprising a list of files (`Files`) and a list of pair-wise similarity values (`Pairs`). 
+
+### File Attributes
+
+|Attribute   |Value                                             |
+|:-----------|:-------------------------------------------------|
+|index       |Index to identify a file in the list.             |
+|path        |A full path of the file.                          |
+|lang        |Language name used to recognize tokens in the file|
+|byte-length |The number of bytes in the file                   |
+|token-length|The number of tokens in the file                  |
+|ngram-count |The number of ngram elements in the file          |
+
+### Pair Attributes
+
+|Attribute        |Value                                                                                 |
+|:----------------|:-------------------------------------------------------------------------------------|
+|index1           |The first file to be compared in the list                                             |
+|index2           |The second file to be compared in the list                                            |
+|jaccard          |Jaccard index of the ngram multisets of the files (|F1 \cap F2|/|F1 \cup F2|)         |
+|estimated-jaccard|Estimated jaccard index of the files using minhash                                    |
+|inclusion1       |The ratio of common contents in the first file (|F1 \cap F2|/|F1|)                    |  
+|inclusion2       |The ratio of common contents in the second file (|F1 \cap F2|/|F2|)                   |  
+|normalization-*  |The similarity metrics calculated for normalized source code ignoring identifier names|
+
+The normalization is implemented for C/C++, Java, C Sharp, JavaScript, and Python.
+
 
 
 ## Analyzing a Git repository
@@ -55,8 +118,6 @@ An output file is a tsv file comprising five columns.
  - Source code hash: content hash excluding whitespace and comments.  Each token is concatenated by a NUL character.
  - Min-hash (optional): 2048-bit vector of 1-bit min-hash for trigrams of the file.  
    - The hamming distance between a pair of min-hash values can be used to approximate the similarity of the file pair: `Estimated-similarity = 1 - (The-cardinality-of-XOR-of-two-vectors / 1024)`.   The estimated value may have some error; a pair of file having actual similarity 0.7 may have an estimated value 0.8.  
-     - The details are described in our technical paper: Takashi Ishio, Yusuke Sakaguchi, Kaoru Ito and Katsuro Inoue: Source File Set Search for Clone-and-Own Reuse Analysis, In Proc. of MSR 2017.
- <https://doi.org/10.1109/MSR.2017.19>
  - File size 
  - The number of tokens in the file
 
