@@ -49,6 +49,7 @@ public class DirectComparisonMain {
 
 		JsonFactory f = new JsonFactory();
 		try (JsonGenerator gen = f.createGenerator(System.out)) {
+			gen.useDefaultPrettyPrinter();
 			gen.writeStartObject();
 			gen.writeArrayFieldStart("Files");
 			for (int i=0; i<files.size(); i++) {
