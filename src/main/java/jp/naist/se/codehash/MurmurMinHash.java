@@ -69,6 +69,12 @@ public class MurmurMinHash {
 		return bitminhash;
 	}
 	
+	/**
+	 * Calculate k-bit minhash representing a given multiset using SHA-1 hash algorithm.
+	 * @param k is the number of minhash bits.
+	 * @param mset represents a multiset to be translated.
+	 * @return a bit array.
+	 */
 	private byte[] getSHA1MinHash(int k, StringMultiset mset) {
 		try {
 			MessageDigest digest = MessageDigest.getInstance("SHA-1");
