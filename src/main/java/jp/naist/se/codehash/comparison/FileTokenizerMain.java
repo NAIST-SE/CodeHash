@@ -24,6 +24,10 @@ public class FileTokenizerMain {
 		return new StringReader(buf.toString());
 	}
 	
+	/**
+	 * Print a list of tokens in a JSON format. 
+	 * @param args specifies a file name.  "-" represents STDIN.
+	 */
 	public static void main(String[] args) {
 		LineNumberReader reader;
 		if (args.length == 1 && args[0].equals("-")) {
