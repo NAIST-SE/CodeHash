@@ -22,16 +22,23 @@ import jp.naist.se.codehash.util.StringMultiset;
 
 public class DirectComparisonMain {
 
-
+	private static String LANG_OPTION = "-lang:";
+	
 	/**
 	 * Compare two source files.
 	 * @param args
 	 */
 	public static void main(String[] args) {
 		ArrayList<FileEntity> files = new ArrayList<>();
+		FileType t = null;
+		for (String s: args) {
+			if (s.startsWith(LANG_OPTION)) {
+				t = FileType.getFileType(s.substring(LANG_OPTION.length()));
+			}
+		}
 		for (String s: args) {
 			File f = new File(s);
-			FileEntity entity = FileEntity.parse(f);
+			FileEntity entity = FileEntity.parse(f, t);
 			if (entity != null) files.add(entity);
 		}
 		
@@ -170,9 +177,9 @@ public class DirectComparisonMain {
 		private StringMultiset normalizedNgrams;
 		private MinHashEntry minhashEntry;
 		
-		public static FileEntity parse(File f) {
+		public static FileEntity parse(File f, FileType enforceLanguage) {
 			String path = f.getAbsolutePath();
-			FileType type = FileType.getFileTypeFromName(path);
+			FileType type = enforceLanguage != null ? enforceLanguage : FileType.getFileTypeFromName(path);
 			if (f.canRead() && FileType.isSupported(type)) {
 				try {
 					byte[] content = Files.readAllBytes(f.toPath());
