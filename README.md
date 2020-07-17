@@ -17,28 +17,30 @@ The main class `jp.naist.se.codehash.comparison.DirectComparisonMain` compares a
 It takes as command line arguments source file names on your disk.  For example:
 >        java -classpath target/CodeHash.jar jp.naist.se.codehash.comparison.DirectComparisonMain 001.c 002.c
 
+An option `-lang:[LANGUAGE]` specifies a language name.  Supported languages are CPP, JAVA, ECMASCRIPT, PYTHON, PHP, and CSHARP.
+
 The program produces a JSON format.
 
-        {
-          "Files":[ 
-            {index":0,"path":"001.c","lang":"CPP","byte-length":2071,"token-length":662,"ngram-count":664},
-            {index":1,"path":"002.c","lang":"CPP","byte-length":947,"token-length":270,"ngram-count":272}
-          ],
-          "Pairs": [
-            {
-              "index1":0,
-              "index2":1,
-              "jaccard":0.18032786885245902,
-              "estimated-jaccard":0.1826171875,
-              "inclusion1":0.21536144578313254,
-              "inclusion2":0.5257352941176471,
-              "normalization-jaccard":0.32954545454545453,
-              "normalization-estimated-jaccard":0.3203125,
-              "normalization-inclusion1":0.3493975903614458,
-              "normalization-inclusion2":0.8529411764705882
-            }
-          ]
-        }
+>        {
+>          "Files":[ 
+>            {index":0,"path":"001.c","lang":"CPP","byte-length":2071,"token-length":662,"ngram-count":664},
+>            {index":1,"path":"002.c","lang":"CPP","byte-length":947,"token-length":270,"ngram-count":272}
+>          ],
+>          "Pairs": [
+>            {
+>              "index1":0,
+>              "index2":1,
+>              "jaccard":0.18032786885245902,
+>              "estimated-jaccard":0.1826171875,
+>              "inclusion1":0.21536144578313254,
+>              "inclusion2":0.5257352941176471,
+>              "normalization-jaccard":0.32954545454545453,
+>              "normalization-estimated-jaccard":0.3203125,
+>              "normalization-inclusion1":0.3493975903614458,
+>              "normalization-inclusion2":0.8529411764705882
+>            }
+>          ]
+>        }
 
 The JSON format is an object comprising a list of files (`Files`) and a list of pair-wise similarity values (`Pairs`). 
 
@@ -140,4 +142,14 @@ Example of Min-Hash Mode Result:
 >        8005e63674d37076fdd36e70291c8573324dd3ff	JAVA	1630ff51700724eccab03b576d7fb9a0e4bc95f7	3d63eeece0e80dd91d664d20660f0f2bc900712da08bcda7ad633a8a5e5087008e8c3a708c4e2dffa0637c34ce879286ffed94fb93db97a31bd608e6f1e0bb12114233fa9c398c0253bdbb11cfaef79f04b22a9693e4982b3951d707804ab528c6fd234a0f3d5294632a3555c945938ca21d8df28ec9c21a7ff14506b30799a594cec0e5d960c6eaec6560d9e9bfada67c8516bd106bd02423e0c7717477f17c745e5aff1676c7cdb89f9c58f580d6c5663a4b4a35dc4bbc5745ec29f56e2acc05122515b4af9fa394f2d2dd3b2b661892aadfbb540840b98f11c06c3dc0b71f4d4b39b4d0fb34d9097451ba0e6078405673b4007d438852fbc0445d13013506	9545	1844
 >        430582dd4efc0de59502947e5bbd0063cbd73ea1	JAVA	0d9e73ba2795a256f315a9511971ca1c8197d937	3de5eee6eef88fd118e6cf28642f072ad900612da10389a7a5633a8a4cd087308e04bb608e4e2deda0636c34c607d2865bcd84fb96cb96e317d34bf6f1e0fb13114037fa9939850253bdab01cdaef49f80a26a9e93e0d82b3951d796a04ab528c7fda3498f3d12bf623b35754946938e22190db2adcbd21a3bf04505a3079b659cc8e4e7d920c6eae80360c9f9bb2ca47eb716ad086ff22a2fc1c7f17c7ff178740f7afd1666e6cd38935c58f4b076c5e63a6b5235d469fcd544ec29dd6eaacc0d123335b1ad1f239136fa153b3b6518c2badf3d7c0871b9ef01486c3bc037170e7b1bb650fb34d90d7553fb8c607c467057f4804c038252bed0441d17196d46	5586	1075
 
+
+
+## Tokenizer usage 
+
+If you would like to see how a file is translated into tokens, you can use `FileTokenizerMain`.
+ 
+>        java -classpath target/CodeHash.jar jp.naist.se.codehash.comparison.FileTokenizerMain 001.c
+
+It generates a list of tokens in a JSON format.
+The program reads source code from STDIN when `-` is specified as a file name. 
 
