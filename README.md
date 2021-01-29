@@ -63,10 +63,10 @@ The JSON format is an object comprising a list of files (`Files`) and a list of 
 |:----------------|:-----------------------------------------------------------------------------------------|
 |index1           |The first file to be compared in the list                                                 |
 |index2           |The second file to be compared in the list                                                |
-|jaccard          |Jaccard index of the ngram multisets of the files (|Intersection(F1, F2)|/|Union(F1, F2)|)|
+|jaccard          |Jaccard index of the ngram multisets of the files (&#x7C;Intersection(F1, F2)&#x7C;/&#x7C;Union(F1, F2)&#x7C;)|
 |estimated-jaccard|Estimated jaccard index of the files using minhash                                        |
-|inclusion1       |The ratio of common contents in the first file (|Intersection(F1, F2)|/|F1|)              |  
-|inclusion2       |The ratio of common contents in the second file (|Intersection(F1, F2)|/|F2|)             |  
+|inclusion1       |The ratio of common contents in the first file (&#x7C;Intersection(F1, F2)&#x7C;/&#x7C;F1&#x7C;)              |  
+|inclusion2       |The ratio of common contents in the second file (&#x7C;Intersection(F1, F2)&#x7C;/&#x7C;F2&#x7C;)             |  
 |normalization-*  |The similarity metrics calculated for normalized source code ignoring identifier names    |
 
 The normalization is implemented for C/C++, Java, C Sharp, JavaScript, and Python.
