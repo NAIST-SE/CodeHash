@@ -58,6 +58,8 @@ public class DirectComparisonMain {
 				gen.writeNumberField("index", i);
 				gen.writeStringField("path", e1.path);
 				gen.writeStringField("lang", e1.getLanguageName());
+				gen.writeStringField("byte-sha1", e1.filehash);
+				gen.writeStringField("token-sha1", e1.codehash);
 				gen.writeNumberField("byte-length", e1.byteLength);
 				gen.writeNumberField("token-length", e1.tokenLength);
 				gen.writeNumberField("ngram-count", e1.ngramCount);

@@ -19,7 +19,7 @@ It takes as command line arguments source file names on your disk.  For example:
 
 An option `-lang:[LANGUAGE]` specifies a language name.  Supported languages are CPP, JAVA, ECMASCRIPT, PYTHON, PHP, and CSHARP.
 
-The program produces a JSON format.
+The program produces a JSON format like this.
 
 >        {
 >          "Files":[ 
@@ -46,26 +46,28 @@ The JSON format is an object comprising a list of files (`Files`) and a list of 
 
 ### File Attributes
 
-|Attribute   |Value                                             |
-|:-----------|:-------------------------------------------------|
-|index       |Index to identify a file in the list.             |
-|path        |A full path of the file.                          |
-|lang        |Language name used to recognize tokens in the file|
-|byte-length |The number of bytes in the file                   |
-|token-length|The number of tokens in the file                  |
-|ngram-count |The number of ngram elements in the file          |
+|Attribute   |Value                                                |
+|:-----------|:----------------------------------------------------|
+|index       |Index to identify a file in the list.                |
+|path        |A full path of the file.                             |
+|lang        |Language name used to recognize tokens in the file   |
+|byte-sha1   |SHA1 hash of the file content                        |
+|token-sha1  |SHA1 hash of tokens ignoring comments and white space|
+|byte-length |The number of bytes in the file                      |
+|token-length|The number of tokens in the file                     |
+|ngram-count |The number of ngram elements in the file             |
 
 ### Pair Attributes
 
-|Attribute        |Value                                                                                 |
-|:----------------|:-------------------------------------------------------------------------------------|
-|index1           |The first file to be compared in the list                                             |
-|index2           |The second file to be compared in the list                                            |
-|jaccard          |Jaccard index of the ngram multisets of the files (|F1 \cap F2|/|F1 \cup F2|)         |
-|estimated-jaccard|Estimated jaccard index of the files using minhash                                    |
-|inclusion1       |The ratio of common contents in the first file (|F1 \cap F2|/|F1|)                    |  
-|inclusion2       |The ratio of common contents in the second file (|F1 \cap F2|/|F2|)                   |  
-|normalization-*  |The similarity metrics calculated for normalized source code ignoring identifier names|
+|Attribute        |Value                                                                                     |
+|:----------------|:-----------------------------------------------------------------------------------------|
+|index1           |The first file to be compared in the list                                                 |
+|index2           |The second file to be compared in the list                                                |
+|jaccard          |Jaccard index of the ngram multisets of the files (|Intersection(F1, F2)|/|Union(F1, F2)|)|
+|estimated-jaccard|Estimated jaccard index of the files using minhash                                        |
+|inclusion1       |The ratio of common contents in the first file (|Intersection(F1, F2)|/|F1|)              |  
+|inclusion2       |The ratio of common contents in the second file (|Intersection(F1, F2)|/|F2|)             |  
+|normalization-*  |The similarity metrics calculated for normalized source code ignoring identifier names    |
 
 The normalization is implemented for C/C++, Java, C Sharp, JavaScript, and Python.
 
