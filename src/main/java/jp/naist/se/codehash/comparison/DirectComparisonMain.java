@@ -7,6 +7,8 @@ import java.nio.file.Files;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Set;
 
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
@@ -18,12 +20,14 @@ import jp.naist.se.codehash.GitCodeHash;
 import jp.naist.se.codehash.HashStringUtil;
 import jp.naist.se.codehash.MurmurMinHash;
 import jp.naist.se.codehash.TokenReader;
+import jp.naist.se.codehash.util.Counter;
 import jp.naist.se.codehash.util.StringMultiset;
 
 public class DirectComparisonMain {
 
 	private static String LANG_OPTION = "-lang:";
 	private static String NGRAM_OPTION = "-n:";
+	private static String WEIGHTED_JACCARD_OPTION = "-w";
 	
 	/**
 	 * Compare two source files.
@@ -33,6 +37,7 @@ public class DirectComparisonMain {
 		ArrayList<FileEntity> files = new ArrayList<>();
 		FileType t = null;
 		int N = GitCodeHash.BBITMINHASH_NGRAM_SIZE;
+		boolean weighted = false;
 		for (String s: args) {
 			if (s.startsWith(LANG_OPTION)) {
 				t = FileType.getFileType(s.substring(LANG_OPTION.length()));
@@ -50,6 +55,8 @@ public class DirectComparisonMain {
 					System.err.println("Invalid number: " + nString);
 					return;
 				}
+			} else if (s.equals(WEIGHTED_JACCARD_OPTION)) {
+				weighted = true;
 			}
 		}
 		for (String s: args) {
@@ -62,11 +69,27 @@ public class DirectComparisonMain {
 			System.err.println("Arguments: Two or more source file names should be specified.");
 			return;
 		}
+		
+		// Count the number of Ngrams
+		StringMultiset ngramFrequency = new StringMultiset(1024);
+		StringMultiset normalizedNgramFrequency = new StringMultiset(1024);
+		if (weighted) {
+			for (FileEntity f: files) {
+				for (String s: f.getNgramMultiset().keySet()) {
+					ngramFrequency.add(s);
+				}
+				for (String s: f.getNormalizedNgramMultiset().keySet()) {
+					normalizedNgramFrequency.add(s);
+				}
+			}
+		}
 
 		JsonFactory f = new JsonFactory();
 		try (JsonGenerator gen = f.createGenerator(System.out)) {
 			gen.useDefaultPrettyPrinter();
 			gen.writeStartObject();
+			
+			// Print a file list
 			gen.writeArrayFieldStart("Files");
 			for (int i=0; i<files.size(); i++) {
 				FileEntity e1 = files.get(i);
@@ -85,7 +108,7 @@ public class DirectComparisonMain {
 
 			gen.writeArrayFieldStart("Pairs");
 
-			// Pick up file pairs 
+			// Compare file pairs 
 			for (int i=0; i<files.size(); i++) {
 				FileEntity e1 = files.get(i);
 				
@@ -99,6 +122,17 @@ public class DirectComparisonMain {
 						gen.writeNumberField("index2", j);
 						writeSimilarity(gen, "", Similarity.calculateSimilarity(e1, e2));
 						writeSimilarity(gen, "normalization-", Similarity.calculateSimilarityWithNormalization(e1, e2));
+						
+						if (weighted) {
+							WeightedSimilarity w1 = WeightedSimilarity.calculateSimilarity(e1.getNgramMultiset(), e2.getNgramMultiset(), ngramFrequency);
+							gen.writeNumberField("weighted-jaccard", w1.jaccard);
+							gen.writeNumberField("weighted-inclusion1", w1.inclusion1);
+							gen.writeNumberField("weighted-inclusion2", w1.inclusion2);
+							WeightedSimilarity w2 = WeightedSimilarity.calculateSimilarity(e1.getNormalizedNgramMultiset(), e2.getNormalizedNgramMultiset(), normalizedNgramFrequency);
+							gen.writeNumberField("weighted-normalization-jaccard", w2.jaccard);
+							gen.writeNumberField("weighted-normalization-inclusion1", w2.inclusion1);
+							gen.writeNumberField("weighted-normalization-inclusion2", w2.inclusion2);
+						}
 						gen.writeEndObject();
 					}
 				}
@@ -179,7 +213,50 @@ public class DirectComparisonMain {
 			return estimatedJaccard;
 		}
 	}
+
 	
+	public static class WeightedSimilarity {
+
+		private double jaccard;
+		private double inclusion1;
+		private double inclusion2;
+		
+		private WeightedSimilarity(double intersection, double size1, double size2) {
+			this.jaccard = intersection * 1.0 / (size1 + size2 - intersection);
+			this.inclusion1 = intersection * 1.0 / size1;
+			this.inclusion2 = intersection * 1.0 / size2;
+		}
+		
+		public static WeightedSimilarity calculateSimilarity(StringMultiset ngram1, StringMultiset ngram2, StringMultiset ngramFrequency) {
+			double intersection = 0;
+			for (String s: ngram1.keySet()) {
+				intersection += Math.min(ngram1.get(s), ngram2.get(s)) / ngramFrequency.get(s);
+			}
+			double size1 = 0;
+			for (String s: ngram1.keySet()) {
+				size1 += ngram1.get(s) / ngramFrequency.get(s);
+			}
+			double size2 = 0;
+			for (String s: ngram2.keySet()) {
+				size2 += ngram2.get(s) / ngramFrequency.get(s);
+			}
+			
+			WeightedSimilarity s = new WeightedSimilarity(intersection, size1, size2);
+			return s;
+		}
+		
+		public double getInclusion1() {
+			return inclusion1;
+		}
+		
+		public double getInclusion2() {
+			return inclusion2;
+		}
+		public double getJaccard() {
+			return jaccard;
+		}
+	}
+
 	
 	public static class FileEntity {
 		
@@ -257,6 +334,24 @@ public class DirectComparisonMain {
 		public boolean isSameLanguage(FileEntity another) { 
 			return this.type == another.type;
 		}
+		
+		public Set<String> getNgrams() {
+			return ngrams.keySet();
+		}
+
+		public Set<String> getNormalizedNgrams() {
+			return normalizedNgrams.keySet();
+		}
+
+		public StringMultiset getNgramMultiset() {
+			return ngrams;
+		}
+
+		public StringMultiset getNormalizedNgramMultiset() {
+			return normalizedNgrams;
+		}
+
+
 	}
 
 }
