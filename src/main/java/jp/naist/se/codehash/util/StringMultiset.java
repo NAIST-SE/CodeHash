@@ -5,18 +5,6 @@ import java.util.Set;
 
 public class StringMultiset {
 
-	private static class Counter {
-		private int count;
-		public Counter() {
-			count = 0;
-		}
-		public void increment() {
-			count++;
-		}
-		public int get() {
-			return count;
-		}
-	}
 	
 	private HashMap<String, Counter> counters;
 	private int size;
