@@ -23,6 +23,7 @@ import jp.naist.se.codehash.util.StringMultiset;
 public class DirectComparisonMain {
 
 	private static String LANG_OPTION = "-lang:";
+	private static String NGRAM_OPTION = "-n:";
 	
 	/**
 	 * Compare two source files.
@@ -31,14 +32,29 @@ public class DirectComparisonMain {
 	public static void main(String[] args) {
 		ArrayList<FileEntity> files = new ArrayList<>();
 		FileType t = null;
+		int N = GitCodeHash.BBITMINHASH_NGRAM_SIZE;
 		for (String s: args) {
 			if (s.startsWith(LANG_OPTION)) {
 				t = FileType.getFileType(s.substring(LANG_OPTION.length()));
+			} else if (s.startsWith(NGRAM_OPTION)) {
+				String nString = s.substring(NGRAM_OPTION.length());
+				try {
+					int newN = Integer.parseInt(nString);
+					if (1 <= newN && newN <= 1024) { 
+						N = newN;
+					} else {
+						System.err.println("N is out of range: " + nString);
+						return;
+					}
+				} catch (NumberFormatException e) {
+					System.err.println("Invalid number: " + nString);
+					return;
+				}
 			}
 		}
 		for (String s: args) {
 			File f = new File(s);
-			FileEntity entity = FileEntity.parse(f, t);
+			FileEntity entity = FileEntity.parse(f, t, N);
 			if (entity != null) files.add(entity);
 		}
 		
@@ -180,13 +196,21 @@ public class DirectComparisonMain {
 		private StringMultiset normalizedNgrams;
 		private MinHashEntry minhashEntry;
 		
-		public static FileEntity parse(File f, FileType enforceLanguage) {
+		/**
+		 * Create a FileEntity object from a File.
+		 * @param f specifies a file.  The content will be loaded.
+		 * @param enforceLanguage specifies a programming language.  
+		 * If null, the method automatically tries to recognize a programming language from the file extension.
+		 * @param N specifies the size of N-gram to compare files.
+		 * @return a created object.
+		 */
+		public static FileEntity parse(File f, FileType enforceLanguage, int N) {
 			String path = f.getAbsolutePath();
 			FileType type = enforceLanguage != null ? enforceLanguage : FileType.getFileTypeFromName(path);
 			if (f.canRead() && FileType.isSupported(type)) {
 				try {
 					byte[] content = Files.readAllBytes(f.toPath());
-					return new FileEntity(path, type, content);
+					return new FileEntity(path, type, content, N);
 				} catch (IOException e) {
 					return null;
 				}
@@ -195,7 +219,14 @@ public class DirectComparisonMain {
 			}
 		}
 		
-		public FileEntity(String path, FileType type, byte[] content) {
+		/**
+		 * Construct a FileEntity object.
+		 * @param path specifies a file name.  The value is only used when writing a result.  
+		 * @param type specifies a programming language to parse the content. 
+		 * @param content is the content of a file.
+		 * @param N specifies the size of N-gram to compare files.
+		 */
+		public FileEntity(String path, FileType type, byte[] content, int N) {
 			this.path = path;
 			this.type = type;
 			this.byteLength = content.length;
@@ -204,7 +235,7 @@ public class DirectComparisonMain {
 				filehash = HashStringUtil.bytesToHex(d.digest(content));
 				TokenReader tokenReader = FileType.createReader(type, new ByteArrayInputStream(content));
 				CodeHashTokenReader wrapper = new CodeHashTokenReader(tokenReader, byteLength);
-				MurmurMinHash h = new MurmurMinHash(GitCodeHash.BBITMINHASH_BITCOUNT, GitCodeHash.BBITMINHASH_NGRAM_SIZE, wrapper);
+				MurmurMinHash h = new MurmurMinHash(GitCodeHash.BBITMINHASH_BITCOUNT, N, wrapper);
 				minhash = HashStringUtil.bytesToHex(h.getHash());
 				normalizedMinhash = HashStringUtil.bytesToHex(h.getNormalizedHash());
 				codehash = HashStringUtil.bytesToHex(wrapper.getHash());
