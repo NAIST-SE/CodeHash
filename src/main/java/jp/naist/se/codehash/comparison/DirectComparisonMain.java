@@ -124,11 +124,11 @@ public class DirectComparisonMain {
 						writeSimilarity(gen, "normalization-", Similarity.calculateSimilarityWithNormalization(e1, e2));
 						
 						if (weighted) {
-							WeightedSimilarity w1 = WeightedSimilarity.calculateSimilarity(e1.getNgramMultiset(), e2.getNgramMultiset(), ngramFrequency);
+							WeightedSimilarity w1 = WeightedSimilarity.calculateSimilarity(e1.getNgramMultiset(), e2.getNgramMultiset(), ngramFrequency, files.size());
 							gen.writeNumberField("weighted-jaccard", w1.jaccard);
 							gen.writeNumberField("weighted-inclusion1", w1.inclusion1);
 							gen.writeNumberField("weighted-inclusion2", w1.inclusion2);
-							WeightedSimilarity w2 = WeightedSimilarity.calculateSimilarity(e1.getNormalizedNgramMultiset(), e2.getNormalizedNgramMultiset(), normalizedNgramFrequency);
+							WeightedSimilarity w2 = WeightedSimilarity.calculateSimilarity(e1.getNormalizedNgramMultiset(), e2.getNormalizedNgramMultiset(), normalizedNgramFrequency, files.size());
 							gen.writeNumberField("weighted-normalization-jaccard", w2.jaccard);
 							gen.writeNumberField("weighted-normalization-inclusion1", w2.inclusion1);
 							gen.writeNumberField("weighted-normalization-inclusion2", w2.inclusion2);
@@ -227,18 +227,22 @@ public class DirectComparisonMain {
 			this.inclusion2 = intersection * 1.0 / size2;
 		}
 		
-		public static WeightedSimilarity calculateSimilarity(StringMultiset ngram1, StringMultiset ngram2, StringMultiset ngramFrequency) {
+		public static double weight(int numFiles, int freq) {
+			return Math.log(numFiles * 1.0 / freq);
+		}
+		
+		public static WeightedSimilarity calculateSimilarity(StringMultiset ngram1, StringMultiset ngram2, StringMultiset ngramFrequency, int numFiles) {
 			double intersection = 0;
 			for (String s: ngram1.keySet()) {
-				intersection += Math.min(ngram1.get(s), ngram2.get(s)) / ngramFrequency.get(s);
+				intersection += Math.min(ngram1.get(s), ngram2.get(s)) * weight(numFiles, ngramFrequency.get(s));
 			}
 			double size1 = 0;
 			for (String s: ngram1.keySet()) {
-				size1 += ngram1.get(s) / ngramFrequency.get(s);
+				size1 += ngram1.get(s) * weight(numFiles, ngramFrequency.get(s));
 			}
 			double size2 = 0;
 			for (String s: ngram2.keySet()) {
-				size2 += ngram2.get(s) / ngramFrequency.get(s);
+				size2 += ngram2.get(s) * weight(numFiles, ngramFrequency.get(s))
 			}
 			
 			WeightedSimilarity s = new WeightedSimilarity(intersection, size1, size2);
