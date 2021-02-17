@@ -242,7 +242,7 @@ public class DirectComparisonMain {
 			}
 			double size2 = 0;
 			for (String s: ngram2.keySet()) {
-				size2 += ngram2.get(s) * weight(numFiles, ngramFrequency.get(s))
+				size2 += ngram2.get(s) * weight(numFiles, ngramFrequency.get(s));
 			}
 			
 			WeightedSimilarity s = new WeightedSimilarity(intersection, size1, size2);
