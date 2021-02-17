@@ -7,7 +7,6 @@ import java.nio.file.Files;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Set;
 
 import com.fasterxml.jackson.core.JsonFactory;
@@ -20,7 +19,6 @@ import jp.naist.se.codehash.GitCodeHash;
 import jp.naist.se.codehash.HashStringUtil;
 import jp.naist.se.codehash.MurmurMinHash;
 import jp.naist.se.codehash.TokenReader;
-import jp.naist.se.codehash.util.Counter;
 import jp.naist.se.codehash.util.StringMultiset;
 
 public class DirectComparisonMain {
