@@ -26,6 +26,7 @@ public class DirectComparisonMain {
 	private static String LANG_OPTION = "-lang:";
 	private static String NGRAM_OPTION = "-n:";
 	private static String WEIGHTED_JACCARD_OPTION = "-w";
+	private static String THRESHOLD_NORMALIZED_JACCARD = "-thnj:";
 	
 	/**
 	 * Compare two source files.
@@ -36,6 +37,8 @@ public class DirectComparisonMain {
 		FileType t = null;
 		int N = GitCodeHash.BBITMINHASH_NGRAM_SIZE;
 		boolean weighted = false;
+		double thresholdNormalizedJaccard = 0;
+		
 		for (String s: args) {
 			if (s.startsWith(LANG_OPTION)) {
 				t = FileType.getFileType(s.substring(LANG_OPTION.length()));
@@ -51,6 +54,20 @@ public class DirectComparisonMain {
 					}
 				} catch (NumberFormatException e) {
 					System.err.println("Invalid number: " + nString);
+					return;
+				}
+			} else if (s.startsWith(THRESHOLD_NORMALIZED_JACCARD)) {
+				String nString = s.substring(THRESHOLD_NORMALIZED_JACCARD.length());
+				try {
+					double newThreshold = Double.parseDouble(nString);
+					if (0 <= newThreshold && newThreshold <= 1.0) { 
+						thresholdNormalizedJaccard = newThreshold;
+					} else {
+						System.err.println("Threshold is out of range (0-1): " + nString);
+						return;
+					}
+				} catch (NumberFormatException e) {
+					System.err.println("Invalid threshold: " + nString);
 					return;
 				}
 			} else if (s.equals(WEIGHTED_JACCARD_OPTION)) {
@@ -115,11 +132,15 @@ public class DirectComparisonMain {
 					
 					// Compare them if they are written in the same language
 					if (e1.isSameLanguage(e2)) {
+						Similarity normalized = Similarity.calculateSimilarityWithNormalization(e1, e2);
+						if (normalized.jaccard < thresholdNormalizedJaccard) continue;
+
+						Similarity regular = Similarity.calculateSimilarity(e1, e2);
 						gen.writeStartObject();
 						gen.writeNumberField("index1", i);
 						gen.writeNumberField("index2", j);
-						writeSimilarity(gen, "", Similarity.calculateSimilarity(e1, e2));
-						writeSimilarity(gen, "normalization-", Similarity.calculateSimilarityWithNormalization(e1, e2));
+						writeSimilarity(gen, "", regular);
+						writeSimilarity(gen, "normalization-", normalized);
 						
 						if (weighted) {
 							WeightedSimilarity w1 = WeightedSimilarity.calculateSimilarity(e1.getNgramMultiset(), e2.getNgramMultiset(), ngramFrequency, files.size());
