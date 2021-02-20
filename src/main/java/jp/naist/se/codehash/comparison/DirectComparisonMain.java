@@ -275,7 +275,7 @@ public class DirectComparisonMain {
 		}
 		
 		public static double weight(int numFiles, int freq) {
-			return Math.log(numFiles * 1.0 / freq) + 1;
+			return Math.log(numFiles * 1.0 / freq);
 		}
 		
 		public static WeightedSimilarity calculateSimilarity(StringMultiset ngram1, StringMultiset ngram2, StringMultiset ngramFrequency, int numFiles) {
@@ -311,7 +311,7 @@ public class DirectComparisonMain {
 	public static class CosineSimilarity {
 
 		public static double weight(int numFiles, int freq) {
-			return Math.log(numFiles * 1.0 / freq) + 1;
+			return Math.log(numFiles * 1.0 / freq);
 		}
 
 		public static double getTFIDFCosineSimilarity(StringMultiset ngram1, StringMultiset ngram2, StringMultiset ngramFrequency, int numFiles) {
@@ -331,6 +331,7 @@ public class DirectComparisonMain {
 				v2 += tf2 * tf2 * w * w;
 			}
 			double cosine = product / Math.sqrt(v1 * v2);
+			if (Double.isNaN(cosine)) return 0;
 			return cosine;
 		}
 
@@ -351,6 +352,7 @@ public class DirectComparisonMain {
 				v2 += tf2 * tf2 * w * w;
 			}
 			double cosine = product / Math.sqrt(v1 * v2);
+			if (Double.isNaN(cosine)) return 0;
 			return cosine;
 		}
 	}
