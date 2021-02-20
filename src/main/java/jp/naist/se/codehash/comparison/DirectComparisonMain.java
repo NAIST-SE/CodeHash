@@ -140,6 +140,14 @@ public class DirectComparisonMain {
 						writeSimilarity(gen, "normalization-", normalized);
 						
 						if (weighted) {
+							double cosine = CosineSimilarity.getTFIDFCosineSimilarity(e1.getNgramMultiset(), e2.getNgramMultiset(), ngramFrequency, files.size());
+							double cosineN = CosineSimilarity.getTFIDFCosineSimilarity(e1.getNormalizedNgramMultiset(), e2.getNormalizedNgramMultiset(), normalizedNgramFrequency, files.size());
+							gen.writeNumberField("tfidf-cosine", cosine);
+							gen.writeNumberField("tfidf-normalization-cosine", cosineN);
+							double cosineIDF = CosineSimilarity.getIDFCosineSimilarity(e1.getNgramMultiset(), e2.getNgramMultiset(), ngramFrequency, files.size());
+							double cosineNIDF = CosineSimilarity.getIDFCosineSimilarity(e1.getNormalizedNgramMultiset(), e2.getNormalizedNgramMultiset(), normalizedNgramFrequency, files.size());
+							gen.writeNumberField("idf-cosine", cosineIDF);
+							gen.writeNumberField("idf-normalization-cosine", cosineNIDF);
 							WeightedSimilarity w1 = WeightedSimilarity.calculateSimilarity(e1.getNgramMultiset(), e2.getNgramMultiset(), ngramFrequency, files.size());
 							gen.writeNumberField("weighted-jaccard", w1.jaccard);
 							gen.writeNumberField("weighted-inclusion1", w1.inclusion1);
@@ -267,7 +275,7 @@ public class DirectComparisonMain {
 		}
 		
 		public static double weight(int numFiles, int freq) {
-			return Math.log(numFiles * 1.0 / freq);
+			return Math.log(numFiles * 1.0 / freq) + 1;
 		}
 		
 		public static WeightedSimilarity calculateSimilarity(StringMultiset ngram1, StringMultiset ngram2, StringMultiset ngramFrequency, int numFiles) {
@@ -300,6 +308,52 @@ public class DirectComparisonMain {
 		}
 	}
 
+	public static class CosineSimilarity {
+
+		public static double weight(int numFiles, int freq) {
+			return Math.log(numFiles * 1.0 / freq) + 1;
+		}
+
+		public static double getTFIDFCosineSimilarity(StringMultiset ngram1, StringMultiset ngram2, StringMultiset ngramFrequency, int numFiles) {
+			double product = 0;
+			double v1 = 0;
+			double v2 = 0;
+			for (String s: ngram1.keySet()) {
+				double tf1 = ngram1.get(s) * 1.0 / ngram1.size();
+				double tf2 = ngram2.get(s) * 1.0 / ngram2.size();
+				double w = weight(numFiles, ngramFrequency.get(s));
+				product += tf1 * tf2 * w * w;
+				v1 += tf1 * tf1 * w * w;
+			}
+			for (String s: ngram2.keySet()) {
+				double tf2 = ngram2.get(s) * 1.0 / ngram2.size();
+				double w = weight(numFiles, ngramFrequency.get(s));
+				v2 += tf2 * tf2 * w * w;
+			}
+			double cosine = product / Math.sqrt(v1 * v2);
+			return cosine;
+		}
+
+		public static double getIDFCosineSimilarity(StringMultiset ngram1, StringMultiset ngram2, StringMultiset ngramFrequency, int numFiles) {
+			double product = 0;
+			double v1 = 0;
+			double v2 = 0;
+			for (String s: ngram1.keySet()) {
+				double tf1 = 1;
+				double tf2 = ngram2.get(s) > 0 ? 1 : 0;
+				double w = weight(numFiles, ngramFrequency.get(s));
+				product += tf1 * tf2 * w * w;
+				v1 += tf1 * tf1 * w * w;
+			}
+			for (String s: ngram2.keySet()) {
+				double tf2 = 1;
+				double w = weight(numFiles, ngramFrequency.get(s));
+				v2 += tf2 * tf2 * w * w;
+			}
+			double cosine = product / Math.sqrt(v1 * v2);
+			return cosine;
+		}
+	}
 	
 	public static class FileEntity {
 		
