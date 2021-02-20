@@ -27,6 +27,7 @@ public class DirectComparisonMain {
 	private static String NGRAM_OPTION = "-n:";
 	private static String WEIGHTED_JACCARD_OPTION = "-w";
 	private static String THRESHOLD_NORMALIZED_JACCARD = "-thnj:";
+	private static String THREHSHOLD_ESTIMATED_NORMALIZED_JACCARD = "-thenj:";
 	
 	/**
 	 * Compare two source files.
@@ -38,6 +39,7 @@ public class DirectComparisonMain {
 		int N = GitCodeHash.BBITMINHASH_NGRAM_SIZE;
 		boolean weighted = false;
 		double thresholdNormalizedJaccard = 0;
+		double thresholdEstimatedNormalizedJaccard = -1;
 		
 		for (String s: args) {
 			if (s.startsWith(LANG_OPTION)) {
@@ -56,20 +58,12 @@ public class DirectComparisonMain {
 					System.err.println("Invalid number: " + nString);
 					return;
 				}
+			} else if (s.startsWith(THREHSHOLD_ESTIMATED_NORMALIZED_JACCARD)) {
+				thresholdEstimatedNormalizedJaccard = parseThreshold(THREHSHOLD_ESTIMATED_NORMALIZED_JACCARD, s);
+				if (Double.isNaN(thresholdEstimatedNormalizedJaccard)) return;
 			} else if (s.startsWith(THRESHOLD_NORMALIZED_JACCARD)) {
-				String nString = s.substring(THRESHOLD_NORMALIZED_JACCARD.length());
-				try {
-					double newThreshold = Double.parseDouble(nString);
-					if (0 <= newThreshold && newThreshold <= 1.0) { 
-						thresholdNormalizedJaccard = newThreshold;
-					} else {
-						System.err.println("Threshold is out of range (0-1): " + nString);
-						return;
-					}
-				} catch (NumberFormatException e) {
-					System.err.println("Invalid threshold: " + nString);
-					return;
-				}
+				thresholdNormalizedJaccard = parseThreshold(THRESHOLD_NORMALIZED_JACCARD, s);
+				if (Double.isNaN(thresholdNormalizedJaccard)) return;
 			} else if (s.equals(WEIGHTED_JACCARD_OPTION)) {
 				weighted = true;
 			}
@@ -132,6 +126,9 @@ public class DirectComparisonMain {
 					
 					// Compare them if they are written in the same language
 					if (e1.isSameLanguage(e2)) {
+						// skip actual calculation if estimated similarity is low
+						if (e1.minhashEntry.estimateNormalizedSimilarity(e2.minhashEntry) < thresholdEstimatedNormalizedJaccard) continue;
+						
 						Similarity normalized = Similarity.calculateSimilarityWithNormalization(e1, e2);
 						if (normalized.jaccard < thresholdNormalizedJaccard) continue;
 
@@ -164,6 +161,29 @@ public class DirectComparisonMain {
 			e.printStackTrace();
 		}
 
+	}
+
+	/**
+	 * 
+	 * @param key
+	 * @param value
+	 * @return a parsed value.  Double.NaN is returned if an invalid value is specified. 
+	 */
+	private static double parseThreshold(String key, String value) {
+		String nString = value.substring(key.length());
+		try {
+			double newThreshold = Double.parseDouble(nString);
+			if (0 <= newThreshold && newThreshold <= 1.0) { 
+				return newThreshold;
+			} else {
+				System.err.println("Threshold is out of range (0-1): " + nString);
+				return Double.NaN;
+			}
+		} catch (NumberFormatException e) {
+			System.err.println("Invalid threshold: " + nString);
+			return Double.NaN;
+		}
+		
 	}
 	
 	private static void writeSimilarity(JsonGenerator gen, String header, Similarity s) throws IOException {
