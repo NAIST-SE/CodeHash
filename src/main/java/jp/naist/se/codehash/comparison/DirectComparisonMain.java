@@ -26,6 +26,7 @@ public class DirectComparisonMain {
 	private static String LANG_OPTION = "-lang:";
 	private static String NGRAM_OPTION = "-n:";
 	private static String WEIGHTED_JACCARD_OPTION = "-w";
+	private static String OUTPUT_INCLUSION_COEFFICIENT = "-inclusion";
 	private static String THRESHOLD_NORMALIZED_JACCARD = "-thnj:";
 	private static String THREHSHOLD_ESTIMATED_NORMALIZED_JACCARD = "-thenj:";
 	
@@ -34,12 +35,22 @@ public class DirectComparisonMain {
 	 * @param args
 	 */
 	public static void main(String[] args) {
-		ArrayList<FileEntity> files = new ArrayList<>();
-		FileType t = null;
-		int N = GitCodeHash.BBITMINHASH_NGRAM_SIZE;
-		boolean weighted = false;
-		double thresholdNormalizedJaccard = 0;
-		double thresholdEstimatedNormalizedJaccard = -1;
+		DirectComparisonMain main = new DirectComparisonMain(args);
+		main.run();
+	}
+	
+
+	private boolean invalid = false;
+
+	private ArrayList<FileEntity> files = new ArrayList<>();
+	private FileType t = null;
+	private int N = GitCodeHash.BBITMINHASH_NGRAM_SIZE;
+	private boolean weighted = false;
+	private double thresholdNormalizedJaccard = 0;
+	private double thresholdEstimatedNormalizedJaccard = -1;
+	private boolean calculateInclusionCoefficient = false;
+
+	public DirectComparisonMain(String[] args) {
 		
 		for (String s: args) {
 			if (s.startsWith(LANG_OPTION)) {
@@ -60,12 +71,20 @@ public class DirectComparisonMain {
 				}
 			} else if (s.startsWith(THREHSHOLD_ESTIMATED_NORMALIZED_JACCARD)) {
 				thresholdEstimatedNormalizedJaccard = parseThreshold(THREHSHOLD_ESTIMATED_NORMALIZED_JACCARD, s);
-				if (Double.isNaN(thresholdEstimatedNormalizedJaccard)) return;
+				if (Double.isNaN(thresholdEstimatedNormalizedJaccard)) {
+					invalid = true;
+					return;
+				}
 			} else if (s.startsWith(THRESHOLD_NORMALIZED_JACCARD)) {
 				thresholdNormalizedJaccard = parseThreshold(THRESHOLD_NORMALIZED_JACCARD, s);
-				if (Double.isNaN(thresholdNormalizedJaccard)) return;
+				if (Double.isNaN(thresholdNormalizedJaccard)) {
+					invalid = true;
+					return;
+				}
 			} else if (s.equals(WEIGHTED_JACCARD_OPTION)) {
 				weighted = true;
+			} else if (s.equals(OUTPUT_INCLUSION_COEFFICIENT)) {
+				calculateInclusionCoefficient = true;
 			}
 		}
 		for (String s: args) {
@@ -73,11 +92,15 @@ public class DirectComparisonMain {
 			FileEntity entity = FileEntity.parse(f, t, N);
 			if (entity != null) files.add(entity);
 		}
-		
 		if (files.size() <= 1) {
 			System.err.println("Arguments: Two or more source file names should be specified.");
+			invalid = true;
 			return;
 		}
+	}
+	
+	public void run() {
+		if (invalid) return;
 		
 		// Count the number of Ngrams
 		StringMultiset ngramFrequency = new StringMultiset(1024);
@@ -127,7 +150,7 @@ public class DirectComparisonMain {
 					// Compare them if they are written in the same language
 					if (e1.isSameLanguage(e2)) {
 						// skip actual calculation if estimated similarity is low
-						if (e1.minhashEntry.estimateNormalizedSimilarity(e2.minhashEntry) < thresholdEstimatedNormalizedJaccard) continue;
+						if (thresholdEstimatedNormalizedJaccard > 0 && e1.minhashEntry.estimateNormalizedSimilarity(e2.minhashEntry) < thresholdEstimatedNormalizedJaccard) continue;
 						
 						Similarity normalized = Similarity.calculateSimilarityWithNormalization(e1, e2);
 						if (normalized.jaccard < thresholdNormalizedJaccard) continue;
@@ -140,22 +163,18 @@ public class DirectComparisonMain {
 						writeSimilarity(gen, "normalization-", normalized);
 						
 						if (weighted) {
-							double cosine = CosineSimilarity.getTFIDFCosineSimilarity(e1.getNgramMultiset(), e2.getNgramMultiset(), ngramFrequency, files.size());
 							double cosineN = CosineSimilarity.getTFIDFCosineSimilarity(e1.getNormalizedNgramMultiset(), e2.getNormalizedNgramMultiset(), normalizedNgramFrequency, files.size());
-							gen.writeNumberField("tfidf-cosine", cosine);
 							gen.writeNumberField("tfidf-normalization-cosine", cosineN);
-							double cosineIDF = CosineSimilarity.getIDFCosineSimilarity(e1.getNgramMultiset(), e2.getNgramMultiset(), ngramFrequency, files.size());
 							double cosineNIDF = CosineSimilarity.getIDFCosineSimilarity(e1.getNormalizedNgramMultiset(), e2.getNormalizedNgramMultiset(), normalizedNgramFrequency, files.size());
-							gen.writeNumberField("idf-cosine", cosineIDF);
 							gen.writeNumberField("idf-normalization-cosine", cosineNIDF);
-							WeightedSimilarity w1 = WeightedSimilarity.calculateSimilarity(e1.getNgramMultiset(), e2.getNgramMultiset(), ngramFrequency, files.size());
-							gen.writeNumberField("weighted-jaccard", w1.jaccard);
-							gen.writeNumberField("weighted-inclusion1", w1.inclusion1);
-							gen.writeNumberField("weighted-inclusion2", w1.inclusion2);
-							WeightedSimilarity w2 = WeightedSimilarity.calculateSimilarity(e1.getNormalizedNgramMultiset(), e2.getNormalizedNgramMultiset(), normalizedNgramFrequency, files.size());
+							WeightedSimilarity w2 = WeightedSimilarity.calculateSimilarity(e1.getNormalizedNgramMultiset(), e2.getNormalizedNgramMultiset(), normalizedNgramFrequency, files.size(), 0);
 							gen.writeNumberField("weighted-normalization-jaccard", w2.jaccard);
-							gen.writeNumberField("weighted-normalization-inclusion1", w2.inclusion1);
-							gen.writeNumberField("weighted-normalization-inclusion2", w2.inclusion2);
+							WeightedSimilarity w3 = WeightedSimilarity.calculateSimilarity(e1.getNormalizedNgramMultiset(), e2.getNormalizedNgramMultiset(), normalizedNgramFrequency, files.size(), 1);
+							gen.writeNumberField("idfplusone-normalization-jaccard", w3.jaccard);
+							if (calculateInclusionCoefficient) {
+								gen.writeNumberField("weighted-normalization-inclusion1", w2.inclusion1);
+								gen.writeNumberField("weighted-normalization-inclusion2", w2.inclusion2);
+							}
 						}
 						gen.writeEndObject();
 					}
@@ -194,11 +213,13 @@ public class DirectComparisonMain {
 		
 	}
 	
-	private static void writeSimilarity(JsonGenerator gen, String header, Similarity s) throws IOException {
+	private void writeSimilarity(JsonGenerator gen, String header, Similarity s) throws IOException {
 		gen.writeNumberField(header + "jaccard", s.getJaccard());
 		gen.writeNumberField(header + "estimated-jaccard", s.getEstimatedJaccard());
-		gen.writeNumberField(header + "inclusion1", s.getInclusion1());
-		gen.writeNumberField(header + "inclusion2", s.getInclusion2());
+		if (calculateInclusionCoefficient) {
+			gen.writeNumberField(header + "inclusion1", s.getInclusion1());
+			gen.writeNumberField(header + "inclusion2", s.getInclusion2());
+		}
 	}
 	
 	public static class Similarity {
@@ -274,22 +295,20 @@ public class DirectComparisonMain {
 			this.inclusion2 = intersection * 1.0 / size2;
 		}
 		
-		public static double weight(int numFiles, int freq) {
-			return Math.log(numFiles * 1.0 / freq);
+		public static double weight(int numFiles, int freq, int smooth) {
+			return Math.log(numFiles * 1.0 / freq) + smooth;
 		}
 		
-		public static WeightedSimilarity calculateSimilarity(StringMultiset ngram1, StringMultiset ngram2, StringMultiset ngramFrequency, int numFiles) {
+		public static WeightedSimilarity calculateSimilarity(StringMultiset ngram1, StringMultiset ngram2, StringMultiset ngramFrequency, int numFiles, int smooth) {
 			double intersection = 0;
-			for (String s: ngram1.keySet()) {
-				intersection += Math.min(ngram1.get(s), ngram2.get(s)) * weight(numFiles, ngramFrequency.get(s));
-			}
 			double size1 = 0;
 			for (String s: ngram1.keySet()) {
-				size1 += ngram1.get(s) * weight(numFiles, ngramFrequency.get(s));
+				intersection += Math.min(ngram1.get(s), ngram2.get(s)) * weight(numFiles, ngramFrequency.get(s), smooth);
+				size1 += ngram1.get(s) * weight(numFiles, ngramFrequency.get(s), smooth);
 			}
 			double size2 = 0;
 			for (String s: ngram2.keySet()) {
-				size2 += ngram2.get(s) * weight(numFiles, ngramFrequency.get(s));
+				size2 += ngram2.get(s) * weight(numFiles, ngramFrequency.get(s), smooth);
 			}
 			
 			WeightedSimilarity s = new WeightedSimilarity(intersection, size1, size2);
