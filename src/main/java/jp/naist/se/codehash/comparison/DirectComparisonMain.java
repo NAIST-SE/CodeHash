@@ -169,12 +169,10 @@ public class DirectComparisonMain {
 							gen.writeNumberField("idf-normalization-cosine", cosineNIDF);
 							WeightedSimilarity w2 = WeightedSimilarity.calculateSimilarity(e1.getNormalizedNgramMultiset(), e2.getNormalizedNgramMultiset(), normalizedNgramFrequency, files.size(), 0);
 							gen.writeNumberField("weighted-normalization-jaccard", w2.jaccard);
+							gen.writeNumberField("weighted-normalization-inclusion", Math.max(w2.inclusion1, w2.inclusion2));
 							WeightedSimilarity w3 = WeightedSimilarity.calculateSimilarity(e1.getNormalizedNgramMultiset(), e2.getNormalizedNgramMultiset(), normalizedNgramFrequency, files.size(), 1);
 							gen.writeNumberField("idfplusone-normalization-jaccard", w3.jaccard);
-							if (calculateInclusionCoefficient) {
-								gen.writeNumberField("weighted-normalization-inclusion1", w2.inclusion1);
-								gen.writeNumberField("weighted-normalization-inclusion2", w2.inclusion2);
-							}
+							gen.writeNumberField("idfplusone-normalization-inclusion", Math.max(w3.inclusion1, w3.inclusion2));
 						}
 						gen.writeEndObject();
 					}
