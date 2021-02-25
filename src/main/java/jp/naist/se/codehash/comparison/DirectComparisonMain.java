@@ -214,6 +214,7 @@ public class DirectComparisonMain {
 	private void writeSimilarity(JsonGenerator gen, String header, Similarity s) throws IOException {
 		gen.writeNumberField(header + "jaccard", s.getJaccard());
 		gen.writeNumberField(header + "estimated-jaccard", s.getEstimatedJaccard());
+		gen.writeNumberField(header + "inclusion", Math.max(s.getInclusion1(), s.getInclusion2()));
 		if (calculateInclusionCoefficient) {
 			gen.writeNumberField(header + "inclusion1", s.getInclusion1());
 			gen.writeNumberField(header + "inclusion2", s.getInclusion2());
