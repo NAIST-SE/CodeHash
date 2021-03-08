@@ -3,7 +3,11 @@ package jp.naist.se.codehash.comparison;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.FileVisitResult;
+import java.nio.file.FileVisitor;
 import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
@@ -35,7 +39,9 @@ public class DirectComparisonMain {
 	 * (other files are included only for IDF)
 	 */
 	private static String FILENAME_SELECTOR = "-prefix:";
-	
+
+	private static String DIR_OPTION = "-dir:";
+
 	
 	/**
 	 * Compare two source files.
@@ -98,6 +104,30 @@ public class DirectComparisonMain {
 				calculateInclusionCoefficient = true;
 			} else if (s.startsWith(FILENAME_SELECTOR)) {
 				filePrefix = s.substring(FILENAME_SELECTOR.length());
+			} else if (s.startsWith(DIR_OPTION)) {
+				String dirname = s.substring(DIR_OPTION.length());
+				try {
+					Files.walkFileTree(Path.of(dirname), new FileVisitor<Path>() {
+						@Override
+						public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+							filenames.add(file.toString());
+							return FileVisitResult.CONTINUE;
+						}
+						@Override
+						public FileVisitResult visitFileFailed(Path file, IOException exc) throws IOException {
+							return FileVisitResult.CONTINUE;
+						}
+						@Override
+						public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
+							return FileVisitResult.CONTINUE;
+						}
+						@Override
+						public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
+							return FileVisitResult.CONTINUE;
+						}
+					});
+				} catch (IOException e) {
+				}
 			} else {
 				filenames.add(s);
 			}
