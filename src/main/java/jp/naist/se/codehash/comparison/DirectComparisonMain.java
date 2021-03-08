@@ -29,6 +29,13 @@ public class DirectComparisonMain {
 	private static String OUTPUT_INCLUSION_COEFFICIENT = "-inclusion";
 	private static String THRESHOLD_NORMALIZED_JACCARD = "-thnj:";
 	private static String THREHSHOLD_ESTIMATED_NORMALIZED_JACCARD = "-thenj:";
+
+	/**
+	 * A file name filter to select files for comparison
+	 * (other files are included only for IDF)
+	 */
+	private static String FILENAME_SELECTOR = "-prefix:";
+	
 	
 	/**
 	 * Compare two source files.
@@ -43,15 +50,17 @@ public class DirectComparisonMain {
 	private boolean invalid = false;
 
 	private ArrayList<FileEntity> files = new ArrayList<>();
+	private ArrayList<FileEntity> idfFiles = new ArrayList<>();
 	private FileType t = null;
 	private int N = GitCodeHash.BBITMINHASH_NGRAM_SIZE;
 	private boolean weighted = false;
 	private double thresholdNormalizedJaccard = 0;
 	private double thresholdEstimatedNormalizedJaccard = -1;
 	private boolean calculateInclusionCoefficient = false;
+	private String filePrefix;
 
 	public DirectComparisonMain(String[] args) {
-		
+		ArrayList<String> filenames = new ArrayList<>();
 		for (String s: args) {
 			if (s.startsWith(LANG_OPTION)) {
 				t = FileType.getFileType(s.substring(LANG_OPTION.length()));
@@ -85,12 +94,23 @@ public class DirectComparisonMain {
 				weighted = true;
 			} else if (s.equals(OUTPUT_INCLUSION_COEFFICIENT)) {
 				calculateInclusionCoefficient = true;
+			} else if (s.equals(OUTPUT_INCLUSION_COEFFICIENT)) {
+				calculateInclusionCoefficient = true;
+			} else if (s.startsWith(FILENAME_SELECTOR)) {
+				filePrefix = s.substring(FILENAME_SELECTOR.length());
+			} else {
+				filenames.add(s);
 			}
 		}
-		for (String s: args) {
+		for (String s: filenames) {
 			File f = new File(s);
 			FileEntity entity = FileEntity.parse(f, t, N);
-			if (entity != null) files.add(entity);
+			if (entity != null) {
+				if (filePrefix == null || s.startsWith(filePrefix)) {
+					files.add(entity);
+				}
+				idfFiles.add(entity);
+			}
 		}
 		if (files.size() <= 1) {
 			System.err.println("Arguments: Two or more source file names should be specified.");
@@ -106,7 +126,7 @@ public class DirectComparisonMain {
 		StringMultiset ngramFrequency = new StringMultiset(1024);
 		StringMultiset normalizedNgramFrequency = new StringMultiset(1024);
 		if (weighted) {
-			for (FileEntity f: files) {
+			for (FileEntity f: idfFiles) {
 				for (String s: f.getNgramMultiset().keySet()) {
 					ngramFrequency.add(s);
 				}
