@@ -213,14 +213,14 @@ public class DirectComparisonMain {
 						writeSimilarity(gen, "normalization-", normalized);
 						
 						if (weighted) {
-							double cosineN = CosineSimilarity.getTFIDFCosineSimilarity(e1.getNormalizedNgramMultiset(), e2.getNormalizedNgramMultiset(), normalizedNgramFrequency, files.size());
+							double cosineN = CosineSimilarity.getTFIDFCosineSimilarity(e1.getNormalizedNgramMultiset(), e2.getNormalizedNgramMultiset(), normalizedNgramFrequency, idfFiles.size());
 							gen.writeNumberField("tfidf-normalization-cosine", cosineN);
-							double cosineNIDF = CosineSimilarity.getIDFCosineSimilarity(e1.getNormalizedNgramMultiset(), e2.getNormalizedNgramMultiset(), normalizedNgramFrequency, files.size());
+							double cosineNIDF = CosineSimilarity.getIDFCosineSimilarity(e1.getNormalizedNgramMultiset(), e2.getNormalizedNgramMultiset(), normalizedNgramFrequency, idfFiles.size());
 							gen.writeNumberField("idf-normalization-cosine", cosineNIDF);
-							WeightedSimilarity w2 = WeightedSimilarity.calculateSimilarity(e1.getNormalizedNgramMultiset(), e2.getNormalizedNgramMultiset(), normalizedNgramFrequency, files.size(), 0);
+							WeightedSimilarity w2 = WeightedSimilarity.calculateSimilarity(e1.getNormalizedNgramMultiset(), e2.getNormalizedNgramMultiset(), normalizedNgramFrequency, idfFiles.size(), 0);
 							gen.writeNumberField("weighted-normalization-jaccard", w2.jaccard);
 							gen.writeNumberField("weighted-normalization-inclusion", Math.max(w2.inclusion1, w2.inclusion2));
-							WeightedSimilarity w3 = WeightedSimilarity.calculateSimilarity(e1.getNormalizedNgramMultiset(), e2.getNormalizedNgramMultiset(), normalizedNgramFrequency, files.size(), 1);
+							WeightedSimilarity w3 = WeightedSimilarity.calculateSimilarity(e1.getNormalizedNgramMultiset(), e2.getNormalizedNgramMultiset(), normalizedNgramFrequency, idfFiles.size(), 1);
 							gen.writeNumberField("idfplusone-normalization-jaccard", w3.jaccard);
 							gen.writeNumberField("idfplusone-normalization-inclusion", Math.max(w3.inclusion1, w3.inclusion2));
 						}
