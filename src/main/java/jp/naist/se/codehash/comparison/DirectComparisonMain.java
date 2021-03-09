@@ -107,7 +107,7 @@ public class DirectComparisonMain {
 			} else if (s.startsWith(DIR_OPTION)) {
 				String dirname = s.substring(DIR_OPTION.length());
 				try {
-					Files.walkFileTree(Path.of(dirname), new FileVisitor<Path>() {
+					Files.walkFileTree(new File(dirname).toPath(), new FileVisitor<Path>() {
 						@Override
 						public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
 							filenames.add(file.toString());
