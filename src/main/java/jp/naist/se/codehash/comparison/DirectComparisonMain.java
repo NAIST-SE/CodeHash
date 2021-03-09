@@ -27,10 +27,10 @@ import jp.naist.se.codehash.util.StringMultiset;
 
 public class DirectComparisonMain {
 
+	private static final int MAX_METRICS = 10;
+
 	private static String LANG_OPTION = "-lang:";
 	private static String NGRAM_OPTION = "-n:";
-	private static String WEIGHTED_JACCARD_OPTION = "-w";
-	private static String OUTPUT_INCLUSION_COEFFICIENT = "-inclusion";
 	private static String THRESHOLD_NORMALIZED_JACCARD = "-thnj:";
 	private static String THREHSHOLD_ESTIMATED_NORMALIZED_JACCARD = "-thenj:";
 
@@ -59,11 +59,8 @@ public class DirectComparisonMain {
 	private ArrayList<FileEntity> idfFiles = new ArrayList<>();
 	private FileType t = null;
 	private int N = GitCodeHash.BBITMINHASH_NGRAM_SIZE;
-	private boolean weighted = false;
-	private boolean cosine = false;
 	private double thresholdNormalizedJaccard = 0;
 	private double thresholdEstimatedNormalizedJaccard = -1;
-	private boolean calculateInclusionCoefficient = false;
 	private String filePrefix;
 
 	public DirectComparisonMain(String[] args) {
@@ -97,12 +94,6 @@ public class DirectComparisonMain {
 					invalid = true;
 					return;
 				}
-			} else if (s.equals(WEIGHTED_JACCARD_OPTION)) {
-				weighted = true;
-			} else if (s.equals(OUTPUT_INCLUSION_COEFFICIENT)) {
-				calculateInclusionCoefficient = true;
-			} else if (s.equals(OUTPUT_INCLUSION_COEFFICIENT)) {
-				calculateInclusionCoefficient = true;
 			} else if (s.startsWith(FILENAME_SELECTOR)) {
 				filePrefix = s.substring(FILENAME_SELECTOR.length());
 			} else if (s.startsWith(DIR_OPTION)) {
@@ -154,16 +145,16 @@ public class DirectComparisonMain {
 		if (invalid) return;
 		
 		// Count the number of Ngrams
-		StringMultiset ngramFrequency = new StringMultiset(1024);
-		StringMultiset normalizedNgramFrequency = new StringMultiset(1024);
-		if (weighted) {
-			for (FileEntity f: idfFiles) {
-				for (String s: f.getNgramMultiset().keySet()) {
-					ngramFrequency.add(s);
-				}
-				for (String s: f.getNormalizedNgramMultiset().keySet()) {
-					normalizedNgramFrequency.add(s);
-				}
+		StringMultiset normalizedNgramFrequencyInSelectedFiles = new StringMultiset(1024);
+		StringMultiset normalizedNgramFrequencyInAllFiles = new StringMultiset(1024);
+		for (FileEntity f: idfFiles) {
+			for (String s: f.getNormalizedNgramMultiset().keySet()) {
+				normalizedNgramFrequencyInAllFiles.add(s);
+			}
+		}
+		for (FileEntity f: files) {
+			for (String s: f.getNormalizedNgramMultiset().keySet()) {
+				normalizedNgramFrequencyInSelectedFiles.add(s);
 			}
 		}
 
@@ -203,36 +194,18 @@ public class DirectComparisonMain {
 						// skip actual calculation if estimated similarity is low
 						if (thresholdEstimatedNormalizedJaccard > 0 && e1.minhashEntry.estimateNormalizedSimilarity(e2.minhashEntry) < thresholdEstimatedNormalizedJaccard) continue;
 						
-						Similarity normalized = Similarity.calculateSimilarityWithNormalization(e1, e2);
-						if (normalized.jaccard < thresholdNormalizedJaccard) continue;
+						SimilarityRecord similarityValues = calculateSimilarity(e1, e2, normalizedNgramFrequencyInAllFiles, normalizedNgramFrequencyInSelectedFiles);
+						if (similarityValues.isLessThan(thresholdNormalizedJaccard)) continue;
 
-						Similarity regular = Similarity.calculateSimilarity(e1, e2);
 						gen.writeStartObject();
 						gen.writeNumberField("index1", i);
 						gen.writeNumberField("index2", j);
-						writeSimilarity(gen, "", regular);
-						writeSimilarity(gen, "normalization-", normalized);
-						
-						if (weighted) {
-							WeightedSimilarity w2 = WeightedSimilarity.calculateSimilarity(e1.getNormalizedNgramMultiset(), e2.getNormalizedNgramMultiset(), normalizedNgramFrequency, idfFiles.size(), 0);
-							gen.writeNumberField("weighted-normalization-jaccard", w2.jaccard);
-							WeightedSimilarity w3 = WeightedSimilarity.calculateSimilarity(e1.getNormalizedNgramMultiset(), e2.getNormalizedNgramMultiset(), normalizedNgramFrequency, idfFiles.size(), 1);
-							gen.writeNumberField("idfplusone-normalization-jaccard", w3.jaccard);
-//							gen.writeNumberField("weighted-normalization-inclusion", Math.max(w2.inclusion1, w2.inclusion2));
-//							gen.writeNumberField("idfplusone-normalization-inclusion", Math.max(w3.inclusion1, w3.inclusion2));
-						}
-						if (cosine) {
-							double cosineN = CosineSimilarity.getTFIDFCosineSimilarity(e1.getNormalizedNgramMultiset(), e2.getNormalizedNgramMultiset(), normalizedNgramFrequency, idfFiles.size());
-							gen.writeNumberField("tfidf-normalization-cosine", cosineN);
-							double cosineNIDF = CosineSimilarity.getIDFCosineSimilarity(e1.getNormalizedNgramMultiset(), e2.getNormalizedNgramMultiset(), normalizedNgramFrequency, idfFiles.size());
-							gen.writeNumberField("idf-normalization-cosine", cosineNIDF);
-						}
+						similarityValues.writeSimilarity(gen);
 						gen.writeEndObject();
 					}
 				}
 			}
 			
-
 			gen.writeEndArray();
 			gen.writeEndObject();
 		} catch (IOException e) {
@@ -264,121 +237,99 @@ public class DirectComparisonMain {
 		
 	}
 	
-	private void writeSimilarity(JsonGenerator gen, String header, Similarity s) throws IOException {
-		gen.writeNumberField(header + "jaccard", s.getJaccard());
-		gen.writeNumberField(header + "estimated-jaccard", s.getEstimatedJaccard());
-		gen.writeNumberField(header + "inclusion", Math.max(s.getInclusion1(), s.getInclusion2()));
-		if (calculateInclusionCoefficient) {
-			gen.writeNumberField(header + "inclusion1", s.getInclusion1());
-			gen.writeNumberField(header + "inclusion2", s.getInclusion2());
-		}
+	
+	
+	public SimilarityRecord calculateSimilarity(FileEntity e1, FileEntity e2, StringMultiset frequencyInAllFiles, StringMultiset frequencyInSelectedFiles) {
+		SimilarityRecord sim = new SimilarityRecord();
+		
+		int intersection = e1.ngrams.intersection(e2.ngrams);
+		double jaccard = intersection * 1.0 / (e1.ngramCount + e2.ngramCount - intersection);
+		sim.add("exact-jaccard", jaccard);
+
+		intersection = e1.normalizedNgrams.intersection(e2.normalizedNgrams);
+		double normalizedJaccard = intersection * 1.0 / (e1.ngramCount + e2.ngramCount - intersection);
+		sim.add("jaccard", normalizedJaccard);
+		
+		double v = getWeightedJaccard(e1.normalizedNgrams, e2.normalizedNgrams, frequencyInAllFiles, idfFiles.size(), 0);
+		sim.add("w-all-jaccard", v);
+
+		double v2 = getWeightedJaccard(e1.normalizedNgrams, e2.normalizedNgrams, frequencyInAllFiles, idfFiles.size(), 1);
+		sim.add("i-all-jaccard", v2);
+
+		double v3 = getWeightedJaccard(e1.normalizedNgrams, e2.normalizedNgrams, frequencyInSelectedFiles, files.size(), 0);
+		sim.add("w-sel-jaccard", v3);
+
+		double v4 = getWeightedJaccard(e1.normalizedNgrams, e2.normalizedNgrams, frequencyInSelectedFiles, files.size(), 0);
+		sim.add("i-sel-jaccard", v4);
+
+		double cosineN = CosineSimilarity.getTFIDFCosineSimilarity(e1.getNormalizedNgramMultiset(), e2.getNormalizedNgramMultiset(), frequencyInAllFiles, idfFiles.size());
+		sim.add("tfidf-all-cosine", cosineN);
+
+		double cosineNIDF = CosineSimilarity.getIDFCosineSimilarity(e1.getNormalizedNgramMultiset(), e2.getNormalizedNgramMultiset(), frequencyInAllFiles, idfFiles.size());
+		sim.add("idf-all-cosine", cosineNIDF);
+
+		cosineN = CosineSimilarity.getTFIDFCosineSimilarity(e1.getNormalizedNgramMultiset(), e2.getNormalizedNgramMultiset(), frequencyInSelectedFiles, idfFiles.size());
+		sim.add("tfidf-sel-cosine", cosineN);
+
+		cosineNIDF = CosineSimilarity.getIDFCosineSimilarity(e1.getNormalizedNgramMultiset(), e2.getNormalizedNgramMultiset(), frequencyInSelectedFiles, idfFiles.size());
+		sim.add("idf-sel-cosine", cosineNIDF);
+
+		return sim;
+	}
+
+	public static double weight(int numFiles, int freq, int smooth) {
+		return Math.log(numFiles * 1.0 / freq) + smooth;
 	}
 	
-	public static class Similarity {
-
-		private int intersection;
-		private int size1;
-		private int size2;
-		private double jaccard;
-		private double inclusion1;
-		private double inclusion2;
-		private double estimatedJaccard;
-		
-		private Similarity(int intersection, int size1, int size2) {
-			this.intersection = intersection;
-			this.size1 = size1;
-			this.size2 = size2;
-			this.jaccard = intersection * 1.0 / (size1 + size2 - intersection);
-			this.inclusion1 = intersection * 1.0 / size1;
-			this.inclusion2 = intersection * 1.0 / size2;
+	public static double getWeightedJaccard(StringMultiset ngram1, StringMultiset ngram2, StringMultiset ngramFrequency, int numFiles, int smooth) {
+		double intersection = 0;
+		double size1 = 0;
+		for (String s: ngram1.keySet()) {
+			intersection += Math.min(ngram1.get(s), ngram2.get(s)) * weight(numFiles, ngramFrequency.get(s), smooth);
+			size1 += ngram1.get(s) * weight(numFiles, ngramFrequency.get(s), smooth);
+		}
+		double size2 = 0;
+		for (String s: ngram2.keySet()) {
+			size2 += ngram2.get(s) * weight(numFiles, ngramFrequency.get(s), smooth);
 		}
 		
-		public static Similarity calculateSimilarity(FileEntity e1, FileEntity e2) {
-			Similarity s = new Similarity(e1.ngrams.intersection(e2.ngrams), e1.ngramCount, e2.ngramCount);
-			s.estimatedJaccard = e1.minhashEntry.estimateSimilarity(e2.minhashEntry);
-			return s;
-		}
-		
-		public static Similarity calculateSimilarityWithNormalization(FileEntity e1, FileEntity e2) {
-			Similarity s = new Similarity(e1.normalizedNgrams.intersection(e2.normalizedNgrams), e1.ngramCount, e2.ngramCount);
-			s.estimatedJaccard = e1.minhashEntry.estimateNormalizedSimilarity(e2.minhashEntry);
-			return s;
-		}
-		
-		public double getInclusion1() {
-			return inclusion1;
-		}
-		
-		public double getInclusion2() {
-			return inclusion2;
-		}
-		
-		public int getSize1() {
-			return size1;
-		}
-		
-		public int getSize2() {
-			return size2;
-		}
-		
-		public int getIntersection() {
-			return intersection;
-		}
-		
-		public double getJaccard() {
-			return jaccard;
-		}
-		
-		public double getEstimatedJaccard() {
-			return estimatedJaccard;
-		}
+		double jaccard = intersection / (size1 + size2 - intersection);
+		return jaccard;
 	}
 
+	public static class SimilarityRecord {
+		
+		private String[] names;
+		private double[] values;
+		private int index;
+
+		public SimilarityRecord() {
+			names = new String[MAX_METRICS];
+			values = new double[MAX_METRICS];
+			index = 0;
+		}
+		
+		public void add(String name, double value) {
+			names[index] = name;
+			values[index] = value;
+			index++;
+		}
+		
+		public boolean isLessThan(double threshold) {
+			for (int i=0; i<index; i++) {
+				if (values[i] >= threshold) return false;
+			}
+			return true;
+		}
+		
+		public void writeSimilarity(JsonGenerator gen) throws IOException {
+			for (int i=0; i<index; i++) {
+				gen.writeNumberField(names[i], values[i]);
+			}
+		}
+		
+	}
 	
-	public static class WeightedSimilarity {
-
-		private double jaccard;
-		private double inclusion1;
-		private double inclusion2;
-		
-		private WeightedSimilarity(double intersection, double size1, double size2) {
-			this.jaccard = intersection * 1.0 / (size1 + size2 - intersection);
-			this.inclusion1 = intersection * 1.0 / size1;
-			this.inclusion2 = intersection * 1.0 / size2;
-		}
-		
-		public static double weight(int numFiles, int freq, int smooth) {
-			return Math.log(numFiles * 1.0 / freq) + smooth;
-		}
-		
-		public static WeightedSimilarity calculateSimilarity(StringMultiset ngram1, StringMultiset ngram2, StringMultiset ngramFrequency, int numFiles, int smooth) {
-			double intersection = 0;
-			double size1 = 0;
-			for (String s: ngram1.keySet()) {
-				intersection += Math.min(ngram1.get(s), ngram2.get(s)) * weight(numFiles, ngramFrequency.get(s), smooth);
-				size1 += ngram1.get(s) * weight(numFiles, ngramFrequency.get(s), smooth);
-			}
-			double size2 = 0;
-			for (String s: ngram2.keySet()) {
-				size2 += ngram2.get(s) * weight(numFiles, ngramFrequency.get(s), smooth);
-			}
-			
-			WeightedSimilarity s = new WeightedSimilarity(intersection, size1, size2);
-			return s;
-		}
-		
-		public double getInclusion1() {
-			return inclusion1;
-		}
-		
-		public double getInclusion2() {
-			return inclusion2;
-		}
-		public double getJaccard() {
-			return jaccard;
-		}
-	}
-
 	public static class CosineSimilarity {
 
 		public static double weight(int numFiles, int freq) {
