@@ -33,7 +33,7 @@ public class DirectComparisonMain {
 
 	private static String LANG_OPTION = "-lang:";
 	private static String NGRAM_OPTION = "-n:";
-	private static String THRESHOLD_NORMALIZED_JACCARD = "-thnj:";
+	private static String THRESHOLD = "-th:";
 	private static String THREHSHOLD_ESTIMATED_NORMALIZED_JACCARD = "-thenj:";
 
 	/**
@@ -61,7 +61,7 @@ public class DirectComparisonMain {
 	private ArrayList<FileEntity> idfFiles = new ArrayList<>();
 	private FileType t = null;
 	private int N = GitCodeHash.BBITMINHASH_NGRAM_SIZE;
-	private double thresholdNormalizedJaccard = 0;
+	private double threshold = 0;
 	private double thresholdEstimatedNormalizedJaccard = -1;
 	private String filePrefix;
 
@@ -90,9 +90,9 @@ public class DirectComparisonMain {
 					invalid = true;
 					return;
 				}
-			} else if (s.startsWith(THRESHOLD_NORMALIZED_JACCARD)) {
-				thresholdNormalizedJaccard = parseThreshold(THRESHOLD_NORMALIZED_JACCARD, s);
-				if (Double.isNaN(thresholdNormalizedJaccard)) {
+			} else if (s.startsWith(THRESHOLD)) {
+				threshold = parseThreshold(THRESHOLD, s);
+				if (Double.isNaN(threshold)) {
 					invalid = true;
 					return;
 				}
@@ -197,7 +197,7 @@ public class DirectComparisonMain {
 						if (thresholdEstimatedNormalizedJaccard > 0 && e1.minhashEntry.estimateNormalizedSimilarity(e2.minhashEntry) < thresholdEstimatedNormalizedJaccard) continue;
 						
 						SimilarityRecord similarityValues = calculateSimilarity(e1, e2, normalizedNgramFrequencyInAllFiles, normalizedNgramFrequencyInSelectedFiles);
-						if (similarityValues.isLessThan(thresholdNormalizedJaccard)) continue;
+						if (similarityValues.isLessThan(threshold)) continue;
 
 						gen.writeStartObject();
 						gen.writeNumberField("index1", i);
