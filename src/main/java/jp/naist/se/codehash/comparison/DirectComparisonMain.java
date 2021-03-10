@@ -11,7 +11,9 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Set;
+import java.util.TreeSet;
 
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
@@ -64,7 +66,7 @@ public class DirectComparisonMain {
 	private String filePrefix;
 
 	public DirectComparisonMain(String[] args) {
-		ArrayList<String> filenames = new ArrayList<>();
+		TreeSet<String> filenames = new TreeSet<>();
 		for (String s: args) {
 			if (s.startsWith(LANG_OPTION)) {
 				t = FileType.getFileType(s.substring(LANG_OPTION.length()));
