@@ -270,10 +270,10 @@ public class DirectComparisonMain {
 		double cosineNIDF = CosineSimilarity.getIDFCosineSimilarity(e1.getNormalizedNgramMultiset(), e2.getNormalizedNgramMultiset(), frequencyInAllFiles, idfFiles.size());
 		sim.add("idf-all-cosine", cosineNIDF);
 
-		cosineN = CosineSimilarity.getTFIDFCosineSimilarity(e1.getNormalizedNgramMultiset(), e2.getNormalizedNgramMultiset(), frequencyInSelectedFiles, idfFiles.size());
+		cosineN = CosineSimilarity.getTFIDFCosineSimilarity(e1.getNormalizedNgramMultiset(), e2.getNormalizedNgramMultiset(), frequencyInSelectedFiles, files.size());
 		sim.add("tfidf-sel-cosine", cosineN);
 
-		cosineNIDF = CosineSimilarity.getIDFCosineSimilarity(e1.getNormalizedNgramMultiset(), e2.getNormalizedNgramMultiset(), frequencyInSelectedFiles, idfFiles.size());
+		cosineNIDF = CosineSimilarity.getIDFCosineSimilarity(e1.getNormalizedNgramMultiset(), e2.getNormalizedNgramMultiset(), frequencyInSelectedFiles, files.size());
 		sim.add("idf-sel-cosine", cosineNIDF);
 
 		return sim;
