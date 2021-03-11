@@ -247,22 +247,41 @@ public class DirectComparisonMain {
 		int intersection = e1.ngrams.intersection(e2.ngrams);
 		double jaccard = intersection * 1.0 / (e1.ngramCount + e2.ngramCount - intersection);
 		sim.add("exact-jaccard", jaccard);
+		double exactOverlap = intersection * 1.0 / Math.min(e1.ngramCount, e2.ngramCount);
+		sim.add("exact-overlap", exactOverlap);
 
 		intersection = e1.normalizedNgrams.intersection(e2.normalizedNgrams);
 		double normalizedJaccard = intersection * 1.0 / (e1.ngramCount + e2.ngramCount - intersection);
 		sim.add("jaccard", normalizedJaccard);
-		
+
+		double overlap = intersection * 1.0 / Math.min(e1.ngramCount, e2.ngramCount);
+		sim.add("overlap", overlap);
+
 		double v = getWeightedJaccard(e1.normalizedNgrams, e2.normalizedNgrams, frequencyInAllFiles, idfFiles.size(), 0);
 		sim.add("w-all-jaccard", v);
+
+		double v5 = getWeightedOverlap(e1.normalizedNgrams, e2.normalizedNgrams, frequencyInAllFiles, idfFiles.size(), 0);
+		sim.add("w-all-overlap", v5);
 
 		double v2 = getWeightedJaccard(e1.normalizedNgrams, e2.normalizedNgrams, frequencyInAllFiles, idfFiles.size(), 1);
 		sim.add("i-all-jaccard", v2);
 
-		double v3 = getWeightedJaccard(e1.normalizedNgrams, e2.normalizedNgrams, frequencyInSelectedFiles, files.size(), 0);
-		sim.add("w-sel-jaccard", v3);
+		double v6 = getWeightedOverlap(e1.normalizedNgrams, e2.normalizedNgrams, frequencyInAllFiles, idfFiles.size(), 1);
+		sim.add("i-all-overlap", v6);
 
-		double v4 = getWeightedJaccard(e1.normalizedNgrams, e2.normalizedNgrams, frequencyInSelectedFiles, files.size(), 0);
-		sim.add("i-sel-jaccard", v4);
+//		double v3 = getWeightedJaccard(e1.normalizedNgrams, e2.normalizedNgrams, frequencyInSelectedFiles, files.size(), 0);
+//		sim.add("w-sel-jaccard", v3);
+//
+//		double v4 = getWeightedJaccard(e1.normalizedNgrams, e2.normalizedNgrams, frequencyInSelectedFiles, files.size(), 0);
+//		sim.add("i-sel-jaccard", v4);
+//
+//		double v7 = getWeightedOverlap(e1.normalizedNgrams, e2.normalizedNgrams, frequencyInSelectedFiles, files.size(), 0);
+//		sim.add("w-sel-overlap", v7);
+//
+//		double v8 = getWeightedOverlap(e1.normalizedNgrams, e2.normalizedNgrams, frequencyInSelectedFiles, files.size(), 0);
+//		sim.add("i-sel-jaccard", v4);
+
+
 
 		double cosineN = CosineSimilarity.getTFIDFCosineSimilarity(e1.getNormalizedNgramMultiset(), e2.getNormalizedNgramMultiset(), frequencyInAllFiles, idfFiles.size());
 		sim.add("tfidf-all-cosine", cosineN);
@@ -270,11 +289,11 @@ public class DirectComparisonMain {
 		double cosineNIDF = CosineSimilarity.getIDFCosineSimilarity(e1.getNormalizedNgramMultiset(), e2.getNormalizedNgramMultiset(), frequencyInAllFiles, idfFiles.size());
 		sim.add("idf-all-cosine", cosineNIDF);
 
-		cosineN = CosineSimilarity.getTFIDFCosineSimilarity(e1.getNormalizedNgramMultiset(), e2.getNormalizedNgramMultiset(), frequencyInSelectedFiles, files.size());
-		sim.add("tfidf-sel-cosine", cosineN);
-
-		cosineNIDF = CosineSimilarity.getIDFCosineSimilarity(e1.getNormalizedNgramMultiset(), e2.getNormalizedNgramMultiset(), frequencyInSelectedFiles, files.size());
-		sim.add("idf-sel-cosine", cosineNIDF);
+//		cosineN = CosineSimilarity.getTFIDFCosineSimilarity(e1.getNormalizedNgramMultiset(), e2.getNormalizedNgramMultiset(), frequencyInSelectedFiles, files.size());
+//		sim.add("tfidf-sel-cosine", cosineN);
+//
+//		cosineNIDF = CosineSimilarity.getIDFCosineSimilarity(e1.getNormalizedNgramMultiset(), e2.getNormalizedNgramMultiset(), frequencyInSelectedFiles, files.size());
+//		sim.add("idf-sel-cosine", cosineNIDF);
 
 		return sim;
 	}
@@ -297,6 +316,22 @@ public class DirectComparisonMain {
 		
 		double jaccard = intersection / (size1 + size2 - intersection);
 		return jaccard;
+	}
+
+	public static double getWeightedOverlap(StringMultiset ngram1, StringMultiset ngram2, StringMultiset ngramFrequency, int numFiles, int smooth) {
+		double intersection = 0;
+		double size1 = 0;
+		for (String s: ngram1.keySet()) {
+			intersection += Math.min(ngram1.get(s), ngram2.get(s)) * weight(numFiles, ngramFrequency.get(s), smooth);
+			size1 += ngram1.get(s) * weight(numFiles, ngramFrequency.get(s), smooth);
+		}
+		double size2 = 0;
+		for (String s: ngram2.keySet()) {
+			size2 += ngram2.get(s) * weight(numFiles, ngramFrequency.get(s), smooth);
+		}
+		
+		double overlap = intersection / Math.min(size1, size2);
+		return overlap;
 	}
 
 	public static class SimilarityRecord {
