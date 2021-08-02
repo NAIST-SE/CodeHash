@@ -10,6 +10,11 @@ public class CodeHash {
 
 	private byte[] codehash;
 	
+	/**
+	 * Compute a file hash ignoring comments and white space
+	 * @param tokenReader is to read only tokens 
+	 * @param size specifies a buffer size to read tokens 
+	 */
 	public CodeHash(TokenReader tokenReader, long size) {
 		try {
 			MessageDigest digest = MessageDigest.getInstance("SHA-1");
@@ -28,6 +33,9 @@ public class CodeHash {
 		}
 	}
 	
+	/**
+	 * @return the computed hash
+	 */
 	public byte[] getHash() {
 		return codehash;
 	}

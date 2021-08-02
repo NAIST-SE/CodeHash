@@ -14,6 +14,10 @@ public class ComparisonMain {
 	
 	public static final double THRESHOLD = 0.7;
 	
+	/**
+	 * Compare minhash in given files
+	 * @param args specify a list of file names
+	 */
 	public static void main(String[] args) {
 		// Load entries ignoring same codehash files
 		ComparisonMain main = new ComparisonMain();
@@ -38,6 +42,10 @@ public class ComparisonMain {
 		return entries.size();
 	}
 	
+	/**
+	 * Read a hash list file  
+	 * @param f specifies a file
+	 */
 	public void read(File f) {
 		try (LineNumberReader reader = new LineNumberReader(new FileReader(f))) {
 			for (String line = reader.readLine(); line != null; line = reader.readLine()) {
