@@ -9,23 +9,19 @@ import java.security.NoSuchAlgorithmException;
 import java.util.LinkedList;
 
 
-
+/**
+ * A main class to calculate code hash and minhash  
+ */
 public class FileCodeHash {
 
-	public static final String ARG_MINHASH = "-minhash";
 	public static final String ARG_MINHASH_IGNORE_DUPLICATION = "-ignoreduplication";
-	public static final String ARG_SHA1_MINHASH = "-sha1minhash";
-	public static final String ARG_CODEHASH = "-codehash";
 	public static final String FILEHASH_ALGORITHM = "SHA-1";
 	
 	public static void main(String[] args) {
-		boolean generateMinhash = false;
 		boolean ignoreDuplication = false;
 		LinkedList<File> files = new LinkedList<>();
 		for (String arg: args) {
-			if (arg.equals(ARG_MINHASH)) {
-				generateMinhash = true;
-			} else if (arg.equals(ARG_MINHASH_IGNORE_DUPLICATION)) {
+			if (arg.equals(ARG_MINHASH_IGNORE_DUPLICATION)) {
 				ignoreDuplication = true;
 			} else {
 				files.add(new File(arg));
@@ -33,18 +29,20 @@ public class FileCodeHash {
 		}
 		
 		if (!files.isEmpty()) {
-			FileCodeHash h = new FileCodeHash(generateMinhash, ignoreDuplication);
+			FileCodeHash h = new FileCodeHash(ignoreDuplication);
 			h.scan(files);
 		}  else {
 			System.err.println("No files are specified.");
 		}
 	}
 	
-	private boolean outputMinHash;
 	private boolean ignoreDuplication;
 	
-	public FileCodeHash(boolean minhash, boolean ignoreDuplication) {
-		this.outputMinHash = minhash;
+	/**
+	 * 
+	 * @param ignoreDuplication If true, this object uses a set rather than a multiset to manage N-grams. 
+	 */
+	public FileCodeHash(boolean ignoreDuplication) {
 		this.ignoreDuplication = ignoreDuplication;
 	}
 	
@@ -82,22 +80,17 @@ public class FileCodeHash {
 					String normalizedMinhash = null;
 					int ngramCount = 0;
 					TokenReader tokenReader = FileType.createReader(t, new ByteArrayInputStream(content));
-					if (outputMinHash) {
-						CodeHashTokenReader wrapper = new CodeHashTokenReader(tokenReader, f.length());
-						MurmurMinHash h = new MurmurMinHash(GitCodeHash.BBITMINHASH_BITCOUNT, GitCodeHash.BBITMINHASH_NGRAM_SIZE, wrapper);
-						if (ignoreDuplication) {
-							minhash = HashStringUtil.bytesToHex(h.getHashIgnoreDuplicatedElements());
-							normalizedMinhash = HashStringUtil.bytesToHex(h.getNormalizedHashIgnoreDuplicatedElements());
-						} else {
-							minhash = HashStringUtil.bytesToHex(h.getHash());
-							normalizedMinhash = HashStringUtil.bytesToHex(h.getNormalizedHash());
-						}
-						codehash = HashStringUtil.bytesToHex(wrapper.getHash());
-						ngramCount = h.getNgramCount();
+					CodeHashTokenReader wrapper = new CodeHashTokenReader(tokenReader, f.length());
+					MurmurMinHash h = new MurmurMinHash(GitCodeHash.BBITMINHASH_BITCOUNT, GitCodeHash.BBITMINHASH_NGRAM_SIZE, wrapper);
+					if (ignoreDuplication) {
+						minhash = HashStringUtil.bytesToHex(h.getHashIgnoreDuplicatedElements());
+						normalizedMinhash = HashStringUtil.bytesToHex(h.getNormalizedHashIgnoreDuplicatedElements());
 					} else {
-						CodeHash h = new CodeHash(tokenReader, f.length());
-						codehash = HashStringUtil.bytesToHex(h.getHash());
+						minhash = HashStringUtil.bytesToHex(h.getHash());
+						normalizedMinhash = HashStringUtil.bytesToHex(h.getNormalizedHash());
 					}
+					codehash = HashStringUtil.bytesToHex(wrapper.getHash());
+					ngramCount = h.getNgramCount();
 					
 					StringBuilder result = new StringBuilder(256);
 					result.append(path);
@@ -108,19 +101,15 @@ public class FileCodeHash {
 					result.append("\t");
 					result.append(codehash);
 					result.append("\t");
-					if (outputMinHash) {
-						result.append(minhash);
-						result.append("\t");
-						result.append(normalizedMinhash);
-						result.append("\t");
-					}
+					result.append(minhash);
+					result.append("\t");
+					result.append(normalizedMinhash);
+					result.append("\t");
 					result.append(f.length());
 					result.append("\t");
 					result.append(tokenReader.getTokenCount());
-					if (outputMinHash) {
-						result.append("\t");
-						result.append(ngramCount);
-					}
+					result.append("\t");
+					result.append(ngramCount);
 					System.out.println(result.toString());
 				} catch (NoSuchAlgorithmException e) {
 				}

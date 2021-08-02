@@ -107,12 +107,12 @@ Example for this repository:
 
 ## Analyzing files
 
-Another main class `FileCodeHash` accepts file names (or directory names) and an option `-minhash`.
-The main class reports hash values for each file with file names in addition to SHA-1 hash, code hash, and minhash (optional).  
+Another main class `FileCodeHash` accepts file names (or directory names).
+The main class reports hash values for each file with file names in addition to SHA-1 hash, code hash, and minhash. 
 
 The following command line is an example to compute minhash values for source files in `src` directory.
 
->        java -classpath CodeHash.jar jp.naist.se.codehash.FileCodeHash -minhash src
+>        java -classpath CodeHash.jar jp.naist.se.codehash.FileCodeHash src
 
 ## Output Format
 
