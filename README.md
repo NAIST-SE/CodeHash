@@ -1,7 +1,9 @@
 # CodeHash Tool
 
 This tool computes source file similarity using 3-gram multiset ignoring whitespace and comments.
-The implementation is a revised version that has used in our technical paper: 
+The tool can estimate source code siimlarity using b-bit minhash; the tool can skip unnecessary comparison if two files are unlikely similar.
+
+The implementation is a revised version that has been used in our technical paper: 
 >        Takashi Ishio, Yusuke Sakaguchi, Kaoru Ito and Katsuro Inoue: 
 >        Source File Set Search for Clone-and-Own Reuse Analysis, In Proc. of MSR 2017.
 >        <https://doi.org/10.1109/MSR.2017.19>
