@@ -1,7 +1,9 @@
 # CodeHash Tool
 
 This tool computes source file similarity using 3-gram multiset ignoring whitespace and comments.
-The implementation is a revised version that has used in our technical paper: 
+The tool can estimate source code siimlarity using b-bit minhash; the tool can skip unnecessary comparison if two files are unlikely similar.
+
+The implementation is a revised version that has been used in our technical paper: 
 >        Takashi Ishio, Yusuke Sakaguchi, Kaoru Ito and Katsuro Inoue: 
 >        Source File Set Search for Clone-and-Own Reuse Analysis, In Proc. of MSR 2017.
 >        <https://doi.org/10.1109/MSR.2017.19>
@@ -17,7 +19,25 @@ The main class `jp.naist.se.codehash.comparison.DirectComparisonMain` compares a
 It takes as command line arguments source file names on your disk.  For example:
 >        java -classpath target/CodeHash.jar jp.naist.se.codehash.comparison.DirectComparisonMain 001.c 002.c
 
-An option `-lang:[LANGUAGE]` specifies a language name.  Supported languages are CPP, JAVA, ECMASCRIPT, PYTHON, PHP, and CSHARP.
+
+
+
+### Options
+
+The tool accepts the following options.
+
+#### File selection options
+
+- `-lang:[LANGUAGE]`: This option specifies a language name.  Supported languages are CPP, JAVA, ECMASCRIPT, PYTHON, PHP, and CSHARP.
+- `-dir:[DIRNAME]` specifies a directory including files to be compared by the tool.  - `-prefix:[PREFIX]` specifies a prefix filter for file names to be compared by the tool.  This option extracts a subset of files listed by arguments and `-dir` options.
+
+#### Comparison Options
+- `-n:[NGRAM]` specifies N for N-gram.  The default is trigrams (i.e., `-n:3`).
+- `-th:[THRESHOLD]` specifies a similarity threshold (0-1.0).  If a similarity value for a file pair is less than this threshold, the file pair is excluded from the output.
+- `-thenj:[THRESHOLD]` specifies a threshold for estimated normalized jaccard distance.  If a similarity estimated by b-bit minhash is less than this threshold, an actual comparison is skipped.
+
+
+### Output
 
 The program produces a JSON format like this.
 
