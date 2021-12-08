@@ -26,7 +26,7 @@ import jp.naist.se.codehash.sha1.SHA1MinHashMSR2017;
  */
 public class GitCodeHash {
 
-	public static enum HashType { CodeHash, SHA1MinHash, Murmur3MinHash, SHA1MinHashInPaper };
+	public enum HashType { CodeHash, SHA1MinHash, Murmur3MinHash, SHA1MinHashInPaper };
 	public static int BBITMINHASH_BITCOUNT = 2048;
 	public static int BBITMINHASH_NGRAM_SIZE = 3;
 	

@@ -61,7 +61,7 @@ public class AntlrTokenReader implements TokenReader {
 		return tokenCount;
 	}
 	
-	public static interface Filter {
-		public boolean accept(Token t);
+	public interface Filter {
+		boolean accept(Token t);
 	}
 }
