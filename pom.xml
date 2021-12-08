@@ -25,7 +25,7 @@
 			<arguments><argument>-package</argument><argument>jp.naist.se.commentlister.lexer</argument></arguments>
 			<visitor>false</visitor>
 			<listener>false</listener>
-			<encoding>UTF-8</encoding>
+			<inputEncoding>UTF-8</inputEncoding>
 		</configuration>
         <executions>
           <execution>
