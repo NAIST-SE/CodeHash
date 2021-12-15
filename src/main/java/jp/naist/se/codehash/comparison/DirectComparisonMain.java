@@ -34,7 +34,7 @@ public class DirectComparisonMain {
 	private static String NGRAM_OPTION = "-n:";
 	private static String THRESHOLD = "-th:";
 	private static String THRESHOLD_NORMALIZED_JACCARD = "-thnj:";
-	private static String THREHSHOLD_ESTIMATED_NORMALIZED_JACCARD = "-thenj:";
+	private static String THRESHOLD_ESTIMATED_NORMALIZED_JACCARD = "-thenj:";
 
 	/**
 	 * A file name filter to select files for comparison
@@ -85,8 +85,8 @@ public class DirectComparisonMain {
 					System.err.println("Invalid number: " + nString);
 					return;
 				}
-			} else if (s.startsWith(THREHSHOLD_ESTIMATED_NORMALIZED_JACCARD)) {
-				thresholdEstimatedNormalizedJaccard = parseThreshold(THREHSHOLD_ESTIMATED_NORMALIZED_JACCARD, s);
+			} else if (s.startsWith(THRESHOLD_ESTIMATED_NORMALIZED_JACCARD)) {
+				thresholdEstimatedNormalizedJaccard = parseThreshold(THRESHOLD_ESTIMATED_NORMALIZED_JACCARD, s);
 				if (Double.isNaN(thresholdEstimatedNormalizedJaccard)) {
 					invalid = true;
 					return;
