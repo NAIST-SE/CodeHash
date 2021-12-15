@@ -33,6 +33,7 @@ public class DirectComparisonMain {
 	private static String LANG_OPTION = "-lang:";
 	private static String NGRAM_OPTION = "-n:";
 	private static String THRESHOLD = "-th:";
+	private static String THRESHOLD_NORMALIZED_JACCARD = "-thnj:";
 	private static String THREHSHOLD_ESTIMATED_NORMALIZED_JACCARD = "-thenj:";
 
 	/**
@@ -61,6 +62,7 @@ public class DirectComparisonMain {
 	private FileType t = null;
 	private int N = GitCodeHash.BBITMINHASH_NGRAM_SIZE;
 	private double threshold = 0;
+	private double thresholdNormalizedJaccard = -1;
 	private double thresholdEstimatedNormalizedJaccard = -1;
 	private String filePrefix;
 
@@ -86,6 +88,12 @@ public class DirectComparisonMain {
 			} else if (s.startsWith(THREHSHOLD_ESTIMATED_NORMALIZED_JACCARD)) {
 				thresholdEstimatedNormalizedJaccard = parseThreshold(THREHSHOLD_ESTIMATED_NORMALIZED_JACCARD, s);
 				if (Double.isNaN(thresholdEstimatedNormalizedJaccard)) {
+					invalid = true;
+					return;
+				}
+			} else if (s.startsWith(THRESHOLD_NORMALIZED_JACCARD)) {
+				thresholdNormalizedJaccard = parseThreshold(THRESHOLD_NORMALIZED_JACCARD, s);
+				if (Double.isNaN(thresholdNormalizedJaccard)) {
 					invalid = true;
 					return;
 				}
@@ -197,6 +205,9 @@ public class DirectComparisonMain {
 						
 						SimilarityRecord similarityValues = calculateSimilarity(e1, e2, normalizedNgramFrequencyInAllFiles, normalizedNgramFrequencyInSelectedFiles);
 						if (similarityValues.isLessThan(threshold)) continue;
+
+						// skip actual similarity is lower than threshold
+						if (thresholdNormalizedJaccard > 0 && similarityValues.getValue("jaccard") < thresholdNormalizedJaccard) continue;
 
 						gen.writeStartObject();
 						gen.writeNumberField("index1", i);
@@ -349,6 +360,15 @@ public class DirectComparisonMain {
 			names[index] = name;
 			values[index] = value;
 			index++;
+		}
+		
+		public double getValue(String name) {
+			for (int i=0; i<index; i++) {
+				if (names[i].equals(name)) {
+					return values[i];
+				}
+			}
+			return Double.NaN;
 		}
 		
 		public boolean isLessThan(double threshold) {

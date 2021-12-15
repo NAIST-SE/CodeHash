@@ -33,7 +33,8 @@ The tool accepts the following options.
 
 #### Comparison Options
 - `-n:[NGRAM]` specifies N for N-gram.  The default is trigrams (i.e., `-n:3`).
-- `-th:[THRESHOLD]` specifies a similarity threshold (0-1.0).  If a similarity value for a file pair is less than this threshold, the file pair is excluded from the output.
+- `-th:[THRESHOLD]` specifies a similarity threshold (0-1.0).  If all of similarity values for a file pair are less than this threshold, the file pair is excluded from the output.
+- `-thnj:[THRESHOLD]` specifies a similarity threshold for normalized jaccard distance.  If the similarity value for a file pair is less than this threshold, the file pair is excluded from the output.
 - `-thenj:[THRESHOLD]` specifies a threshold for estimated normalized jaccard distance.  If a similarity estimated by b-bit minhash is less than this threshold, an actual comparison is skipped.
 
 
