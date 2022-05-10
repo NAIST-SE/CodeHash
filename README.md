@@ -12,7 +12,57 @@ The implementation is a revised version that has been used in our technical pape
 The source code is written in Java.  You can build the project using Maven.
 >        mvn package
 
-## Compare source files 
+
+## Extract 1-bit minhash vectors from source files
+
+The main class `FileCodeHash` accepts file names (or directory names).
+The main class reports hash values for each file with file names in addition to SHA-1 hash, code hash, and minhash. 
+
+The following command line is an example to extract minhash values from source files in `src` directory and store them into a file.
+The command uses a redirection because the tool write the result to STDOUT by default.
+
+>        java -classpath CodeHash.jar jp.naist.se.codehash.FileCodeHash src > minhash.txt
+
+### Output Format
+
+It is a list of tab-separated values (TSV) comprising nine columns.
+
+ - File path
+ - SHA-1 file hash
+ - Language name (detected by a file extension)
+ - Code-hash: content hash excluding whitespace and comments.
+ - 1-bit minhash vector:  2048-bit vector of 1-bit min-hash for trigrams of the file.
+ - 1-bit minhash vector with identifier normalization:  2048-bit vector of 1-bit min-hash for trigrams ignoring identifier names.
+ - File length (byte count)
+ - The number of tokens in the file 
+ - The number of n-grams in the file
+
+## Estimate file similarity using 1-bit minhash vectors
+
+Another main class `jp.naist.se.codehash.comparison.ComparisonMain` compares 1-bit minhash vectors to estimate source file similarity.
+The `minhash.txt` is a file created by `FileCodeHash`.
+
+>        java -classpath CodeHash.jar jp.naist.se.codehash.comparison.ComparisonMain minhash.txt
+
+The hamming distance between a pair of min-hash vectors approximate the similarity of the file pair: `Estimated-similarity = 1 - (The-cardinality-of-XOR-of-two-vectors / 1024)`.   
+The estimated value may have some error; a pair of file having actual similarity 0.7 may have an estimated value 0.8.  
+
+The result is a list of tab-separated values comprising the following columns.
+Each line shows a pair of files to be compared.
+
+ - CodeHash1: representing a file.  To ignore duplicated files in the list, the tool uses code hash values.
+ - CodeHash2: representing the other file of the file pair.
+ - TokenLength1: The number of tokens in the file represented by CodeHash1.
+ - TokenLength2: The number of tokens in the file represented by CodeHash2.
+ - EstimatedSim: Jaccard index estimated by 1-bit minhash vectors of the files.
+ - EstimatedSimWithNormalization: Jaccard index estimated by 1-bit minahsh vectors with identifier normalization.
+ - FileNames1: File paths whose code-hash equals to CodeHash1.
+ - FileNames2: File paths whose code-hash equals to CodeHash2.
+
+The minimum threshold is 0.7.
+
+
+## Directly compare source files 
 
 The main class `jp.naist.se.codehash.comparison.DirectComparisonMain` compares a set of files.
 
@@ -124,46 +174,6 @@ Example for this repository:
 >        8005e63674d37076fdd36e70291c8573324dd3ff	src/main/java/jp/naist/se/codehash/GitCodeHash.java	JAVA
 >        430582dd4efc0de59502947e5bbd0063cbd73ea1	src/main/java/jp/naist/se/codehash/GitCodeHash.java	JAVA
 
-
-
-## Analyzing files
-
-Another main class `FileCodeHash` accepts file names (or directory names).
-The main class reports hash values for each file with file names in addition to SHA-1 hash, code hash, and minhash. 
-
-The following command line is an example to compute minhash values for source files in `src` directory.
-
->        java -classpath CodeHash.jar jp.naist.se.codehash.FileCodeHash src
-
-## Output Format
-
-An output file is a tsv file comprising five columns.
- - Blob ID
- - Programming language type
- - Source code hash: content hash excluding whitespace and comments.  Each token is concatenated by a NUL character.
- - Min-hash (optional): 2048-bit vector of 1-bit min-hash for trigrams of the file.  
-   - The hamming distance between a pair of min-hash values can be used to approximate the similarity of the file pair: `Estimated-similarity = 1 - (The-cardinality-of-XOR-of-two-vectors / 1024)`.   The estimated value may have some error; a pair of file having actual similarity 0.7 may have an estimated value 0.8.  
- - File size 
- - The number of tokens in the file
-
-The file may miss files whose contents cannot be processed due to grammatical errors or unavailability (e.g. deleted from the repository).
-
-Example of Code Hash Mode Result:
-
->        c01a38dd1b6f66f59515032fd22c9f5b9e46ffce	JAVA	128da0723e6417906aa5cacc3ebdf562adfa8651	907	193
->        f63f44fee52e232adbfc8afbcc323778c4a911ee	JAVA	e19d03cb0c05be3aa22ce208ae8abfc633d4ee5c	973	183
->        5cf76dd798f47ca7e296fa0582888ff1787f97ce	JAVA	24845e176c757cc000a2b4b410951dab601edba8	4193	656
->        8005e63674d37076fdd36e70291c8573324dd3ff	JAVA	1630ff51700724eccab03b576d7fb9a0e4bc95f7	9545	1844
->        430582dd4efc0de59502947e5bbd0063cbd73ea1	JAVA	0d9e73ba2795a256f315a9511971ca1c8197d937	5586	1075
-
-
-Example of Min-Hash Mode Result:
-
->        c01a38dd1b6f66f59515032fd22c9f5b9e46ffce	JAVA	128da0723e6417906aa5cacc3ebdf562adfa8651	cc594b369978eded0574c7ae2869c513ca184024acf1d3e024c32bba507278cc40a56a32aa788e0da8fc5bdfe0fd3fc74be510c19539fbc68d8f9c15d92138c733b60fc23975897843944a9818f46856aa2f44b9c6d56a00a7a5b01a9f5a0f4d11dcd3c6d6466a63c5eb5a454f2a3d72a4a603faad757985ff8660a823c7a12958ed95fbad6c4ceb7616d2c9ffaa117c005e2f36f53020e1d32c707bbd52e89ccd0e78923cc1ccee84cf564faca47767a482387a35749a7396e18261bada28dce4835f1465fbe520b6f74fb0f95bc8f10ac5ead615dadd9cdd39808705ec95926dc0299359def3d453477c4963ea6a152efd568264445f90f744eb816a2c70e7	907	193
->        ff63f44fee52e232adbfc8afbcc323778c4a911ee	JAVA	e19d03cb0c05be3aa22ce208ae8abfc633d4ee5c	30871ab88f7815cc4978932c36c71512bb35c4b1ab740cc7974a2f1f14db076246142be1eb367768e2b1d7f8fac970ca0bcb625bb6fdab328f16d89c941caac0232b77feb95cf888593e61014ebd242c8c66d2a602e0646daaa55610e4029e92b2d10512fe315e71c2c73c402d27f5d6ed0a79feb710a44c6121f0ead7c8180f50f024369708e5fb3a74906f9d5f3fbe638705ea09efb7d18ab92abbeeaf375c911138c63d3ba6a90652fc12a01237c3c8d9415c726a13a97220edacb9c342c504363c95b44a27ad28c2c7531137480ec5a700cee924dbb9ffccd0231b8131e72f0a801458b78e94cc73eea973775bc79535d5c8eed63d10de1c24c9961c3984	973	183
->        5cf76dd798f47ca7e296fa0582888ff1787f97ce	JAVA	24845e176c757cc000a2b4b410951dab601edba8	101685acb452a708d6e3979b44a23d6082bb71a5c2f1c39db894ba31f51ae5507549dc609afaf173c6f9f6f5c56a25f0cfc725dbe4e064070767b516fd84e3d2d01ab5d3473857c2292a3aee3f3a83671f8c139242857020a105c50828d0e2f404a2842226e0ca02d0ca3ffdf7927476750e0eff455676aac31a61e05ad3ccbf63f447403dcdf7f60bb6d41338b300633d0031a2d0b12fe162643404e439007e51f2b04c151949006c4a72eea6b4be77a056dcd864ff6ad5f70813a6bf40074560b4ec7749fdc1ef265e1f7d833f4ac5c5e38ad91b39bdb595f920cf4a7cf45190922cd0df504955a9cb0313168929132c09d4ab235a28b8a155ec0cf02a2fd7	4193	656
->        8005e63674d37076fdd36e70291c8573324dd3ff	JAVA	1630ff51700724eccab03b576d7fb9a0e4bc95f7	3d63eeece0e80dd91d664d20660f0f2bc900712da08bcda7ad633a8a5e5087008e8c3a708c4e2dffa0637c34ce879286ffed94fb93db97a31bd608e6f1e0bb12114233fa9c398c0253bdbb11cfaef79f04b22a9693e4982b3951d707804ab528c6fd234a0f3d5294632a3555c945938ca21d8df28ec9c21a7ff14506b30799a594cec0e5d960c6eaec6560d9e9bfada67c8516bd106bd02423e0c7717477f17c745e5aff1676c7cdb89f9c58f580d6c5663a4b4a35dc4bbc5745ec29f56e2acc05122515b4af9fa394f2d2dd3b2b661892aadfbb540840b98f11c06c3dc0b71f4d4b39b4d0fb34d9097451ba0e6078405673b4007d438852fbc0445d13013506	9545	1844
->        430582dd4efc0de59502947e5bbd0063cbd73ea1	JAVA	0d9e73ba2795a256f315a9511971ca1c8197d937	3de5eee6eef88fd118e6cf28642f072ad900612da10389a7a5633a8a4cd087308e04bb608e4e2deda0636c34c607d2865bcd84fb96cb96e317d34bf6f1e0fb13114037fa9939850253bdab01cdaef49f80a26a9e93e0d82b3951d796a04ab528c7fda3498f3d12bf623b35754946938e22190db2adcbd21a3bf04505a3079b659cc8e4e7d920c6eae80360c9f9bb2ca47eb716ad086ff22a2fc1c7f17c7ff178740f7afd1666e6cd38935c58f4b076c5e63a6b5235d469fcd544ec29dd6eaacc0d123335b1ad1f239136fa153b3b6518c2badf3d7c0871b9ef01486c3bc037170e7b1bb650fb34d90d7553fb8c607c467057f4804c038252bed0441d17196d46	5586	1075
 
 
 
