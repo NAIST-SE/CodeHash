@@ -64,7 +64,8 @@ The minimum threshold is 0.7.
 
 ## Directly compare source files 
 
-The main class `jp.naist.se.codehash.comparison.DirectComparisonMain` compares a set of files.
+The main class `jp.naist.se.codehash.comparison.DirectComparisonMain` directly compares a set of files.
+This class calculates the exact similarity between files, while this comparison also can avoid unnecessary comparison using 1-bit minhash vectors.
 
 It takes as command line arguments source file names on your disk.  For example:
 >        java -classpath target/CodeHash.jar jp.naist.se.codehash.comparison.DirectComparisonMain 001.c 002.c
