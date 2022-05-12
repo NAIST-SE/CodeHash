@@ -13,6 +13,8 @@ The source code is written in Java.  You can build the project using Maven.
 >        mvn package
 
 
+For file similarity, supported programming languages are: C/C++, Java, ECMAScript, Python, PHP, and C#.
+
 ## Extract 1-bit minhash vectors from source files
 
 The main class `FileCodeHash` accepts file names (or directory names).
@@ -90,6 +92,13 @@ The tool accepts the following options.
 
 
 ### Output
+
+Supported similarity metrics:
+
+ - Jaccard index: Intersection(S1, S2) / Union(S1, S2).
+ - Overlap coefficient: Intersection(S1, S2) / Min(S1, S2).  This is defined in https://aircconline.com/mlaij/V3N1/3116mlaij03.pdf
+ - Overlap similarity: Intersection(S1, S2) / Max(S1, S2).  This similarity is used by SourcererCC (http://dx.doi.org/10.1145/2884781.2884877).
+   - Note: `-n:1` option (unigram) is also needed to use the SourcererCC's similarity definition.
 
 The program produces a JSON format like this.
 

@@ -28,7 +28,7 @@ import jp.naist.se.codehash.util.StringMultiset;
 
 public class DirectComparisonMain {
 
-	private static final int MAX_METRICS = 10;
+	private static final int MAX_METRICS = 12;
 
 	private static String LANG_OPTION = "-lang:";
 	private static String NGRAM_OPTION = "-n:";
@@ -257,15 +257,20 @@ public class DirectComparisonMain {
 		int intersection = e1.ngrams.intersection(e2.ngrams);
 		double jaccard = intersection * 1.0 / (e1.ngramCount + e2.ngramCount - intersection);
 		sim.add("exact-jaccard", jaccard);
-		double exactOverlap = intersection * 1.0 / Math.min(e1.ngramCount, e2.ngramCount);
-		sim.add("exact-overlap", exactOverlap);
+		double exactOverlapCoefficient = intersection * 1.0 / Math.min(e1.ngramCount, e2.ngramCount);
+		sim.add("exact-overlap-coefficient", exactOverlapCoefficient);
+		double exactOverlapSimilarity = intersection * 1.0 / Math.max(e1.ngramCount, e2.ngramCount);
+		sim.add("exact-overlap-similarity", exactOverlapSimilarity);
 
 		intersection = e1.normalizedNgrams.intersection(e2.normalizedNgrams);
 		double normalizedJaccard = intersection * 1.0 / (e1.ngramCount + e2.ngramCount - intersection);
 		sim.add("jaccard", normalizedJaccard);
 
 		double overlap = intersection * 1.0 / Math.min(e1.ngramCount, e2.ngramCount);
-		sim.add("overlap", overlap);
+		sim.add("overlap-coefficient", overlap);
+
+		double overlapSimialrity = intersection * 1.0 / Math.max(e1.ngramCount, e2.ngramCount);
+		sim.add("overlap-similarity", overlapSimialrity);
 
 		double v = getWeightedJaccard(e1.normalizedNgrams, e2.normalizedNgrams, frequencyInAllFiles, idfFiles.size(), 0);
 		sim.add("w-all-jaccard", v);
