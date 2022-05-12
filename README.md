@@ -91,14 +91,18 @@ The tool accepts the following options.
 - `-thenj:[THRESHOLD]` specifies a threshold for estimated normalized jaccard distance.  If a similarity estimated by b-bit minhash is less than this threshold, an actual comparison is skipped.
 
 
-### Output
-
-Supported similarity metrics:
+## Similarity metrics
 
  - Jaccard index: Intersection(S1, S2) / Union(S1, S2).
- - Overlap coefficient: Intersection(S1, S2) / Min(S1, S2).  This is defined in https://aircconline.com/mlaij/V3N1/3116mlaij03.pdf
- - Overlap similarity: Intersection(S1, S2) / Max(S1, S2).  This similarity is used by SourcererCC (http://dx.doi.org/10.1145/2884781.2884877).
-   - Note: `-n:1` option (unigram) is also needed to use the SourcererCC's similarity definition.
+   - `exact-jaccard` compares identifiers as is (i.e., without normalization).
+   - `jaccard` compares identifiers with normalization. The similarity metric with `-n:3` has been used in https://doi.org/10.1109/MSR.2017.19.
+ - Overlap coefficient: Intersection(S1, S2) / Min(S1, S2).  
+   - This is defined in https://aircconline.com/mlaij/V3N1/3116mlaij03.pdf
+ - Overlap similarity: Intersection(S1, S2) / Max(S1, S2).  
+   - `exact-overlap-similarity` comapres identifiers as is. This similarity metric with `-n:1` has been used by SourcererCC (http://dx.doi.org/10.1145/2884781.2884877).
+
+### Output
+
 
 The program produces a JSON format like this.
 
