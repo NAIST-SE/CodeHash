@@ -11,7 +11,9 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Set;
 
 import com.fasterxml.jackson.core.JsonFactory;
@@ -46,6 +48,14 @@ public class DirectComparisonMain {
 	private static String DEFAULT_GROUP = "<default>";
 
 	private static String COMPARE_CRSOS_GROUP = "-compare:crossgroup";
+	private static String METRICS = "-metrics:";
+
+	private static final String METRIC_JACCARD_DISTANCE_WITHOUT_NORMALIZATION = "exact-jaccard";
+	private static final String METRIC_JACCARD_DISTANCE = "jaccard";
+	private static final String METRIC_OVERLAP_COEFFICIENT = "overlap-coefficient";
+	private static final String METRIC_OVERLAP_COEFFICIENT_WITHOUT_NORMALIZATION = "exact-overlap-coefficient";
+	private static final String METRIC_OVERLAP_SIMILARITY = "overlap-similarity";
+	private static final String METRIC_OVERLAP_SIMILARITY_WITHOUT_NORMALIZATION = "exact-overlap-similarity";
 	
 	
 	/**
@@ -69,6 +79,13 @@ public class DirectComparisonMain {
 	private double thresholdEstimatedNormalizedJaccard = -1;
 	private HashMap<String, FileGroup> groups = new HashMap<>();
 	private boolean compareGroups = false;
+
+	private boolean useExactJaccard = true;
+	private boolean useExactOverlapSimilarity = true;
+	private boolean useExactOverlapCoefficient = true;
+	private boolean useJaccard = true;
+	private boolean useOverlapSimilarity = true;
+	private boolean useOverlapCoefficient = true;
 
 	public DirectComparisonMain(String[] args) {
 		FileGroup defaultGroup = null;
@@ -108,6 +125,14 @@ public class DirectComparisonMain {
 					invalid = true;
 					return;
 				}
+			} else if (s.startsWith(METRICS)) {
+				HashSet<String> metricNames = new HashSet<>(Arrays.asList(s.substring(METRICS.length()).split(",")));
+				useExactJaccard = metricNames.contains(METRIC_JACCARD_DISTANCE_WITHOUT_NORMALIZATION);
+				useExactOverlapCoefficient = metricNames.contains(METRIC_OVERLAP_COEFFICIENT_WITHOUT_NORMALIZATION);
+				useExactOverlapSimilarity = metricNames.contains(METRIC_OVERLAP_SIMILARITY_WITHOUT_NORMALIZATION);
+				useJaccard = metricNames.contains(METRIC_JACCARD_DISTANCE);
+				useOverlapCoefficient = metricNames.contains(METRIC_OVERLAP_COEFFICIENT);
+				useOverlapSimilarity = metricNames.contains(METRIC_OVERLAP_SIMILARITY);
 			} else if (s.equals(COMPARE_CRSOS_GROUP)) {
 				compareGroups = true;
 //			} else if (s.startsWith(FILENAME_SELECTOR)) {
@@ -301,22 +326,32 @@ public class DirectComparisonMain {
 		SimilarityRecord sim = new SimilarityRecord();
 		
 		int intersection = e1.ngrams.intersection(e2.ngrams);
-		double jaccard = intersection * 1.0 / (e1.ngramCount + e2.ngramCount - intersection);
-		sim.add("exact-jaccard", jaccard);
-		double exactOverlapCoefficient = intersection * 1.0 / Math.min(e1.ngramCount, e2.ngramCount);
-		sim.add("exact-overlap-coefficient", exactOverlapCoefficient);
-		double exactOverlapSimilarity = intersection * 1.0 / Math.max(e1.ngramCount, e2.ngramCount);
-		sim.add("exact-overlap-similarity", exactOverlapSimilarity);
+		if (useExactJaccard) {
+			double jaccard = intersection * 1.0 / (e1.ngramCount + e2.ngramCount - intersection);
+			sim.add(METRIC_JACCARD_DISTANCE_WITHOUT_NORMALIZATION, jaccard);
+		}
+		if (useExactOverlapCoefficient) {
+			double exactOverlapCoefficient = intersection * 1.0 / Math.min(e1.ngramCount, e2.ngramCount);
+			sim.add(METRIC_OVERLAP_COEFFICIENT_WITHOUT_NORMALIZATION, exactOverlapCoefficient);
+		}
+		if (useExactOverlapSimilarity) {
+			double exactOverlapSimilarity = intersection * 1.0 / Math.max(e1.ngramCount, e2.ngramCount);
+			sim.add(METRIC_OVERLAP_SIMILARITY_WITHOUT_NORMALIZATION, exactOverlapSimilarity);
+		}
 
 		intersection = e1.normalizedNgrams.intersection(e2.normalizedNgrams);
-		double normalizedJaccard = intersection * 1.0 / (e1.ngramCount + e2.ngramCount - intersection);
-		sim.add("jaccard", normalizedJaccard);
-
-		double overlap = intersection * 1.0 / Math.min(e1.ngramCount, e2.ngramCount);
-		sim.add("overlap-coefficient", overlap);
-
-		double overlapSimialrity = intersection * 1.0 / Math.max(e1.ngramCount, e2.ngramCount);
-		sim.add("overlap-similarity", overlapSimialrity);
+		if (useJaccard) {
+			double normalizedJaccard = intersection * 1.0 / (e1.ngramCount + e2.ngramCount - intersection);
+			sim.add(METRIC_JACCARD_DISTANCE, normalizedJaccard);
+		}
+		if (useOverlapCoefficient) {
+			double overlap = intersection * 1.0 / Math.min(e1.ngramCount, e2.ngramCount);
+			sim.add(METRIC_OVERLAP_COEFFICIENT, overlap);
+		}
+		if (useOverlapSimilarity) {
+			double overlapSimialrity = intersection * 1.0 / Math.max(e1.ngramCount, e2.ngramCount);
+			sim.add(METRIC_OVERLAP_SIMILARITY, overlapSimialrity);
+		}
 
 		// Temporarily disabled 
 //		double v = getWeightedJaccard(e1.normalizedNgrams, e2.normalizedNgrams, frequencyInAllFiles, idfFiles.size(), 0);
