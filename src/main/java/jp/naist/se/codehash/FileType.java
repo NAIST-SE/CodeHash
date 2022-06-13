@@ -7,12 +7,15 @@ import java.util.HashMap;
 import org.antlr.v4.runtime.CaseChangingCharStream;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.CharStreams;
+import org.antlr.v4.runtime.Lexer;
 import org.antlr.v4.runtime.Token;
 
+import jp.naist.se.codehash.AntlrTokenReader.Filter;
 import jp.naist.se.codehash.normalizer.CPP14Normalizer;
 import jp.naist.se.codehash.normalizer.CSharpNormalizer;
 import jp.naist.se.codehash.normalizer.ECMAScriptNormalizer;
 import jp.naist.se.codehash.normalizer.Java8Normalizer;
+import jp.naist.se.codehash.normalizer.Normalizer;
 import jp.naist.se.codehash.normalizer.Python3Normalizer;
 import jp.naist.se.commentlister.lexer.CPP14Lexer;
 import jp.naist.se.commentlister.lexer.CSharpLexer;
@@ -20,6 +23,7 @@ import jp.naist.se.commentlister.lexer.ECMAScriptLexer;
 import jp.naist.se.commentlister.lexer.Java8Lexer;
 import jp.naist.se.commentlister.lexer.PhpLexer;
 import jp.naist.se.commentlister.lexer.Python3Lexer;
+import jp.naist.se.commentlister.lexer.Python3Parser;
 
 
 public enum FileType {
@@ -128,15 +132,7 @@ public enum FileType {
 			case PYTHON:
 			{
 				Python3Lexer lexer = new Python3Lexer(stream);
-				return new AntlrTokenReader(lexer, new AntlrTokenReader.Filter() {
-					@Override
-					public boolean accept(Token t) {
-						return (t.getChannel() != Python3Lexer.HIDDEN) &&
-								(t.getType() != Python3Lexer.NEWLINE); 
-								//(t.getType() != Python3Parser.INDENT) &&
-								//(t.getType() != Python3Parser.DEDENT);
-					}
-				}, new Python3Normalizer());
+				return new Python3LexerReader(lexer);
 			}
 			case PHP:
 			{
@@ -167,6 +163,41 @@ public enum FileType {
 			}
 		} catch (IOException e) {
 			return null;
+		}
+	}
+	
+	private static class Python3LexerReader extends AntlrTokenReader {
+		public Python3LexerReader(Lexer lexer) {
+			super(lexer, new AntlrTokenReader.Filter() {
+				@Override
+				public boolean accept(Token t) {
+					return (t.getChannel() != Python3Lexer.HIDDEN) &&
+							(t.getType() != Python3Lexer.NEWLINE); 
+							//(t.getType() != Python3Parser.INDENT) &&
+							//(t.getType() != Python3Parser.DEDENT);
+				}
+			}, new Python3Normalizer());
+		}
+		/**
+		 * Overriding tokens 
+		 */
+		@Override
+		public String getText() {
+			if (getTokenType() == Python3Parser.INDENT) {
+				return "<INDENT>";
+			} else if (getTokenType() == Python3Parser.DEDENT) {
+				return "<DEDENT>";
+			}
+			return super.getText();
+		}
+		@Override
+		public String getNormalizedText() {
+			if (getTokenType() == Python3Parser.INDENT) {
+				return "<INDENT>";
+			} else if (getTokenType() == Python3Parser.DEDENT) {
+				return "<DEDENT>";
+			}
+			return super.getNormalizedText();
 		}
 	}
 
