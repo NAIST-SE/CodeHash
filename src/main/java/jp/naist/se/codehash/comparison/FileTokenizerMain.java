@@ -51,6 +51,7 @@ public class FileTokenizerMain {
 						TokenReader r = FileType.createReader(t, input);
 						while (r.next()) {
 							gen.writeStartObject();
+							gen.writeNumberField("TokenType", r.getTokenType());
 							gen.writeStringField("Text", r.getText());
 							gen.writeStringField("NormalizedText", r.getNormalizedText());
 							gen.writeNumberField("Line", r.getLine());

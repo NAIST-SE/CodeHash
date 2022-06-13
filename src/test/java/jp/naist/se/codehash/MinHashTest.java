@@ -149,6 +149,9 @@ public class MinHashTest {
 			return index;
 		}
 		
-		
+		@Override
+		public int getTokenType() {
+			return 0;
+		}
 	}
 }

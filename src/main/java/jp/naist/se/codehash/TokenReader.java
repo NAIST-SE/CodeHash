@@ -37,4 +37,10 @@ public interface TokenReader {
 	 * @return the number of tokens read by the reader.
 	 */
 	public int getTokenCount();
+	
+	/**
+	 * @return the token type of the current token.
+	 * The meaning depends on an underlying lexer.
+	 */
+	public int getTokenType();
 }

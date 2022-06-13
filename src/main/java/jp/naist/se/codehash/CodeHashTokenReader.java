@@ -77,4 +77,9 @@ public class CodeHashTokenReader implements TokenReader {
 		}
 	}
 	
+	@Override
+	public int getTokenType() {
+		return parent.getTokenType();
+	}
+	
 }

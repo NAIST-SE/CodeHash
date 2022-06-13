@@ -38,6 +38,11 @@ public class AntlrTokenReader implements TokenReader {
 	}
 	
 	@Override
+	public int getTokenType() {
+		return current.getType();
+	}
+	
+	@Override
 	public String getNormalizedText() {
 		if (normalizer != null) {
 			return normalizer.normalize(current);

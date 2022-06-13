@@ -20,7 +20,6 @@ import jp.naist.se.commentlister.lexer.ECMAScriptLexer;
 import jp.naist.se.commentlister.lexer.Java8Lexer;
 import jp.naist.se.commentlister.lexer.PhpLexer;
 import jp.naist.se.commentlister.lexer.Python3Lexer;
-import jp.naist.se.commentlister.lexer.Python3Parser;
 
 
 public enum FileType {
@@ -133,9 +132,9 @@ public enum FileType {
 					@Override
 					public boolean accept(Token t) {
 						return (t.getChannel() != Python3Lexer.HIDDEN) &&
-								(t.getType() != Python3Lexer.NEWLINE) && 
-								(t.getType() != Python3Parser.INDENT) &&
-								(t.getType() != Python3Parser.DEDENT);
+								(t.getType() != Python3Lexer.NEWLINE); 
+								//(t.getType() != Python3Parser.INDENT) &&
+								//(t.getType() != Python3Parser.DEDENT);
 					}
 				}, new Python3Normalizer());
 			}
