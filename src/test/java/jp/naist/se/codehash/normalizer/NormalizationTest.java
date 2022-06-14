@@ -114,6 +114,8 @@ public class NormalizationTest {
 		Assert.assertTrue(r.next());
 		Assert.assertEquals(":", r.getNormalizedText());
 		Assert.assertTrue(r.next());
+		Assert.assertEquals("<INDENT>", r.getNormalizedText());
+		Assert.assertTrue(r.next());
 		Assert.assertEquals("if", r.getNormalizedText());
 		Assert.assertTrue(r.next());
 		Assert.assertEquals("not", r.getNormalizedText());
@@ -126,11 +128,15 @@ public class NormalizationTest {
 		Assert.assertTrue(r.next());
 		Assert.assertEquals(":", r.getNormalizedText());
 		Assert.assertTrue(r.next());
+		Assert.assertEquals("<INDENT>", r.getNormalizedText());
+		Assert.assertTrue(r.next());
 		Assert.assertEquals(Python3Normalizer.NORMALIZED_TOKEN, r.getNormalizedText());
 		Assert.assertTrue(r.next());
 		Assert.assertEquals("=", r.getNormalizedText());
 		Assert.assertTrue(r.next());
 		Assert.assertEquals("1", r.getNormalizedText());
+		Assert.assertTrue(r.next());
+		Assert.assertEquals("<DEDENT>", r.getNormalizedText());
 		Assert.assertTrue(r.next());
 		Assert.assertEquals(Python3Normalizer.NORMALIZED_TOKEN, r.getNormalizedText());
 		Assert.assertTrue(r.next());
@@ -141,6 +147,8 @@ public class NormalizationTest {
 		Assert.assertEquals("return", r.getNormalizedText());
 		Assert.assertTrue(r.next());
 		Assert.assertEquals(Python3Normalizer.NORMALIZED_TOKEN, r.getNormalizedText());
+		Assert.assertTrue(r.next());
+		Assert.assertEquals("<DEDENT>", r.getNormalizedText());
 		Assert.assertFalse(r.next());
 
 	}
