@@ -1,34 +1,21 @@
 package jp.naist.se.codehash.comparison;
 
-import java.io.ByteArrayInputStream;
-import java.io.File;
 import java.io.IOException;
-import java.nio.file.FileVisitResult;
-import java.nio.file.FileVisitor;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.attribute.BasicFileAttributes;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
-import java.util.Set;
-import java.util.TreeSet;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
 
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
 
-import jp.naist.se.codehash.CodeHashTokenReader;
-import jp.naist.se.codehash.FileCodeHash;
 import jp.naist.se.codehash.FileType;
 import jp.naist.se.codehash.GitCodeHash;
-import jp.naist.se.codehash.HashStringUtil;
-import jp.naist.se.codehash.MurmurMinHash;
-import jp.naist.se.codehash.TokenReader;
+import jp.naist.se.codehash.file.FileEntity;
+import jp.naist.se.codehash.file.FileGroup;
 import jp.naist.se.codehash.util.StringMultiset;
 
 public class DirectComparisonMain {
-
-	private static final int MAX_METRICS = 12;
 
 	private static String LANG_OPTION = "-lang:";
 	private static String NGRAM_OPTION = "-n:";
@@ -42,8 +29,21 @@ public class DirectComparisonMain {
 	 */
 	private static String FILENAME_SELECTOR = "-prefix:";
 
-	private static String DIR_OPTION = "-dir:";
+	private static String DIR_OPTION = "-dir";
+	private static String GROUP_OPTION = "-group";
 
+	private static String DEFAULT_GROUP = "<default>";
+
+	private static String COMPARE_CRSOS_GROUP = "-compare:crossgroup";
+	private static String METRICS = "-metrics:";
+
+	private static final String METRIC_JACCARD_DISTANCE_WITHOUT_NORMALIZATION = "exact-jaccard";
+	private static final String METRIC_JACCARD_DISTANCE = "jaccard";
+	private static final String METRIC_OVERLAP_COEFFICIENT = "overlap-coefficient";
+	private static final String METRIC_OVERLAP_COEFFICIENT_WITHOUT_NORMALIZATION = "exact-overlap-coefficient";
+	private static final String METRIC_OVERLAP_SIMILARITY = "overlap-similarity";
+	private static final String METRIC_OVERLAP_SIMILARITY_WITHOUT_NORMALIZATION = "exact-overlap-similarity";
+	
 	
 	/**
 	 * Compare two source files.
@@ -64,10 +64,19 @@ public class DirectComparisonMain {
 	private double threshold = 0;
 	private double thresholdNormalizedJaccard = -1;
 	private double thresholdEstimatedNormalizedJaccard = -1;
-	private String filePrefix;
+	private HashMap<String, FileGroup> groups = new HashMap<>();
+	private boolean compareGroups = false;
+
+	private boolean useExactJaccard = true;
+	private boolean useExactOverlapSimilarity = true;
+	private boolean useExactOverlapCoefficient = true;
+	private boolean useJaccard = true;
+	private boolean useOverlapSimilarity = true;
+	private boolean useOverlapCoefficient = true;
 
 	public DirectComparisonMain(String[] args) {
-		TreeSet<String> filenames = new TreeSet<>();
+		FileGroup defaultGroup = null;
+		
 		for (String s: args) {
 			if (s.startsWith(LANG_OPTION)) {
 				t = FileType.getFileType(s.substring(LANG_OPTION.length()));
@@ -103,69 +112,89 @@ public class DirectComparisonMain {
 					invalid = true;
 					return;
 				}
-			} else if (s.startsWith(FILENAME_SELECTOR)) {
-				filePrefix = s.substring(FILENAME_SELECTOR.length());
-			} else if (s.startsWith(DIR_OPTION)) {
-				String dirname = s.substring(DIR_OPTION.length());
-				try {
-					Files.walkFileTree(new File(dirname).toPath(), new FileVisitor<Path>() {
-						@Override
-						public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-							filenames.add(file.toString());
-							return FileVisitResult.CONTINUE;
-						}
-						@Override
-						public FileVisitResult visitFileFailed(Path file, IOException exc) throws IOException {
-							return FileVisitResult.CONTINUE;
-						}
-						@Override
-						public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
-							return FileVisitResult.CONTINUE;
-						}
-						@Override
-						public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
-							return FileVisitResult.CONTINUE;
-						}
-					});
-				} catch (IOException e) {
-				}
+			} else if (s.startsWith(METRICS)) {
+				HashSet<String> metricNames = new HashSet<>(Arrays.asList(s.substring(METRICS.length()).split(",")));
+				useExactJaccard = metricNames.contains(METRIC_JACCARD_DISTANCE_WITHOUT_NORMALIZATION);
+				useExactOverlapCoefficient = metricNames.contains(METRIC_OVERLAP_COEFFICIENT_WITHOUT_NORMALIZATION);
+				useExactOverlapSimilarity = metricNames.contains(METRIC_OVERLAP_SIMILARITY_WITHOUT_NORMALIZATION);
+				useJaccard = metricNames.contains(METRIC_JACCARD_DISTANCE);
+				useOverlapCoefficient = metricNames.contains(METRIC_OVERLAP_COEFFICIENT);
+				useOverlapSimilarity = metricNames.contains(METRIC_OVERLAP_SIMILARITY);
+			} else if (s.equals(COMPARE_CRSOS_GROUP)) {
+				compareGroups = true;
+//			} else if (s.startsWith(FILENAME_SELECTOR)) {
+//				filePrefix = s.substring(FILENAME_SELECTOR.length());
+			} else if (s.startsWith(DIR_OPTION) || s.startsWith(GROUP_OPTION)) {
+				String path;
+				if (s.startsWith(DIR_OPTION)) path = s.substring(DIR_OPTION.length());
+				else path = s.substring(GROUP_OPTION.length());
+				int index = path.indexOf(':');
+				if (index >= 0) {
+					String groupId;
+					if (index == 0) {
+						groupId = DEFAULT_GROUP;
+					} else {
+						groupId = path.substring(0, index);
+					}
+					path = path.substring(index+1);
+
+					FileGroup g = groups.get(groupId);
+					if (g == null) {
+						g = new FileGroup(groupId);
+						groups.put(groupId, g);
+					}
+					g.add(path);
+				} // else invalid dir/group option
 			} else {
-				filenames.add(s);
-			}
-		}
-		for (String s: filenames) {
-			File f = new File(s);
-			FileEntity entity = FileEntity.parse(f, t, N);
-			if (entity != null) {
-				if (filePrefix == null || s.startsWith(filePrefix)) {
-					files.add(entity);
+				if (defaultGroup == null) {
+					defaultGroup = new FileGroup(DEFAULT_GROUP);
+					groups.put(DEFAULT_GROUP, defaultGroup);
+					
 				}
-				idfFiles.add(entity);
+ 				defaultGroup.add(s);
 			}
 		}
-		if (files.size() <= 1) {
-			System.err.println("Arguments: Two or more source file names should be specified.");
-			invalid = true;
-			return;
-		}
+//		
+//		
+//		
+//		for (String s: filenames) {
+//			File f = new File(s);
+//			FileEntity entity = FileEntity.parse(f, t, N);
+//			if (entity != null) {
+//				if (filePrefix == null || s.startsWith(filePrefix)) {
+//					files.add(entity);
+//				}
+//				idfFiles.add(entity);
+//			}
+//		}
+//		if (files.size() <= 1) {
+//			System.err.println("Arguments: Two or more source file names should be specified.");
+//			invalid = true;
+//			return;
+//		}
 	}
 	
 	public void run() {
 		if (invalid) return;
 		
-		// Count the number of Ngrams
-		StringMultiset normalizedNgramFrequencyInSelectedFiles = new StringMultiset(1024);
-		StringMultiset normalizedNgramFrequencyInAllFiles = new StringMultiset(1024);
-		for (FileEntity f: idfFiles) {
-			for (String s: f.getNormalizedNgramMultiset().keySet()) {
-				normalizedNgramFrequencyInAllFiles.add(s);
-			}
+		// Load files
+		for (FileGroup g: groups.values()) {
+			g.loadEntities(t, N);
 		}
-		for (FileEntity f: files) {
-			for (String s: f.getNormalizedNgramMultiset().keySet()) {
-				normalizedNgramFrequencyInSelectedFiles.add(s);
-			}
-		}
+		
+//		// Count the number of Ngrams
+//		StringMultiset normalizedNgramFrequencyInSelectedFiles = new StringMultiset(1024);
+//		StringMultiset normalizedNgramFrequencyInAllFiles = new StringMultiset(1024);
+//		for (FileEntity f: idfFiles) {
+//			for (String s: f.getNormalizedNgramMultiset().keySet()) {
+//				normalizedNgramFrequencyInAllFiles.add(s);
+//			}
+//		}
+//		for (FileEntity f: files) {
+//			for (String s: f.getNormalizedNgramMultiset().keySet()) {
+//				normalizedNgramFrequencyInSelectedFiles.add(s);
+//			}
+//		}
 
 		JsonFactory f = new JsonFactory();
 		try (JsonGenerator gen = f.createGenerator(System.out)) {
@@ -174,46 +203,55 @@ public class DirectComparisonMain {
 			
 			// Print a file list
 			gen.writeArrayFieldStart("Files");
-			for (int i=0; i<files.size(); i++) {
-				FileEntity e1 = files.get(i);
-				gen.writeStartObject();
-				gen.writeNumberField("index", i);
-				gen.writeStringField("path", e1.path);
-				gen.writeStringField("lang", e1.getLanguageName());
-				gen.writeStringField("byte-sha1", e1.filehash);
-				gen.writeStringField("token-sha1", e1.codehash);
-				gen.writeNumberField("byte-length", e1.byteLength);
-				gen.writeNumberField("token-length", e1.tokenLength);
-				gen.writeNumberField("ngram-count", e1.ngramCount);
-				gen.writeEndObject();
+			
+			for (FileGroup g: groups.values()) {
+				for (FileEntity e1: g.getFiles()) {
+					gen.writeStartObject();
+					gen.writeStringField("group", g.getGroupId());
+					gen.writeNumberField("index", e1.getIndex());
+					gen.writeStringField("path", e1.getPath());
+					gen.writeStringField("lang", e1.getLanguageName());
+					gen.writeStringField("byte-sha1", e1.getFileHash());
+					gen.writeStringField("token-sha1", e1.getCodeHash());
+					gen.writeNumberField("byte-length", e1.getByteLength());
+					gen.writeNumberField("token-length", e1.getTokenLength());
+					gen.writeNumberField("ngram-count", e1.getNgramCount());
+					gen.writeEndObject();
+				}
 			}
 			gen.writeEndArray();
 
 			gen.writeArrayFieldStart("Pairs");
 
-			// Compare file pairs 
-			for (int i=0; i<files.size(); i++) {
-				FileEntity e1 = files.get(i);
+			if (compareGroups) {
+				// Compare across groups
+				ArrayList<FileGroup> groupList = new ArrayList<>(groups.values());
 				
-				for (int j=i+1; j<files.size(); j++) {
-					FileEntity e2 = files.get(j);
-					
-					// Compare them if they are written in the same language
-					if (e1.isSameLanguage(e2)) {
-						// skip actual calculation if estimated similarity is low
-						if (thresholdEstimatedNormalizedJaccard > 0 && e1.minhashEntry.estimateNormalizedSimilarity(e2.minhashEntry) < thresholdEstimatedNormalizedJaccard) continue;
+				for (int i=0; i<groupList.size(); i++) {
+					for (int j=i+1; j<groupList.size(); j++) {
 						
-						SimilarityRecord similarityValues = calculateSimilarity(e1, e2, normalizedNgramFrequencyInAllFiles, normalizedNgramFrequencyInSelectedFiles);
-						if (similarityValues.isLessThan(threshold)) continue;
-
-						// skip actual similarity is lower than threshold
-						if (thresholdNormalizedJaccard > 0 && similarityValues.getValue("jaccard") < thresholdNormalizedJaccard) continue;
-
-						gen.writeStartObject();
-						gen.writeNumberField("index1", i);
-						gen.writeNumberField("index2", j);
-						similarityValues.writeSimilarity(gen);
-						gen.writeEndObject();
+						ArrayList<FileEntity> files1 = groupList.get(i).getFiles();
+						ArrayList<FileEntity> files2 = groupList.get(j).getFiles();
+						
+						for (FileEntity e1: files1) {
+							for (FileEntity e2: files2) {
+								compare(gen, e1, e2);
+							}
+						}
+						
+					}
+				}
+				
+			} else {
+				// Compare within groups
+				for (FileGroup g: groups.values()) {
+					ArrayList<FileEntity> files = g.getFiles();
+					for (int i=0; i<files.size(); i++) {
+						FileEntity e1 = files.get(i);
+						for (int j=i+1; j<files.size(); j++) {
+							FileEntity e2 = files.get(j);
+							compare(gen, e1, e2);
+						}
 					}
 				}
 			}
@@ -224,6 +262,28 @@ public class DirectComparisonMain {
 			e.printStackTrace();
 		}
 
+	}
+	
+	private void compare(JsonGenerator gen, FileEntity e1, FileEntity e2) throws IOException {
+		// Compare them if they are written in the same language
+		if (e1.isSameLanguage(e2)) {
+			// skip actual calculation if estimated similarity is low
+			if (thresholdEstimatedNormalizedJaccard > 0 && e1.estimateNormalizedSimilarity(e2) < thresholdEstimatedNormalizedJaccard) return;
+			
+			SimilarityRecord similarityValues = calculateSimilarity(e1, e2, null, null);
+			//SimilarityRecord similarityValues = calculateSimilarity(e1, e2, normalizedNgramFrequencyInAllFiles, normalizedNgramFrequencyInSelectedFiles);
+			if (similarityValues.isLessThan(threshold)) return;
+
+			// skip actual similarity is lower than threshold
+			if (thresholdNormalizedJaccard > 0 && similarityValues.getValue("jaccard") < thresholdNormalizedJaccard) return;
+
+			gen.writeStartObject();
+			gen.writeNumberField("index1", e1.getIndex());
+			gen.writeNumberField("index2", e2.getIndex());
+			similarityValues.writeSimilarity(gen);
+			gen.writeEndObject();
+		}
+		
 	}
 
 	/**
@@ -254,36 +314,47 @@ public class DirectComparisonMain {
 	public SimilarityRecord calculateSimilarity(FileEntity e1, FileEntity e2, StringMultiset frequencyInAllFiles, StringMultiset frequencyInSelectedFiles) {
 		SimilarityRecord sim = new SimilarityRecord();
 		
-		int intersection = e1.ngrams.intersection(e2.ngrams);
-		double jaccard = intersection * 1.0 / (e1.ngramCount + e2.ngramCount - intersection);
-		sim.add("exact-jaccard", jaccard);
-		double exactOverlapCoefficient = intersection * 1.0 / Math.min(e1.ngramCount, e2.ngramCount);
-		sim.add("exact-overlap-coefficient", exactOverlapCoefficient);
-		double exactOverlapSimilarity = intersection * 1.0 / Math.max(e1.ngramCount, e2.ngramCount);
-		sim.add("exact-overlap-similarity", exactOverlapSimilarity);
+		int intersection = e1.getNgramMultiset().intersection(e2.getNgramMultiset());
+		if (useExactJaccard) {
+			double jaccard = intersection * 1.0 / (e1.getNgramCount() + e2.getNgramCount() - intersection);
+			sim.add(METRIC_JACCARD_DISTANCE_WITHOUT_NORMALIZATION, jaccard);
+		}
+		if (useExactOverlapCoefficient) {
+			double exactOverlapCoefficient = intersection * 1.0 / Math.min(e1.getNgramCount(), e2.getNgramCount());
+			sim.add(METRIC_OVERLAP_COEFFICIENT_WITHOUT_NORMALIZATION, exactOverlapCoefficient);
+		}
+		if (useExactOverlapSimilarity) {
+			double exactOverlapSimilarity = intersection * 1.0 / Math.max(e1.getNgramCount(), e2.getNgramCount());
+			sim.add(METRIC_OVERLAP_SIMILARITY_WITHOUT_NORMALIZATION, exactOverlapSimilarity);
+		}
 
-		intersection = e1.normalizedNgrams.intersection(e2.normalizedNgrams);
-		double normalizedJaccard = intersection * 1.0 / (e1.ngramCount + e2.ngramCount - intersection);
-		sim.add("jaccard", normalizedJaccard);
+		intersection = e1.getNormalizedNgramMultiset().intersection(e2.getNormalizedNgramMultiset());
+		if (useJaccard) {
+			double normalizedJaccard = intersection * 1.0 / (e1.getNgramCount() + e2.getNgramCount() - intersection);
+			sim.add(METRIC_JACCARD_DISTANCE, normalizedJaccard);
+		}
+		if (useOverlapCoefficient) {
+			double overlap = intersection * 1.0 / Math.min(e1.getNgramCount(), e2.getNgramCount());
+			sim.add(METRIC_OVERLAP_COEFFICIENT, overlap);
+		}
+		if (useOverlapSimilarity) {
+			double overlapSimialrity = intersection * 1.0 / Math.max(e1.getNgramCount(), e2.getNgramCount());
+			sim.add(METRIC_OVERLAP_SIMILARITY, overlapSimialrity);
+		}
 
-		double overlap = intersection * 1.0 / Math.min(e1.ngramCount, e2.ngramCount);
-		sim.add("overlap-coefficient", overlap);
-
-		double overlapSimialrity = intersection * 1.0 / Math.max(e1.ngramCount, e2.ngramCount);
-		sim.add("overlap-similarity", overlapSimialrity);
-
-		double v = getWeightedJaccard(e1.normalizedNgrams, e2.normalizedNgrams, frequencyInAllFiles, idfFiles.size(), 0);
-		sim.add("w-all-jaccard", v);
-
-		double v5 = getWeightedOverlap(e1.normalizedNgrams, e2.normalizedNgrams, frequencyInAllFiles, idfFiles.size(), 0);
-		sim.add("w-all-overlap", v5);
-
-		double v2 = getWeightedJaccard(e1.normalizedNgrams, e2.normalizedNgrams, frequencyInAllFiles, idfFiles.size(), 1);
-		sim.add("i-all-jaccard", v2);
-
-		double v6 = getWeightedOverlap(e1.normalizedNgrams, e2.normalizedNgrams, frequencyInAllFiles, idfFiles.size(), 1);
-		sim.add("i-all-overlap", v6);
-
+		// Temporarily disabled 
+//		double v = getWeightedJaccard(e1.normalizedNgrams, e2.normalizedNgrams, frequencyInAllFiles, idfFiles.size(), 0);
+//		sim.add("w-all-jaccard", v);
+//
+//		double v5 = getWeightedOverlap(e1.normalizedNgrams, e2.normalizedNgrams, frequencyInAllFiles, idfFiles.size(), 0);
+//		sim.add("w-all-overlap", v5);
+//
+//		double v2 = getWeightedJaccard(e1.normalizedNgrams, e2.normalizedNgrams, frequencyInAllFiles, idfFiles.size(), 1);
+//		sim.add("i-all-jaccard", v2);
+//
+//		double v6 = getWeightedOverlap(e1.normalizedNgrams, e2.normalizedNgrams, frequencyInAllFiles, idfFiles.size(), 1);
+//		sim.add("i-all-overlap", v6);
+//
 //		double v3 = getWeightedJaccard(e1.normalizedNgrams, e2.normalizedNgrams, frequencyInSelectedFiles, files.size(), 0);
 //		sim.add("w-sel-jaccard", v3);
 //
@@ -298,11 +369,11 @@ public class DirectComparisonMain {
 
 
 
-		double cosineN = CosineSimilarity.getTFIDFCosineSimilarity(e1.getNormalizedNgramMultiset(), e2.getNormalizedNgramMultiset(), frequencyInAllFiles, idfFiles.size());
-		sim.add("tfidf-all-cosine", cosineN);
-
-		double cosineNIDF = CosineSimilarity.getIDFCosineSimilarity(e1.getNormalizedNgramMultiset(), e2.getNormalizedNgramMultiset(), frequencyInAllFiles, idfFiles.size());
-		sim.add("idf-all-cosine", cosineNIDF);
+//		double cosineN = CosineSimilarity.getTFIDFCosineSimilarity(e1.getNormalizedNgramMultiset(), e2.getNormalizedNgramMultiset(), frequencyInAllFiles, idfFiles.size());
+//		sim.add("tfidf-all-cosine", cosineN);
+//
+//		double cosineNIDF = CosineSimilarity.getIDFCosineSimilarity(e1.getNormalizedNgramMultiset(), e2.getNormalizedNgramMultiset(), frequencyInAllFiles, idfFiles.size());
+//		sim.add("idf-all-cosine", cosineNIDF);
 
 //		cosineN = CosineSimilarity.getTFIDFCosineSimilarity(e1.getNormalizedNgramMultiset(), e2.getNormalizedNgramMultiset(), frequencyInSelectedFiles, files.size());
 //		sim.add("tfidf-sel-cosine", cosineN);
@@ -350,6 +421,9 @@ public class DirectComparisonMain {
 	}
 
 	public static class SimilarityRecord {
+
+		private static final int MAX_METRICS = 12;
+
 		
 		private String[] names;
 		private double[] values;
@@ -440,100 +514,6 @@ public class DirectComparisonMain {
 		}
 	}
 	
-	public static class FileEntity {
-		
-		private String path;
-		private FileType type;
-		private int byteLength;
-		private int tokenLength;
-		private String filehash;
-		private String codehash;
-		private String minhash;
-		private String normalizedMinhash;
-		private int ngramCount;
-		private StringMultiset ngrams;
-		private StringMultiset normalizedNgrams;
-		private MinHashEntry minhashEntry;
-		
-		/**
-		 * Create a FileEntity object from a File.
-		 * @param f specifies a file.  The content will be loaded.
-		 * @param enforceLanguage specifies a programming language.  
-		 * If null, the method automatically tries to recognize a programming language from the file extension.
-		 * @param N specifies the size of N-gram to compare files.
-		 * @return a created object.
-		 */
-		public static FileEntity parse(File f, FileType enforceLanguage, int N) {
-			String path = f.getAbsolutePath();
-			FileType type = enforceLanguage != null ? enforceLanguage : FileType.getFileTypeFromName(path);
-			if (f.canRead() && FileType.isSupported(type)) {
-				try {
-					byte[] content = Files.readAllBytes(f.toPath());
-					return new FileEntity(path, type, content, N);
-				} catch (IOException e) {
-					return null;
-				}
-			} else {
-				return null;
-			}
-		}
-		
-		/**
-		 * Construct a FileEntity object.
-		 * @param path specifies a file name.  The value is only used when writing a result.  
-		 * @param type specifies a programming language to parse the content. 
-		 * @param content is the content of a file.
-		 * @param N specifies the size of N-gram to compare files.
-		 */
-		public FileEntity(String path, FileType type, byte[] content, int N) {
-			this.path = path;
-			this.type = type;
-			this.byteLength = content.length;
-			try {
-				MessageDigest d = MessageDigest.getInstance(FileCodeHash.FILEHASH_ALGORITHM);
-				filehash = HashStringUtil.bytesToHex(d.digest(content));
-				TokenReader tokenReader = FileType.createReader(type, new ByteArrayInputStream(content));
-				CodeHashTokenReader wrapper = new CodeHashTokenReader(tokenReader, byteLength);
-				MurmurMinHash h = new MurmurMinHash(GitCodeHash.BBITMINHASH_BITCOUNT, N, wrapper);
-				minhash = HashStringUtil.bytesToHex(h.getHash());
-				normalizedMinhash = HashStringUtil.bytesToHex(h.getNormalizedHash());
-				codehash = HashStringUtil.bytesToHex(wrapper.getHash());
-				ngramCount = h.getNgramCount();
-				ngrams = h.getNgramMultiset();
-				normalizedNgrams = h.getNormalizedNgramMultiset();
-				tokenLength = tokenReader.getTokenCount();
-
-				minhashEntry = new MinHashEntry(path, filehash, getLanguageName(), codehash, minhash, normalizedMinhash, byteLength, tokenLength, ngramCount);
-			} catch (NoSuchAlgorithmException e) { 
-				e.printStackTrace();
-			}
-		}
-		
-		public String getLanguageName() {
-			return type.name();
-		}
-		
-		public boolean isSameLanguage(FileEntity another) { 
-			return this.type == another.type;
-		}
-		
-		public Set<String> getNgrams() {
-			return ngrams.keySet();
-		}
-
-		public Set<String> getNormalizedNgrams() {
-			return normalizedNgrams.keySet();
-		}
-
-		public StringMultiset getNgramMultiset() {
-			return ngrams;
-		}
-
-		public StringMultiset getNormalizedNgramMultiset() {
-			return normalizedNgrams;
-		}
-
-
-	}
+	
 
 }

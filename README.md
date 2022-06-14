@@ -69,7 +69,7 @@ The minimum threshold is 0.7.
 The main class `jp.naist.se.codehash.comparison.DirectComparisonMain` directly compares a set of files.
 This class calculates the exact similarity between files, while this comparison also can avoid unnecessary comparison using 1-bit minhash vectors.
 
-It takes as command line arguments source file names on your disk.  For example:
+It takes as command line arguments source file names (or directory names) on your disk.  For example:
 >        java -classpath target/CodeHash.jar jp.naist.se.codehash.comparison.DirectComparisonMain 001.c 002.c
 
 
@@ -77,19 +77,21 @@ It takes as command line arguments source file names on your disk.  For example:
 
 ### Options
 
-The tool accepts the following options.
+The tool accepts the following options.  Other arguments are regarded as source file (or directory) names.
+
 
 #### File selection options
 
 - `-lang:[LANGUAGE]`: This option specifies a language name.  Supported languages are CPP, JAVA, ECMASCRIPT, PYTHON, PHP, and CSHARP.
-- `-dir:[DIRNAME]` specifies a directory including files to be compared by the tool.  - `-prefix:[PREFIX]` specifies a prefix filter for file names to be compared by the tool.  This option extracts a subset of files listed by arguments and `-dir` options.
+- `-group[GROUP-NAME]:[PATH]` specifies a group name for a file or a directory.  This option is meaningful when `-compare:crossgroup` is specified.
+- `-prefix:[PREFIX]` specifies a prefix filter for file names to be compared by the tool.  This option extracts a subset of files listed by arguments and `-dir` options.
 
 #### Comparison Options
 - `-n:[NGRAM]` specifies N for N-gram.  The default is trigrams (i.e., `-n:3`).
 - `-th:[THRESHOLD]` specifies a similarity threshold (0-1.0).  If all of similarity values for a file pair are less than this threshold, the file pair is excluded from the output.
 - `-thnj:[THRESHOLD]` specifies a similarity threshold for normalized jaccard distance.  If the similarity value for a file pair is less than this threshold, the file pair is excluded from the output.
 - `-thenj:[THRESHOLD]` specifies a threshold for estimated normalized jaccard distance.  If a similarity estimated by b-bit minhash is less than this threshold, an actual comparison is skipped.
-
+- `-compare:crossgroup` compares only file pairs across groups.  It skips comparison between file pairs within a group.
 
 ## Similarity metrics
 
