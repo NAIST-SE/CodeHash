@@ -7,6 +7,7 @@ import java.io.LineNumberReader;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 
 public class ComparisonMain {
@@ -91,34 +92,44 @@ public class ComparisonMain {
 	}
 
 	public void analyze(PrintStream out) {
+		// Sort for efficient comparison
+		entries.sort(new Comparator<MinHashEntry>() {
+			@Override
+			public int compare(MinHashEntry o1, MinHashEntry o2) {
+				return o1.compareTo(o2);
+			}
+		});
+
 		out.println("CodeHash1\tCodeHash2\tTokenLength1\tTokenLength2\tEstimatedSim\tEstimatedSimWithNormalization\tFileNames1\tFileNames2");
 		// Compare all pairs
 		for (int i=0; i<entries.size(); i++) {
 			MinHashEntry e1 = entries.get(i);
 			for (int j=i+1; j<entries.size(); j++) {
 				MinHashEntry e2 = entries.get(j);
-				if (e1.getMaxSimilairty(e2) >= THRESHOLD) {
+				if (e1.getMaxSimilairty(e2) < THRESHOLD) break;
+				if (!e1.isSameLanguage(e2)) continue;
+				double normalizedEstimated = e1.estimateNormalizedSimilarity(e2);
+				// Check only normalized estimated because normalized similarity is always higher than exact similarity 
+				// (though there exists a risk that the estimated value is lower than actual)
+				if (normalizedEstimated >= THRESHOLD) {
 					double estimated = e1.estimateSimilarity(e2); 
-					double normalizedEstimated = e1.estimateNormalizedSimilarity(e2);
-					if (estimated >= THRESHOLD || normalizedEstimated >= THRESHOLD) {
-						StringBuilder buf = new StringBuilder(1024);
-						buf.append(e1.getCodehash());
-						buf.append("\t");
-						buf.append(e2.getCodehash());
-						buf.append("\t");
-						buf.append(e1.getTokenLength());
-						buf.append("\t");
-						buf.append(e2.getTokenLength());
-						buf.append("\t");
-						buf.append(estimated);
-						buf.append("\t");
-						buf.append(normalizedEstimated);
-						buf.append("\t");
-						buf.append(getFileNames(e1.getCodehash()));
-						buf.append("\t");
-						buf.append(getFileNames(e2.getCodehash()));
-						out.println(buf.toString());
-					}
+					StringBuilder buf = new StringBuilder(1024);
+					buf.append(e1.getCodehash());
+					buf.append("\t");
+					buf.append(e2.getCodehash());
+					buf.append("\t");
+					buf.append(e1.getTokenLength());
+					buf.append("\t");
+					buf.append(e2.getTokenLength());
+					buf.append("\t");
+					buf.append(estimated);
+					buf.append("\t");
+					buf.append(normalizedEstimated);
+					buf.append("\t");
+					buf.append(getFileNames(e1.getCodehash()));
+					buf.append("\t");
+					buf.append(getFileNames(e2.getCodehash()));
+					out.println(buf.toString());
 				}
 			}
 		}
