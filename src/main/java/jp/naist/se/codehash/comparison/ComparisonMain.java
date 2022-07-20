@@ -97,26 +97,28 @@ public class ComparisonMain {
 			MinHashEntry e1 = entries.get(i);
 			for (int j=i+1; j<entries.size(); j++) {
 				MinHashEntry e2 = entries.get(j);
-				double estimated = e1.estimateSimilarity(e2); 
-				double normalizedEstimated = e1.estimateNormalizedSimilarity(e2);
-				if (estimated >= THRESHOLD || normalizedEstimated >= THRESHOLD) {
-					StringBuilder buf = new StringBuilder(1024);
-					buf.append(e1.getCodehash());
-					buf.append("\t");
-					buf.append(e2.getCodehash());
-					buf.append("\t");
-					buf.append(e1.getTokenLength());
-					buf.append("\t");
-					buf.append(e2.getTokenLength());
-					buf.append("\t");
-					buf.append(estimated);
-					buf.append("\t");
-					buf.append(normalizedEstimated);
-					buf.append("\t");
-					buf.append(getFileNames(e1.getCodehash()));
-					buf.append("\t");
-					buf.append(getFileNames(e2.getCodehash()));
-					out.println(buf.toString());
+				if (e1.getMaxSimilairty(e2) >= THRESHOLD) {
+					double estimated = e1.estimateSimilarity(e2); 
+					double normalizedEstimated = e1.estimateNormalizedSimilarity(e2);
+					if (estimated >= THRESHOLD || normalizedEstimated >= THRESHOLD) {
+						StringBuilder buf = new StringBuilder(1024);
+						buf.append(e1.getCodehash());
+						buf.append("\t");
+						buf.append(e2.getCodehash());
+						buf.append("\t");
+						buf.append(e1.getTokenLength());
+						buf.append("\t");
+						buf.append(e2.getTokenLength());
+						buf.append("\t");
+						buf.append(estimated);
+						buf.append("\t");
+						buf.append(normalizedEstimated);
+						buf.append("\t");
+						buf.append(getFileNames(e1.getCodehash()));
+						buf.append("\t");
+						buf.append(getFileNames(e2.getCodehash()));
+						out.println(buf.toString());
+					}
 				}
 			}
 		}

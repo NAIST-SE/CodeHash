@@ -67,6 +67,14 @@ public class MinHashEntry {
 		}
 	}
 	
+	public double getMaxSimilairty(MinHashEntry another) {
+		if (this.lang.equals(another.lang)) {
+			return  Math.min(this.size, another.size) * 1.0 / Math.max(this.size, another.size);
+		} else {
+			return 0;
+		}
+	}
+	
 	public double estimateSimilarity(MinHashEntry another) {
 		return estimateSimilarity(another, this.minhash, another.minhash);
 	}
