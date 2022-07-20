@@ -34,12 +34,27 @@ public class ComparisonMain {
 	
 	private ArrayList<MinHashEntry> entries = new ArrayList<>();
 	private HashMap<String, ArrayList<String>> codehashToFileNames = new HashMap<>();
+	private HashMap<String, String> languages = new HashMap<>(32);
 	
 	public ComparisonMain() {
 	}
 	
 	public int getEntryCount() {
 		return entries.size();
+	}
+	
+	/**
+	 * Replace a language string into a common string for faster comparison
+	 * @param lang
+	 * @return
+	 */
+	public String toSingleInstance(String lang) {
+		String langCommonInstance = languages.get(lang);
+		if (langCommonInstance == null) {
+			languages.put(lang, lang);
+			langCommonInstance = lang;
+		}
+		return lang;
 	}
 	
 	/**
@@ -61,7 +76,7 @@ public class ComparisonMain {
 				int ngramSize = Integer.parseInt(tokens[8]);
 				
 				if (!codehashToFileNames.containsKey(codehash)) {
-					entries.add(new MinHashEntry(filename, sha1, lang, codehash, minhash, normalizedMinhash, fileLength, tokenLength, ngramSize));
+					entries.add(new MinHashEntry(filename, sha1, toSingleInstance(lang), codehash, minhash, normalizedMinhash, fileLength, tokenLength, ngramSize));
 					ArrayList<String> filenames = new ArrayList<>();
 					filenames.add(filename);
 					codehashToFileNames.put(codehash, filenames);
