@@ -46,4 +46,34 @@ public class StringMultisetTest {
 		Assert.assertEquals(60, ms.intersection(ms2));
 		Assert.assertEquals(60, ms2.intersection(ms));
 	}
+	
+	@Test
+	public void testSubtract() {
+		// Construct a multiset
+		StringMultiset minuend = new StringMultiset(100);
+		minuend.add("0");
+		minuend.add("0");
+		minuend.add("1");
+		minuend.add("1");
+		minuend.add("2");
+		minuend.add("2");
+		minuend.add("4");
+		// Construct another multiset
+		StringMultiset subtrahend = new StringMultiset(100);
+		subtrahend.add("0");
+		subtrahend.add("0");
+		subtrahend.add("0");
+		subtrahend.add("1");
+		subtrahend.add("1");
+		subtrahend.add("2");
+		subtrahend.add("3");
+		
+		StringMultiset diff = minuend.subtract(subtrahend);
+		Assert.assertEquals(0, diff.get("0"));
+		Assert.assertEquals(0, diff.get("1"));
+		Assert.assertEquals(1, diff.get("2"));
+		Assert.assertEquals(0, diff.get("3"));
+		Assert.assertEquals(1, diff.get("4"));
+	}
+	
 }

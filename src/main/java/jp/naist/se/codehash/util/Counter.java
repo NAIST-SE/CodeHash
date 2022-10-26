@@ -7,6 +7,10 @@ public class Counter {
 	public Counter() {
 		count = 0;
 	}
+	
+	public Counter(int initialValue) {
+		count = initialValue;
+	}
 
 	public void increment() {
 		count++;

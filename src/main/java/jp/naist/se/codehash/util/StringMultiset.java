@@ -1,6 +1,7 @@
 package jp.naist.se.codehash.util;
 
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -90,5 +91,20 @@ public class StringMultiset {
 		return count;
 	}
 	
+	/**
+	 * @param another specifies a multiset to be subtracted from this object
+	 * @return difference between the multisets (this - another)
+	 */
+	public StringMultiset subtract(StringMultiset another) {
+		StringMultiset result = new StringMultiset(counters.size() * 2); 
+		for (Map.Entry<String, Counter> entry: counters.entrySet()) {
+			int d = entry.getValue().get() - another.get(entry.getKey());
+			if (d < 0) d = 0;
+			Counter c = new Counter(d);
+			result.counters.put(entry.getKey(), c);
+			result.size += d;
+		}
+		return result;
+	}
 
 }
