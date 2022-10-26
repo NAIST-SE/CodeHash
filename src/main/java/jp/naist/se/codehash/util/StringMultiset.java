@@ -3,12 +3,19 @@ package jp.naist.se.codehash.util;
 import java.util.HashMap;
 import java.util.Set;
 
+/**
+ * StringMultiset allows multiple instances of a string.
+ */
 public class StringMultiset {
 
 	
 	private HashMap<String, Counter> counters;
 	private int size;
 
+	/**
+	 * Create an empty multiset.
+	 * @param capacity specifies the initial capacity of an internal collection.
+	 */
 	public StringMultiset(int capacity) {
 		counters = new HashMap<>(capacity);
 		size = 0;
@@ -30,10 +37,17 @@ public class StringMultiset {
 		return c.get();
 	}
 	
+	/**
+	 * @return the number of strings in the multiset. 
+	 */
 	public int size() {
 		return size;
 	}
 	
+	/**
+	 * @param s specifies a string.
+	 * @return the number of instances of the string.
+	 */
 	public int get(String s) {
 		Counter c = counters.get(s);
 		if (c != null) {
@@ -43,6 +57,9 @@ public class StringMultiset {
 		}
 	}
 	
+	/**
+	 * @return an ordinary Set object without multiple instances.
+	 */
 	public Set<String> keySet() {
 		return counters.keySet();
 	}
@@ -56,6 +73,8 @@ public class StringMultiset {
 	}
 	
 	/**
+	 * This method returns a StringMultiset object.
+	 * keySet() returns a Set object.
 	 * @return a set removing duplicated elements. 
 	 * In other words, this.toSet().get(s) == 1 for any string in this set.
 	 */
