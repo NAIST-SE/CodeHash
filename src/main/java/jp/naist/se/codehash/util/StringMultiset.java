@@ -64,6 +64,10 @@ public class StringMultiset {
 		return counters.keySet();
 	}
 	
+	/**
+	 * @param another StringMultiset to be compared
+	 * @return the number of common String instances in the two StringMultiset 
+	 */
 	public int intersection(StringMultiset another) {
 		int count = 0;
 		for (String s: counters.keySet()) {
