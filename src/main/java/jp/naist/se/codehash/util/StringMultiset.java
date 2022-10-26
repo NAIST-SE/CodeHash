@@ -65,18 +65,6 @@ public class StringMultiset {
 	}
 	
 	/**
-	 * @param another StringMultiset to be compared
-	 * @return the number of common String instances in the two StringMultiset 
-	 */
-	public int intersection(StringMultiset another) {
-		int count = 0;
-		for (String s: counters.keySet()) {
-			count += Math.min(this.get(s), another.get(s));
-		}
-		return count;
-	}
-	
-	/**
 	 * This method returns a StringMultiset object.
 	 * keySet() returns a Set object.
 	 * @return a set removing duplicated elements. 
@@ -89,5 +77,18 @@ public class StringMultiset {
 		}
 		return ordinary;
 	}
+
+	/**
+	 * @param another StringMultiset to be compared
+	 * @return the number of common String instances in the two StringMultiset 
+	 */
+	public int intersection(StringMultiset another) {
+		int count = 0;
+		for (String s: counters.keySet()) {
+			count += Math.min(this.get(s), another.get(s));
+		}
+		return count;
+	}
 	
+
 }
