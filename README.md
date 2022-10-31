@@ -84,7 +84,7 @@ The tool accepts the following options.  Other arguments are regarded as source 
 
 - `-lang:[LANGUAGE]`: This option specifies a language name.  Supported languages are CPP, JAVA, ECMASCRIPT, PYTHON, PHP, and CSHARP.
 - `-group[GROUP-NAME]:[PATH]` specifies a group name for a file or a directory.  This option is meaningful when `-compare:crossgroup` is specified.
-- `-prefix:[PREFIX]` specifies a prefix filter for file names to be compared by the tool.  This option extracts a subset of files listed by arguments and `-dir` options.
+
 
 #### Comparison Options
 - `-n:[NGRAM]` specifies N for N-gram.  The default is trigrams (i.e., `-n:3`).
