@@ -17,24 +17,54 @@ import jp.naist.se.codehash.util.StringMultiset;
 
 public class DirectComparisonMain {
 
+	/**
+	 * An option to select a programming language.  A language name must follow the option string, e.g. "-lang:JAVA".
+	 */
 	private static String LANG_OPTION = "-lang:";
+	
+	/**
+	 * An option to select N for N-grams.  It should be one of 1--1024.  "-n:3" is the default.     
+	 */
 	private static String NGRAM_OPTION = "-n:";
+
 	private static String THRESHOLD = "-th:";
+	
 	private static String THRESHOLD_NORMALIZED_JACCARD = "-thnj:";
+	
 	private static String THRESHOLD_ESTIMATED_NORMALIZED_JACCARD = "-thenj:";
 
 	/**
 	 * A file name filter to select files for comparison
 	 * (other files are included only for IDF)
+	 * An old README says: `-prefix:[PREFIX]` specifies a prefix filter for file names to be compared by the tool.  
+	 * This option extracts a subset of files listed by arguments and `-dir` options.
 	 */
 	private static String FILENAME_SELECTOR = "-prefix:";
 
-	private static String DIR_OPTION = "-dir";
+	/**
+	 * This is to specify a file group. 
+	 */
 	private static String GROUP_OPTION = "-group";
 
+	/**
+	 * It specifies a directory.  This is an alias of -group.
+	 */
+	private static String DIR_OPTION = "-dir";
+
+	/**
+	 * The default group name.
+	 */
 	private static String DEFAULT_GROUP = "<default>";
 
+	/**
+	 * This option enables to compare files across groups.
+	 */
 	private static String COMPARE_CRSOS_GROUP = "-compare:crossgroup";
+	
+	/**
+	 * This option is to select metrics to be calculated.
+	 * A list of metric names must be separated commas, e.g. "-metrics:jaccard,overlap-coefficient".
+	 */
 	private static String METRICS = "-metrics:";
 
 	private static final String METRIC_JACCARD_DISTANCE_WITHOUT_NORMALIZATION = "exact-jaccard";
@@ -59,12 +89,23 @@ public class DirectComparisonMain {
 
 	private ArrayList<FileEntity> files = new ArrayList<>();
 	private ArrayList<FileEntity> idfFiles = new ArrayList<>();
-	private FileType t = null;
+	
+	/**
+	 * A programming language to process source files.
+	 * If none is selected, the tool extracts a language from a file extension. 
+	 */
+	private FileType selectedLanguage = null;
+	
 	private int N = GitCodeHash.BBITMINHASH_NGRAM_SIZE;
 	private double threshold = 0;
 	private double thresholdNormalizedJaccard = -1;
 	private double thresholdEstimatedNormalizedJaccard = -1;
 	private HashMap<String, FileGroup> groups = new HashMap<>();
+	
+	/**
+	 * If true, the program compares files across groups but skip comparison within a file group.
+	 * If false, the program compares files within a group but does not compare files across groups.
+	 */
 	private boolean compareGroups = false;
 
 	private boolean useExactJaccard = true;
@@ -74,12 +115,17 @@ public class DirectComparisonMain {
 	private boolean useOverlapSimilarity = true;
 	private boolean useOverlapCoefficient = true;
 
+	/**
+	 * Construct an object from command line arguments.
+	 * An argument without a special option is regarded as a source file or a directory 
+	 * @param args
+	 */
 	public DirectComparisonMain(String[] args) {
 		FileGroup defaultGroup = null;
 		
 		for (String s: args) {
 			if (s.startsWith(LANG_OPTION)) {
-				t = FileType.getFileType(s.substring(LANG_OPTION.length()));
+				selectedLanguage = FileType.getFileType(s.substring(LANG_OPTION.length()));
 			} else if (s.startsWith(NGRAM_OPTION)) {
 				String nString = s.substring(NGRAM_OPTION.length());
 				try {
@@ -125,9 +171,11 @@ public class DirectComparisonMain {
 //			} else if (s.startsWith(FILENAME_SELECTOR)) {
 //				filePrefix = s.substring(FILENAME_SELECTOR.length());
 			} else if (s.startsWith(DIR_OPTION) || s.startsWith(GROUP_OPTION)) {
+				// Add a specified path (file or directory) to the specified group  
 				String path;
 				if (s.startsWith(DIR_OPTION)) path = s.substring(DIR_OPTION.length());
 				else path = s.substring(GROUP_OPTION.length());
+				
 				int index = path.indexOf(':');
 				if (index >= 0) {
 					String groupId;
@@ -146,6 +194,7 @@ public class DirectComparisonMain {
 					g.add(path);
 				} // else invalid dir/group option
 			} else {
+				// Add a file (or a directory) to the default file group
 				if (defaultGroup == null) {
 					defaultGroup = new FileGroup(DEFAULT_GROUP);
 					groups.put(DEFAULT_GROUP, defaultGroup);
@@ -179,7 +228,7 @@ public class DirectComparisonMain {
 		
 		// Load files
 		for (FileGroup g: groups.values()) {
-			g.loadEntities(t, N);
+			g.loadEntities(selectedLanguage, N);
 		}
 		
 //		// Count the number of Ngrams
