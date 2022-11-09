@@ -12,6 +12,13 @@ public class StringMultiset {
 	
 	private HashMap<String, Counter> counters;
 	private int size;
+	
+	/**
+	 * Create an empty multiset with a default initial capacity.
+	 */
+	public StringMultiset() {
+		this(128);
+	}
 
 	/**
 	 * Create an empty multiset.
