@@ -67,6 +67,12 @@ public enum FileType {
 
 	}
 	
+	/**
+	 * This method returns a FileType object representing a given language name.
+	 * @param typename should be one of "C", "CPP", "JAVA", "JAVASCRIPT", "PYTHON", "PHP", and "CSHARP". 
+	 * @return a FileType instance.
+	 * UNSUPPORTED is returned for an invalid argument.
+	 */
 	public static FileType getFileType(String typename) {
 		FileType type = filetype.get(typename);
 		if (type != null) {
@@ -76,6 +82,12 @@ public enum FileType {
 		}
 	}
 
+	/**
+	 * This method returns a FileType object for a file name based on its extension.
+	 * @param filename specifies a source file name.
+	 * @return a FileType object.  
+	 * UNSUPPORTED is returned if the extension is not supported by the method.
+	 */
 	public static FileType getFileTypeFromName(String filename) {
 		int idx = filename.lastIndexOf('.');
 		if (idx >= 0) {
@@ -88,11 +100,20 @@ public enum FileType {
 		return FileType.UNSUPPORTED;
 	}
 
+	/**
+	 * @param filetype
+	 * @return true if the given type is UNSUPPORTED.
+	 */
 	public static boolean isSupported(FileType filetype) {
 		return filetype != FileType.UNSUPPORTED;
 	}
 
-	
+	/**
+	 * Create a reader object
+	 * @param filetype specifies a programming language.
+	 * @param input is a stream of the content to be processed.
+	 * @return a TokenReader object to read the input
+	 */
 	public static TokenReader createReader(FileType filetype, InputStream input) {
 		try {
 			CharStream stream = CharStreams.fromStream(input);
@@ -166,6 +187,9 @@ public enum FileType {
 		}
 	}
 	
+	/**
+	 * An internal class to process Python files.
+	 */
 	private static class Python3LexerReader extends AntlrTokenReader {
 		public Python3LexerReader(Lexer lexer) {
 			super(lexer, new AntlrTokenReader.Filter() {
