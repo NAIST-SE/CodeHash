@@ -67,6 +67,8 @@ public class FileEntity {
 	 * @param N specifies the size of N-gram to compare files.
 	 */
 	public FileEntity(String path, FileType type, byte[] content, int N) {
+		assert type != null: "type must be nonnull";
+		
 		this.index = seqnum++;
 		this.path = path;
 		this.type = type;
