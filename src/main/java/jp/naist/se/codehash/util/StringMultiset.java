@@ -47,11 +47,10 @@ public class StringMultiset {
 	
 	/**
 	 * Add strings to the multiset.
-	 * @param string to be added
-	 * @return the number of instances of the given string
+	 * @param another contains strings to be added
+	 * @return the number of strings in the set
 	 */
 	public int add(StringMultiset another) { 
-		int total = 0;
 		for (Map.Entry<String, Counter> entry: another.counters.entrySet()) {
 			int d = entry.getValue().get();
 			Counter c = counters.get(entry.getKey());
@@ -60,10 +59,9 @@ public class StringMultiset {
 			} else {
 				counters.put(entry.getKey(), new Counter(d));
 			}
-			total += d;
+			size += d;
 		}
-		size += total;
-		return total;
+		return size;
 	}
 	
 	/**
