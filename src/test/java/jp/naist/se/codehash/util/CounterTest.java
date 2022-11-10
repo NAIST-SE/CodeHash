@@ -21,4 +21,14 @@ public class CounterTest {
 		Assert.assertEquals(2, c.get());
 	}
 
+
+	@Test
+	public void testIncrementNumber() {
+		Counter c = new Counter(0);
+		c.increment(3);
+		Assert.assertEquals(3, c.get());
+		c.increment(5);
+		Assert.assertEquals(8, c.get());
+	}
+
 }
