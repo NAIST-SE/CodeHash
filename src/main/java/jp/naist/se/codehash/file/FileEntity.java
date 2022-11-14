@@ -109,6 +109,10 @@ public class FileEntity {
 		return codehash;
 	}
 	
+	public FileType getLanguage() {
+		return type;
+	}
+	
 	public String getLanguageName() {
 		return type.name();
 	}
