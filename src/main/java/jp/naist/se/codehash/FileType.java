@@ -102,7 +102,7 @@ public enum FileType {
 
 	/**
 	 * @param filetype
-	 * @return true if the given type is UNSUPPORTED.
+	 * @return true if the given type is not UNSUPPORTED.
 	 */
 	public static boolean isSupported(FileType filetype) {
 		return filetype != FileType.UNSUPPORTED;
