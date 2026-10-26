@@ -5,12 +5,18 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.function.Predicate;
 
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
 
 import jp.naist.se.codehash.FileType;
 import jp.naist.se.codehash.GitCodeHash;
+import jp.naist.se.codehash.comparison.similarity.FilePair;
+import jp.naist.se.codehash.comparison.similarity.SimilarityFilter;
+import jp.naist.se.codehash.comparison.similarity.SimilarityMetric;
+import jp.naist.se.codehash.comparison.similarity.SimilarityMetrics;
+import jp.naist.se.codehash.comparison.similarity.SimilarityRecord;
 import jp.naist.se.codehash.file.FileEntity;
 import jp.naist.se.codehash.file.FileGroup;
 import jp.naist.se.codehash.util.StringMultiset;
@@ -27,11 +33,25 @@ public class DirectComparisonMain {
 	 */
 	private static String NGRAM_OPTION = "-n:";
 
+	/**
+	 * A file pair is reported if any of the selected metrics is greater than or equal to this threshold.
+	 */
 	private static String THRESHOLD = "-th:";
-	
+
+	/**
+	 * A file pair is reported if its jaccard is greater than or equal to this threshold.
+	 * This is equivalent to "-filter:jaccard>=[THRESHOLD]".
+	 */
 	private static String THRESHOLD_NORMALIZED_JACCARD = "-thnj:";
-	
+
 	private static String THRESHOLD_ESTIMATED_NORMALIZED_JACCARD = "-thenj:";
+
+	/**
+	 * An option to specify a condition to report a file pair, e.g. "-filter:jaccard>=0.7 or overlap-coefficient>=0.9".
+	 * See {@link SimilarityFilter} for the syntax.
+	 * If multiple filters are specified, a file pair must satisfy all of them.
+	 */
+	private static String FILTER_OPTION = "-filter:";
 
 	/**
 	 * A file name filter to select files for comparison
@@ -67,13 +87,6 @@ public class DirectComparisonMain {
 	 */
 	private static String METRICS = "-metrics:";
 
-	private static final String METRIC_JACCARD_DISTANCE_WITHOUT_NORMALIZATION = "exact-jaccard";
-	private static final String METRIC_JACCARD_DISTANCE = "jaccard";
-	private static final String METRIC_OVERLAP_COEFFICIENT = "overlap-coefficient";
-	private static final String METRIC_OVERLAP_COEFFICIENT_WITHOUT_NORMALIZATION = "exact-overlap-coefficient";
-	private static final String METRIC_OVERLAP_SIMILARITY = "overlap-similarity";
-	private static final String METRIC_OVERLAP_SIMILARITY_WITHOUT_NORMALIZATION = "exact-overlap-similarity";
-	
 	
 	/**
 	 * Compare two source files.
@@ -108,12 +121,15 @@ public class DirectComparisonMain {
 	 */
 	private boolean compareGroups = false;
 
-	private boolean useExactJaccard = true;
-	private boolean useExactOverlapSimilarity = true;
-	private boolean useExactOverlapCoefficient = true;
-	private boolean useJaccard = true;
-	private boolean useOverlapSimilarity = true;
-	private boolean useOverlapCoefficient = true;
+	/**
+	 * Metrics written to the output.
+	 */
+	private ArrayList<SimilarityMetric> metrics = new ArrayList<>(SimilarityMetrics.getAll());
+
+	/**
+	 * Conditions specified by -filter options.  A file pair must satisfy all of them.
+	 */
+	private ArrayList<Predicate<SimilarityRecord>> filters = new ArrayList<>();
 
 	/**
 	 * Construct an object from command line arguments.
@@ -160,12 +176,25 @@ public class DirectComparisonMain {
 				}
 			} else if (s.startsWith(METRICS)) {
 				HashSet<String> metricNames = new HashSet<>(Arrays.asList(s.substring(METRICS.length()).split(",")));
-				useExactJaccard = metricNames.contains(METRIC_JACCARD_DISTANCE_WITHOUT_NORMALIZATION);
-				useExactOverlapCoefficient = metricNames.contains(METRIC_OVERLAP_COEFFICIENT_WITHOUT_NORMALIZATION);
-				useExactOverlapSimilarity = metricNames.contains(METRIC_OVERLAP_SIMILARITY_WITHOUT_NORMALIZATION);
-				useJaccard = metricNames.contains(METRIC_JACCARD_DISTANCE);
-				useOverlapCoefficient = metricNames.contains(METRIC_OVERLAP_COEFFICIENT);
-				useOverlapSimilarity = metricNames.contains(METRIC_OVERLAP_SIMILARITY);
+				for (String name: metricNames) {
+					if (SimilarityMetrics.get(name) == null) {
+						System.err.println("Unknown metric: " + name + " (available: " + String.join(",", SimilarityMetrics.getNames()) + ")");
+						invalid = true;
+						return;
+					}
+				}
+				metrics.clear();
+				for (SimilarityMetric m: SimilarityMetrics.getAll()) {
+					if (metricNames.contains(m.getName())) metrics.add(m);
+				}
+			} else if (s.startsWith(FILTER_OPTION)) {
+				try {
+					filters.add(SimilarityFilter.parse(s.substring(FILTER_OPTION.length())));
+				} catch (IllegalArgumentException e) {
+					System.err.println("Invalid filter: " + e.getMessage());
+					invalid = true;
+					return;
+				}
 			} else if (s.equals(COMPARE_CRSOS_GROUP)) {
 				compareGroups = true;
 //			} else if (s.startsWith(FILENAME_SELECTOR)) {
@@ -319,17 +348,20 @@ public class DirectComparisonMain {
 			// skip actual calculation if estimated similarity is low
 			if (thresholdEstimatedNormalizedJaccard > 0 && e1.estimateNormalizedSimilarity(e2) < thresholdEstimatedNormalizedJaccard) return;
 			
-			SimilarityRecord similarityValues = calculateSimilarity(e1, e2, null, null);
-			//SimilarityRecord similarityValues = calculateSimilarity(e1, e2, normalizedNgramFrequencyInAllFiles, normalizedNgramFrequencyInSelectedFiles);
-			if (similarityValues.isLessThan(threshold)) return;
+			SimilarityRecord similarityValues = new SimilarityRecord(new FilePair(e1, e2));
+			if (isLessThan(similarityValues, threshold)) return;
 
 			// skip actual similarity is lower than threshold
-			if (thresholdNormalizedJaccard > 0 && similarityValues.getValue("jaccard") < thresholdNormalizedJaccard) return;
+			if (thresholdNormalizedJaccard > 0 && similarityValues.getValue(SimilarityMetrics.get(SimilarityMetrics.JACCARD)) < thresholdNormalizedJaccard) return;
+
+			for (Predicate<SimilarityRecord> filter: filters) {
+				if (!filter.test(similarityValues)) return;
+			}
 
 			gen.writeStartObject();
 			gen.writeNumberField("index1", e1.getIndex());
 			gen.writeNumberField("index2", e2.getIndex());
-			similarityValues.writeSimilarity(gen);
+			similarityValues.writeSimilarity(gen, metrics);
 			gen.writeEndObject();
 		}
 		
@@ -360,38 +392,22 @@ public class DirectComparisonMain {
 	
 	
 	
+	/**
+	 * @return true if all the selected metrics are less than the threshold (or NaN).
+	 */
+	private boolean isLessThan(SimilarityRecord sim, double threshold) {
+		for (SimilarityMetric m: metrics) {
+			if (sim.getValue(m) >= threshold) return false;
+		}
+		return true;
+	}
+
+	// The following metrics are temporarily disabled.
+	// They could be re-introduced as SimilarityMetric implementations registered to SimilarityMetrics.
+	/*
 	public SimilarityRecord calculateSimilarity(FileEntity e1, FileEntity e2, StringMultiset frequencyInAllFiles, StringMultiset frequencyInSelectedFiles) {
 		SimilarityRecord sim = new SimilarityRecord();
-		
-		int intersection = e1.getNgramMultiset().intersection(e2.getNgramMultiset());
-		if (useExactJaccard) {
-			double jaccard = intersection * 1.0 / (e1.getNgramCount() + e2.getNgramCount() - intersection);
-			sim.add(METRIC_JACCARD_DISTANCE_WITHOUT_NORMALIZATION, jaccard);
-		}
-		if (useExactOverlapCoefficient) {
-			double exactOverlapCoefficient = intersection * 1.0 / Math.min(e1.getNgramCount(), e2.getNgramCount());
-			sim.add(METRIC_OVERLAP_COEFFICIENT_WITHOUT_NORMALIZATION, exactOverlapCoefficient);
-		}
-		if (useExactOverlapSimilarity) {
-			double exactOverlapSimilarity = intersection * 1.0 / Math.max(e1.getNgramCount(), e2.getNgramCount());
-			sim.add(METRIC_OVERLAP_SIMILARITY_WITHOUT_NORMALIZATION, exactOverlapSimilarity);
-		}
 
-		intersection = e1.getNormalizedNgramMultiset().intersection(e2.getNormalizedNgramMultiset());
-		if (useJaccard) {
-			double normalizedJaccard = intersection * 1.0 / (e1.getNgramCount() + e2.getNgramCount() - intersection);
-			sim.add(METRIC_JACCARD_DISTANCE, normalizedJaccard);
-		}
-		if (useOverlapCoefficient) {
-			double overlap = intersection * 1.0 / Math.min(e1.getNgramCount(), e2.getNgramCount());
-			sim.add(METRIC_OVERLAP_COEFFICIENT, overlap);
-		}
-		if (useOverlapSimilarity) {
-			double overlapSimialrity = intersection * 1.0 / Math.max(e1.getNgramCount(), e2.getNgramCount());
-			sim.add(METRIC_OVERLAP_SIMILARITY, overlapSimialrity);
-		}
-
-		// Temporarily disabled 
 //		double v = getWeightedJaccard(e1.normalizedNgrams, e2.normalizedNgrams, frequencyInAllFiles, idfFiles.size(), 0);
 //		sim.add("w-all-jaccard", v);
 //
@@ -432,6 +448,7 @@ public class DirectComparisonMain {
 
 		return sim;
 	}
+	*/
 
 	public static double weight(int numFiles, int freq, int smooth) {
 		return Math.log(numFiles * 1.0 / freq) + smooth;
@@ -469,51 +486,6 @@ public class DirectComparisonMain {
 		return overlap;
 	}
 
-	public static class SimilarityRecord {
-
-		private static final int MAX_METRICS = 12;
-
-		
-		private String[] names;
-		private double[] values;
-		private int index;
-
-		public SimilarityRecord() {
-			names = new String[MAX_METRICS];
-			values = new double[MAX_METRICS];
-			index = 0;
-		}
-		
-		public void add(String name, double value) {
-			names[index] = name;
-			values[index] = value;
-			index++;
-		}
-		
-		public double getValue(String name) {
-			for (int i=0; i<index; i++) {
-				if (names[i].equals(name)) {
-					return values[i];
-				}
-			}
-			return Double.NaN;
-		}
-		
-		public boolean isLessThan(double threshold) {
-			for (int i=0; i<index; i++) {
-				if (values[i] >= threshold) return false;
-			}
-			return true;
-		}
-		
-		public void writeSimilarity(JsonGenerator gen) throws IOException {
-			for (int i=0; i<index; i++) {
-				gen.writeNumberField(names[i], values[i]);
-			}
-		}
-		
-	}
-	
 	public static class CosineSimilarity {
 
 		public static double weight(int numFiles, int freq) {
