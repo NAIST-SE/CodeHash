@@ -91,7 +91,24 @@ The tool accepts the following options.  Other arguments are regarded as source 
 - `-th:[THRESHOLD]` specifies a similarity threshold (0-1.0).  If all of similarity values for a file pair are less than this threshold, the file pair is excluded from the output.
 - `-thnj:[THRESHOLD]` specifies a similarity threshold for normalized jaccard distance.  If the similarity value for a file pair is less than this threshold, the file pair is excluded from the output.
 - `-thenj:[THRESHOLD]` specifies a threshold for estimated normalized jaccard distance.  If a similarity estimated by b-bit minhash is less than this threshold, an actual comparison is skipped.
+- `-filter:[EXPRESSION]` specifies a condition to report a file pair.  Only file pairs satisfying the condition are included in the output.  If the option is specified multiple times, a file pair must satisfy all of them.  See "Filter expressions" below.
+- `-metrics:[NAME,NAME,...]` selects similarity metrics written to the output.  All the metrics are written by default.  A filter expression can use metrics that are not selected by this option.
 - `-compare:crossgroup` compares only file pairs across groups.  It skips comparison between file pairs within a group.
+
+#### Filter expressions
+
+A filter expression compares similarity metrics with numbers (or other metrics) and combines the comparisons with logical operators.
+
+- Comparison operators: `>=`, `>`, `<=`, `<`, `==` (or `=`), `!=`
+- Logical operators: `&&` (or `and`), `||` (or `or`), `!` (or `not`), and parentheses.  `and` has a higher precedence than `or`.
+- Operands: metric names listed in "Similarity metrics" and numbers.  A comparison with `NaN` (e.g. similarity between empty files) is false except for `!=`.
+
+Examples (quote the argument so that a shell does not interpret `>`, `<`, `&`, and `|`):
+
+>        java -classpath target/CodeHash.jar jp.naist.se.codehash.comparison.DirectComparisonMain "-filter:jaccard>=0.7" src
+>        java -classpath target/CodeHash.jar jp.naist.se.codehash.comparison.DirectComparisonMain "-filter:jaccard>=0.7 or (overlap-coefficient>=0.9 and exact-jaccard<0.5)" src
+
+`-thnj:0.7` is equivalent to `-filter:jaccard>=0.7`.
 
 ## Similarity metrics
 
@@ -102,6 +119,13 @@ The tool accepts the following options.  Other arguments are regarded as source 
    - This is defined in https://aircconline.com/mlaij/V3N1/3116mlaij03.pdf
  - Overlap similarity: Intersection(S1, S2) / Max(S1, S2).  
    - `exact-overlap-similarity` comapres identifiers as is. This similarity metric with `-n:1` has been used by SourcererCC (http://dx.doi.org/10.1145/2884781.2884877).
+
+### Adding a new similarity metric
+
+Each metric is a strategy implementing `jp.naist.se.codehash.comparison.similarity.SimilarityMetric`.
+To add a metric, implement `getName()` and `calculate(FilePair)`, and register an instance in `SimilarityMetrics` (e.g. in its static initializer).
+The registered metric becomes available in `-metrics:` and `-filter:` options automatically.
+`FilePair` caches the size of intersection of N-gram multisets so that multiple metrics can share it.
 
 ### Output
 
