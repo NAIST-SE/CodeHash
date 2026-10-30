@@ -66,7 +66,6 @@ public enum FileType {
 		extToFiletype.put("py", FileType.PYTHON);
 		extToFiletype.put("php", FileType.PHP);
 		extToFiletype.put("cs", FileType.CSHARP);
-		extToFiletype.put("txt", FileType.PLAINTEXT);
 
 	}
 	

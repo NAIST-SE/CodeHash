@@ -15,7 +15,7 @@ The source code is written in Java.  You can build the project using Maven.
 
 For file similarity, supported programming languages are: C/C++, Java, ECMAScript, Python, PHP, and C#.
 In addition, `PLAINTEXT` treats a file as plain text; it splits the content into words (`[a-zA-Z0-9_]+`) and symbols (other non-whitespace characters).  The tokenizer does not recognize comments; they are also regarded as words and symbols.
-Files with the `.txt` extension are processed as `PLAINTEXT`.
+`PLAINTEXT` is not automatically selected by file extensions; it is used only when explicitly specified (e.g., the `-lang:PLAINTEXT` option or the language column of a file list).
 
 ## Extract 1-bit minhash vectors from source files
 

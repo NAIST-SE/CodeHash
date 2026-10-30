@@ -19,7 +19,7 @@ public class FileTypeTest {
 		Assert.assertEquals(FileType.CPP, FileType.getFileTypeFromName("MyClass.cpp"));
 
 		Assert.assertEquals(FileType.PLAINTEXT, FileType.getFileType("PLAINTEXT"));
-		Assert.assertEquals(FileType.PLAINTEXT, FileType.getFileTypeFromName("README.txt"));
+		Assert.assertEquals(FileType.UNSUPPORTED, FileType.getFileTypeFromName("README.txt"));
 	}
 
 	@Test
