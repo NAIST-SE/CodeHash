@@ -5,7 +5,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashSet;
 
-import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.diff.RawText;
 import org.eclipse.jgit.errors.IncorrectObjectTypeException;
 import org.eclipse.jgit.errors.MissingObjectException;
@@ -17,6 +16,8 @@ import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.revwalk.RevTree;
 import org.eclipse.jgit.treewalk.TreeWalk;
 import org.eclipse.jgit.treewalk.filter.TreeFilter;
+
+import jp.naist.se.codehash.util.GitRepositoryUtil;
 
 
 /**
@@ -34,8 +35,7 @@ public class GitFileList {
 		}
 		
 		File f = new File(args[0]);
-		try (Git git = Git.open(f)) {
-			Repository repo = git.getRepository();
+		try (Repository repo = GitRepositoryUtil.openRepository(f)) {
 			try (ObjectWalk rev = new ObjectWalk(repo)) {
 				AnyObjectId commitId = repo.resolve(target);
 				if (commitId == null) {

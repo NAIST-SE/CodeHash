@@ -4,7 +4,6 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
-import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.LineNumberReader;
 import java.io.PrintWriter;
@@ -14,11 +13,11 @@ import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.ObjectLoader;
 import org.eclipse.jgit.lib.ObjectReader;
 import org.eclipse.jgit.lib.Repository;
-import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
 
 import jp.naist.se.codehash.hash.SourceCodeHash;
 import jp.naist.se.codehash.hash.SourceCodeHash.MinHashType;
 import jp.naist.se.codehash.token.FileType;
+import jp.naist.se.codehash.util.GitRepositoryUtil;
 
 
 /**
@@ -83,44 +82,11 @@ public class GitCodeHash {
 	}
 	
 	/**
-	 * Check whether a specified directory is .git directory or not.   
-	 * @param dir
-	 * @return dir itself if it is a .git directory.
-	 * If it includes .git as a subdirectory, the subdirectory is returned.  
-	 * The method returns null if dir is not .git directory. 
-	 */
-	public static File ensureGitDir(File dir) {
-		if (dir.isDirectory()) {
-			if (dir.getName().equals(".git") || dir.getName().endsWith(".git")) {
-				return dir;
-			} else {
-				File another = new File(dir, ".git");
-				if (another.exists() && another.isDirectory()) {
-					return another;
-				}
-				File[] candidates = dir.listFiles(new FilenameFilter() {
-					@Override
-					public boolean accept(File dir, String name) {
-						return name.endsWith(".git");
-					}
-				});
-				if (candidates.length > 0) {
-					return candidates[0];
-				}
-			}
-		}
-		return null;
-	}
-	
-	
-	/**
-	 * @param gitDir is a .git directory.
+	 * @param gitDir is a working directory or a .git directory.
 	 * @param target is a list of source files in the repo (.tsv files including SHA1, file name, and LANGUAGE).
 	 */
 	public void parseGitRepository(File gitDir, LineNumberReader target, PrintWriter w, MinHashType hashType) {
-		FileRepositoryBuilder b = new FileRepositoryBuilder();
-		b.setGitDir(gitDir);
-		try (Repository repo = b.build()) {
+		try (Repository repo = GitRepositoryUtil.openRepository(gitDir)) {
 			try (ObjectReader r = repo.getObjectDatabase().newReader()) {
 
 				for (String line = target.readLine(); line != null; line = target.readLine()) {
