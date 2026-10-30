@@ -2,7 +2,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>jp.naist.se</groupId>
   <artifactId>CodeHash</artifactId>
-  <version>0.1.0</version>
+  <version>0.2.0</version>
   <build>
     <sourceDirectory>src/main/java</sourceDirectory>
     <testSourceDirectory>src/test/java</testSourceDirectory>
@@ -19,7 +19,7 @@
       <plugin>
         <groupId>org.antlr</groupId>
         <artifactId>antlr4-maven-plugin</artifactId>
-        <version>4.7</version>
+        <version>4.13.2</version>
 		<configuration>
 			<sourceDirectory>src/main/antlr4</sourceDirectory>
 			<arguments><argument>-package</argument><argument>jp.naist.se.commentlister.lexer</argument></arguments>
@@ -91,7 +91,7 @@
    	<dependency>
       <groupId>org.antlr</groupId>
       <artifactId>antlr4-runtime</artifactId>
-  	  <version>4.7</version>
+  	  <version>4.13.2</version>
   	</dependency>
   	<dependency>
   		<groupId>org.slf4j</groupId>
