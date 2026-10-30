@@ -11,7 +11,6 @@ import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
 
 import jp.naist.se.codehash.token.FileType;
-import jp.naist.se.codehash.GitCodeHash;
 import jp.naist.se.codehash.similarity.FilePair;
 import jp.naist.se.codehash.similarity.SimilarityFilter;
 import jp.naist.se.codehash.similarity.SimilarityMetric;
@@ -19,6 +18,7 @@ import jp.naist.se.codehash.similarity.SimilarityMetrics;
 import jp.naist.se.codehash.similarity.SimilarityRecord;
 import jp.naist.se.codehash.file.FileEntity;
 import jp.naist.se.codehash.file.FileGroup;
+import jp.naist.se.codehash.hash.MinHashDefaults;
 import jp.naist.se.codehash.util.StringMultiset;
 
 public class DirectComparisonMain {
@@ -109,7 +109,7 @@ public class DirectComparisonMain {
 	 */
 	private FileType selectedLanguage = null;
 	
-	private int N = GitCodeHash.BBITMINHASH_NGRAM_SIZE;
+	private int N = MinHashDefaults.DEFAULT_NGRAM_SIZE;
 	private double threshold = 0;
 	private double thresholdNormalizedJaccard = -1;
 	private double thresholdEstimatedNormalizedJaccard = -1;

@@ -8,8 +8,8 @@ import java.util.Set;
 
 import jp.naist.se.codehash.hash.CodeHashTokenReader;
 import jp.naist.se.codehash.hash.FileHash;
+import jp.naist.se.codehash.hash.MinHashDefaults;
 import jp.naist.se.codehash.token.FileType;
-import jp.naist.se.codehash.GitCodeHash;
 import jp.naist.se.codehash.util.HashStringUtil;
 import jp.naist.se.codehash.hash.MurmurMinHash;
 import jp.naist.se.codehash.token.TokenReader;
@@ -74,7 +74,7 @@ public class FileEntity {
 		filehash = FileHash.compute(content);
 		TokenReader tokenReader = FileType.createReader(type, new ByteArrayInputStream(content));
 		CodeHashTokenReader wrapper = new CodeHashTokenReader(tokenReader, byteLength);
-		MurmurMinHash h = new MurmurMinHash(GitCodeHash.BBITMINHASH_BITCOUNT, N, wrapper);
+		MurmurMinHash h = new MurmurMinHash(MinHashDefaults.BIT_COUNT, N, wrapper);
 		minhash = HashStringUtil.bytesToHex(h.getHash());
 		normalizedMinhash = HashStringUtil.bytesToHex(h.getNormalizedHash());
 		codehash = HashStringUtil.bytesToHex(wrapper.getHash());

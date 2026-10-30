@@ -17,6 +17,7 @@ import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
 
 import jp.naist.se.codehash.hash.CodeHashTokenReader;
+import jp.naist.se.codehash.hash.MinHashDefaults;
 import jp.naist.se.codehash.hash.MurmurMinHash;
 import jp.naist.se.codehash.sha1.SHA1MinHash;
 import jp.naist.se.codehash.sha1.SHA1MinHashMSR2017;
@@ -32,8 +33,6 @@ import jp.naist.se.codehash.util.HashStringUtil;
 public class GitCodeHash {
 
 	public enum HashType { CodeHash, SHA1MinHash, Murmur3MinHash, SHA1MinHashInPaper };
-	public static int BBITMINHASH_BITCOUNT = 2048;
-	public static int BBITMINHASH_NGRAM_SIZE = 3;
 	
 	/**
 	 * Extract hash values for source file contents excluding whitespace and comments from Git directories.
@@ -157,13 +156,13 @@ public class GitCodeHash {
 							CodeHashTokenReader wrapper = new CodeHashTokenReader(tokenReader, size);
 							String minhash;
 							if (hashType == HashType.Murmur3MinHash) {
-								MurmurMinHash h = new MurmurMinHash(BBITMINHASH_BITCOUNT, BBITMINHASH_NGRAM_SIZE, wrapper);
+								MurmurMinHash h = new MurmurMinHash(MinHashDefaults.BIT_COUNT, MinHashDefaults.DEFAULT_NGRAM_SIZE, wrapper);
 								minhash = HashStringUtil.bytesToHex(h.getHash());
 							} else if (hashType == HashType.SHA1MinHash) {
-								SHA1MinHash h = new SHA1MinHash(BBITMINHASH_BITCOUNT, BBITMINHASH_NGRAM_SIZE, wrapper);
+								SHA1MinHash h = new SHA1MinHash(MinHashDefaults.BIT_COUNT, MinHashDefaults.DEFAULT_NGRAM_SIZE, wrapper);
 								minhash = HashStringUtil.bytesToHex(h.getHash());
 							} else if (hashType == HashType.SHA1MinHashInPaper) {
-								SHA1MinHashMSR2017 h = new SHA1MinHashMSR2017(BBITMINHASH_BITCOUNT, BBITMINHASH_NGRAM_SIZE, wrapper);
+								SHA1MinHashMSR2017 h = new SHA1MinHashMSR2017(MinHashDefaults.BIT_COUNT, MinHashDefaults.DEFAULT_NGRAM_SIZE, wrapper);
 								minhash = HashStringUtil.bytesToHex(h.getHash());
 							} else {
 								// Read all tokens to compute codehash only

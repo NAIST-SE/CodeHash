@@ -8,6 +8,7 @@ import java.util.LinkedList;
 
 import jp.naist.se.codehash.hash.CodeHashTokenReader;
 import jp.naist.se.codehash.hash.FileHash;
+import jp.naist.se.codehash.hash.MinHashDefaults;
 import jp.naist.se.codehash.hash.MurmurMinHash;
 import jp.naist.se.codehash.token.FileType;
 import jp.naist.se.codehash.token.TokenReader;
@@ -83,7 +84,7 @@ public class FileCodeHash {
 				int ngramCount = 0;
 				TokenReader tokenReader = FileType.createReader(t, new ByteArrayInputStream(content));
 				CodeHashTokenReader wrapper = new CodeHashTokenReader(tokenReader, f.length());
-				MurmurMinHash h = new MurmurMinHash(GitCodeHash.BBITMINHASH_BITCOUNT, GitCodeHash.BBITMINHASH_NGRAM_SIZE, wrapper);
+				MurmurMinHash h = new MurmurMinHash(MinHashDefaults.BIT_COUNT, MinHashDefaults.DEFAULT_NGRAM_SIZE, wrapper);
 				if (ignoreDuplication) {
 					minhash = HashStringUtil.bytesToHex(h.getHashIgnoreDuplicatedElements());
 					normalizedMinhash = HashStringUtil.bytesToHex(h.getNormalizedHashIgnoreDuplicatedElements());
