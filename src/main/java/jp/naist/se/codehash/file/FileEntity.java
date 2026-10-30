@@ -4,12 +4,10 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.Set;
 
 import jp.naist.se.codehash.hash.CodeHashTokenReader;
-import jp.naist.se.codehash.FileCodeHash;
+import jp.naist.se.codehash.hash.FileHash;
 import jp.naist.se.codehash.token.FileType;
 import jp.naist.se.codehash.GitCodeHash;
 import jp.naist.se.codehash.util.HashStringUtil;
@@ -73,24 +71,19 @@ public class FileEntity {
 		this.path = path;
 		this.type = type;
 		this.byteLength = content.length;
-		try {
-			MessageDigest d = MessageDigest.getInstance(FileCodeHash.FILEHASH_ALGORITHM);
-			filehash = HashStringUtil.bytesToHex(d.digest(content));
-			TokenReader tokenReader = FileType.createReader(type, new ByteArrayInputStream(content));
-			CodeHashTokenReader wrapper = new CodeHashTokenReader(tokenReader, byteLength);
-			MurmurMinHash h = new MurmurMinHash(GitCodeHash.BBITMINHASH_BITCOUNT, N, wrapper);
-			minhash = HashStringUtil.bytesToHex(h.getHash());
-			normalizedMinhash = HashStringUtil.bytesToHex(h.getNormalizedHash());
-			codehash = HashStringUtil.bytesToHex(wrapper.getHash());
-			ngramCount = h.getNgramCount();
-			ngrams = h.getNgramMultiset();
-			normalizedNgrams = h.getNormalizedNgramMultiset();
-			tokenLength = tokenReader.getTokenCount();
+		filehash = FileHash.compute(content);
+		TokenReader tokenReader = FileType.createReader(type, new ByteArrayInputStream(content));
+		CodeHashTokenReader wrapper = new CodeHashTokenReader(tokenReader, byteLength);
+		MurmurMinHash h = new MurmurMinHash(GitCodeHash.BBITMINHASH_BITCOUNT, N, wrapper);
+		minhash = HashStringUtil.bytesToHex(h.getHash());
+		normalizedMinhash = HashStringUtil.bytesToHex(h.getNormalizedHash());
+		codehash = HashStringUtil.bytesToHex(wrapper.getHash());
+		ngramCount = h.getNgramCount();
+		ngrams = h.getNgramMultiset();
+		normalizedNgrams = h.getNormalizedNgramMultiset();
+		tokenLength = tokenReader.getTokenCount();
 
-			minhashEntry = new MinHashEntry(path, filehash, getLanguageName(), codehash, minhash, normalizedMinhash, byteLength, tokenLength, ngramCount);
-		} catch (NoSuchAlgorithmException e) { 
-			e.printStackTrace();
-		}
+		minhashEntry = new MinHashEntry(path, filehash, getLanguageName(), codehash, minhash, normalizedMinhash, byteLength, tokenLength, ngramCount);
 	}
 	
 	public int getIndex() {
