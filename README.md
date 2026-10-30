@@ -12,6 +12,10 @@ The implementation is a revised version that has been used in our technical pape
 The source code is written in Java.  You can build the project using Maven.
 >        mvn package
 
+The tool requires JDK 11 or later.
+The command creates `target/CodeHash-[VERSION]-jar-with-dependencies.jar` that includes all dependencies.
+The command lines in this document refer to the file as `CodeHash.jar`.
+
 
 For file similarity, supported programming languages are: C/C++, Java, ECMAScript, Python, PHP, and C#.
 In addition, `PLAINTEXT` treats a file as plain text; it splits the content into words (`[a-zA-Z0-9_]+`) and symbols (other non-whitespace characters).  The tokenizer does not recognize comments; they are also regarded as words and symbols.
