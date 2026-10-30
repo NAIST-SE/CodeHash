@@ -4,9 +4,9 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 
-import jp.naist.se.codehash.NgramMultiset;
-import jp.naist.se.codehash.NgramReader;
-import jp.naist.se.codehash.TokenReader;
+import jp.naist.se.codehash.hash.NgramMultiset;
+import jp.naist.se.codehash.hash.NgramReader;
+import jp.naist.se.codehash.token.TokenReader;
 import jp.naist.se.codehash.util.StringMultiset;
 
 /**

@@ -9,7 +9,7 @@ import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 
-import jp.naist.se.codehash.FileType;
+import jp.naist.se.codehash.token.FileType;
 
 public class FileGroup {
 		

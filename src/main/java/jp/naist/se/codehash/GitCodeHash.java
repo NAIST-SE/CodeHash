@@ -16,8 +16,14 @@ import org.eclipse.jgit.lib.ObjectReader;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
 
+import jp.naist.se.codehash.hash.CodeHash;
+import jp.naist.se.codehash.hash.CodeHashTokenReader;
+import jp.naist.se.codehash.hash.MurmurMinHash;
 import jp.naist.se.codehash.sha1.SHA1MinHash;
 import jp.naist.se.codehash.sha1.SHA1MinHashMSR2017;
+import jp.naist.se.codehash.token.FileType;
+import jp.naist.se.codehash.token.TokenReader;
+import jp.naist.se.codehash.util.HashStringUtil;
 
 
 /**

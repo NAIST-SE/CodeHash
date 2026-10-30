@@ -1,4 +1,4 @@
-package jp.naist.se.codehash.comparison.similarity;
+package jp.naist.se.codehash.similarity;
 
 import java.io.OutputStream;
 import java.io.PrintStream;
@@ -8,7 +8,7 @@ import java.util.function.Predicate;
 import org.junit.Assert;
 import org.junit.Test;
 
-import jp.naist.se.codehash.FileType;
+import jp.naist.se.codehash.token.FileType;
 import jp.naist.se.codehash.file.FileEntity;
 
 

@@ -1,4 +1,4 @@
-package jp.naist.se.codehash.comparison.similarity;
+package jp.naist.se.codehash.similarity;
 
 import java.util.ArrayList;
 import java.util.Collection;

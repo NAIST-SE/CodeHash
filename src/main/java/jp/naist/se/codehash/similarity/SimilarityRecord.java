@@ -1,4 +1,4 @@
-package jp.naist.se.codehash.comparison.similarity;
+package jp.naist.se.codehash.similarity;
 
 import java.io.IOException;
 import java.util.HashMap;

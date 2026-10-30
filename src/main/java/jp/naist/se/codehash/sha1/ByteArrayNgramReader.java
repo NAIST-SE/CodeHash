@@ -2,7 +2,7 @@ package jp.naist.se.codehash.sha1;
 
 import java.nio.charset.StandardCharsets;
 
-import jp.naist.se.codehash.TokenReader;
+import jp.naist.se.codehash.token.TokenReader;
 
 public class ByteArrayNgramReader {
 

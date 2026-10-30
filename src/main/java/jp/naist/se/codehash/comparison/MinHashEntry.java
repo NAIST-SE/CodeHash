@@ -2,7 +2,7 @@ package jp.naist.se.codehash.comparison;
 
 import java.util.BitSet;
 
-import jp.naist.se.codehash.HashStringUtil;
+import jp.naist.se.codehash.util.HashStringUtil;
 
 
 public class MinHashEntry {

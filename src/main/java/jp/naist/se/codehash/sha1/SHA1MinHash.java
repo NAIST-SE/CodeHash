@@ -4,7 +4,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 
-import jp.naist.se.codehash.TokenReader;
+import jp.naist.se.codehash.token.TokenReader;
 
 public class SHA1MinHash {
 

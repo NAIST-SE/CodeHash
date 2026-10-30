@@ -21,7 +21,7 @@ import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
 
-import jp.naist.se.codehash.comparison.similarity.SimilarityMetrics;
+import jp.naist.se.codehash.similarity.SimilarityMetrics;
 
 
 /**

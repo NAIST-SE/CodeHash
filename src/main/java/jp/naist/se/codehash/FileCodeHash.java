@@ -8,6 +8,12 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.LinkedList;
 
+import jp.naist.se.codehash.hash.CodeHashTokenReader;
+import jp.naist.se.codehash.hash.MurmurMinHash;
+import jp.naist.se.codehash.token.FileType;
+import jp.naist.se.codehash.token.TokenReader;
+import jp.naist.se.codehash.util.HashStringUtil;
+
 
 /**
  * A main class to calculate code hash and minhash  

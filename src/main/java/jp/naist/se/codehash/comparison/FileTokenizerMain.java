@@ -10,8 +10,8 @@ import java.io.StringReader;
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
 
-import jp.naist.se.codehash.FileType;
-import jp.naist.se.codehash.TokenReader;
+import jp.naist.se.codehash.token.FileType;
+import jp.naist.se.codehash.token.TokenReader;
 
 public class FileTokenizerMain {
 

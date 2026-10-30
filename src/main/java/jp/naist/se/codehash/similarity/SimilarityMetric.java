@@ -1,4 +1,4 @@
-package jp.naist.se.codehash.comparison.similarity;
+package jp.naist.se.codehash.similarity;
 
 /**
  * A strategy to calculate a similarity value of a file pair.

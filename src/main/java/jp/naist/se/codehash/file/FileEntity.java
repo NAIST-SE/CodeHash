@@ -8,13 +8,13 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Set;
 
-import jp.naist.se.codehash.CodeHashTokenReader;
+import jp.naist.se.codehash.hash.CodeHashTokenReader;
 import jp.naist.se.codehash.FileCodeHash;
-import jp.naist.se.codehash.FileType;
+import jp.naist.se.codehash.token.FileType;
 import jp.naist.se.codehash.GitCodeHash;
-import jp.naist.se.codehash.HashStringUtil;
-import jp.naist.se.codehash.MurmurMinHash;
-import jp.naist.se.codehash.TokenReader;
+import jp.naist.se.codehash.util.HashStringUtil;
+import jp.naist.se.codehash.hash.MurmurMinHash;
+import jp.naist.se.codehash.token.TokenReader;
 import jp.naist.se.codehash.comparison.MinHashEntry;
 import jp.naist.se.codehash.util.StringMultiset;
 

@@ -1,4 +1,4 @@
-package jp.naist.se.codehash.comparison.similarity;
+package jp.naist.se.codehash.similarity;
 
 /**
  * A base class for metrics defined by the intersection of N-gram multisets.

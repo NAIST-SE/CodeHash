@@ -127,7 +127,7 @@ Examples (quote the argument so that a shell does not interpret `>`, `<`, `&`, a
 
 #### Adding a new similarity metric
 
-Each metric is a strategy implementing `jp.naist.se.codehash.comparison.similarity.SimilarityMetric`.
+Each metric is a strategy implementing `jp.naist.se.codehash.similarity.SimilarityMetric`.
 To add a metric, implement `getName()` and `calculate(FilePair)`, and register an instance in `SimilarityMetrics` (e.g. in its static initializer).
 The registered metric becomes available in `-metrics:` and `-filter:` options automatically.
 `FilePair` caches the size of intersection of N-gram multisets so that multiple metrics can share it.

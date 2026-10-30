@@ -6,9 +6,9 @@ import java.nio.charset.StandardCharsets;
 import org.junit.Assert;
 import org.junit.Test;
 
-import jp.naist.se.codehash.FileType;
-import jp.naist.se.codehash.NgramReader;
-import jp.naist.se.codehash.TokenReader;
+import jp.naist.se.codehash.token.FileType;
+import jp.naist.se.codehash.hash.NgramReader;
+import jp.naist.se.codehash.token.TokenReader;
 
 public class NormalizationTest {
 
