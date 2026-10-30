@@ -134,27 +134,45 @@ The registered metric becomes available in `-metrics:` and `-filter:` options au
 
 
 The program produces a JSON format like this.
+The example is the output for two sample files in `src/test/resources/c-sample` (an arithmetic progression and a geometric progression).
+
+>        java -classpath target/CodeHash.jar jp.naist.se.codehash.comparison.DirectComparisonMain src/test/resources/c-sample/arithmetic.c src/test/resources/c-sample/geometric.c
 
 >        {
->          "Files":[ 
->            {index":0,"path":"001.c","lang":"CPP","byte-length":2071,"token-length":662,"ngram-count":664},
->            {index":1,"path":"002.c","lang":"CPP","byte-length":947,"token-length":270,"ngram-count":272}
->          ],
->          "Pairs": [
->            {
->              "index1":0,
->              "index2":1,
->              "jaccard":0.18032786885245902,
->              "estimated-jaccard":0.1826171875,
->              "inclusion1":0.21536144578313254,
->              "inclusion2":0.5257352941176471,
->              "normalization-jaccard":0.32954545454545453,
->              "normalization-estimated-jaccard":0.3203125,
->              "normalization-inclusion1":0.3493975903614458,
->              "normalization-inclusion2":0.8529411764705882
->            }
->          ]
+>          "Files" : [ {
+>            "group" : "<default>",
+>            "index" : 0,
+>            "path" : "/path/to/CodeHash/src/test/resources/c-sample/arithmetic.c",
+>            "lang" : "CPP",
+>            "byte-sha1" : "6082b553b651ed6fadc0033364fe876b759c0244",
+>            "token-sha1" : "0aafcdf2028bd699da81347f47e123586398f2ff",
+>            "byte-length" : 319,
+>            "token-length" : 79,
+>            "ngram-count" : 81
+>          }, {
+>            "group" : "<default>",
+>            "index" : 1,
+>            "path" : "/path/to/CodeHash/src/test/resources/c-sample/geometric.c",
+>            "lang" : "CPP",
+>            "byte-sha1" : "b330cb3ecd212cf933204b8ffa0bd984c5a64614",
+>            "token-sha1" : "091097cca238c53c3895334c085804d98285c8ea",
+>            "byte-length" : 325,
+>            "token-length" : 79,
+>            "ngram-count" : 81
+>          } ],
+>          "Pairs" : [ {
+>            "index1" : 0,
+>            "index2" : 1,
+>            "exact-jaccard" : 0.5283018867924528,
+>            "exact-overlap-coefficient" : 0.691358024691358,
+>            "exact-overlap-similarity" : 0.691358024691358,
+>            "jaccard" : 0.6875,
+>            "overlap-coefficient" : 0.8148148148148148,
+>            "overlap-similarity" : 0.8148148148148148
+>          } ]
 >        }
+
+With `-metrics:jaccard,overlap-coefficient`, each element of `Pairs` includes only `index1`, `index2`, `jaccard`, and `overlap-coefficient`.
 
 The JSON format is an object comprising a list of files (`Files`) and a list of pair-wise similarity values (`Pairs`). 
 
@@ -162,6 +180,7 @@ The JSON format is an object comprising a list of files (`Files`) and a list of 
 
 |Attribute   |Value                                                |
 |:-----------|:----------------------------------------------------|
+|group       |A group name of the file specified by `-group` option|
 |index       |Index to identify a file in the list.                |
 |path        |A full path of the file.                             |
 |lang        |Language name used to recognize tokens in the file   |
@@ -177,13 +196,11 @@ The JSON format is an object comprising a list of files (`Files`) and a list of 
 |:----------------|:-----------------------------------------------------------------------------------------|
 |index1           |The first file to be compared in the list                                                 |
 |index2           |The second file to be compared in the list                                                |
-|jaccard          |Jaccard index of the ngram multisets of the files (&#x7C;Intersection(F1, F2)&#x7C;/&#x7C;Union(F1, F2)&#x7C;)|
-|estimated-jaccard|Estimated jaccard index of the files using minhash                                        |
-|inclusion1       |The ratio of common contents in the first file (&#x7C;Intersection(F1, F2)&#x7C;/&#x7C;F1&#x7C;)              |  
-|inclusion2       |The ratio of common contents in the second file (&#x7C;Intersection(F1, F2)&#x7C;/&#x7C;F2&#x7C;)             |  
-|normalization-*  |The similarity metrics calculated for normalized source code ignoring identifier names    |
+|(metric name)    |A similarity value of the file pair for each metric selected by `-metrics` option (all metrics by default)|
 
-The normalization is implemented for C/C++, Java, C Sharp, JavaScript, and Python.
+The metric names (e.g. `exact-jaccard`, `jaccard`) are listed in "Similarity metrics" above.
+The metrics are written in the order of the list.
+The identifier normalization used by the metrics without the `exact-` prefix is implemented for C/C++, Java, C Sharp, JavaScript, and Python.
 
 
 
