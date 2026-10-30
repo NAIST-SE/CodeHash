@@ -246,6 +246,15 @@ The tool takes a repository path as an argument (the current directory by defaul
 
 The resultant file can be used as a file list for `GitCodeHash`.
 
+### Analyzing a single repository without a file list
+
+If the first argument of `GitCodeHash` is a directory, the tool regards it as a git repository (a working directory or a `.git` directory) and processes the repository without a file list.
+It processes the same blobs as `GitFileList` (all blobs reachable from `HEAD`, each blob only once) and detects their languages by file extensions.
+The second argument optionally specifies a type of computed hash (`codehash` by default).
+The result is written to STDOUT in the same format as the CSV mode.
+
+>        java -classpath target/CodeHash.jar jp.naist.se.codehash.GitCodeHash path/to/first minhash > output-minhash.txt
+
 
 
 
