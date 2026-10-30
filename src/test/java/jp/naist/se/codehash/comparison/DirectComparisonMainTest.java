@@ -233,6 +233,18 @@ public class DirectComparisonMainTest {
 	}
 
 	@Test
+	public void testPlainText() throws Exception {
+		// PLAINTEXT regards comments as tokens and does not normalize identifiers
+		List<Pair> pairs = run("-lang:PLAINTEXT");
+		Assert.assertEquals(6, pairs.size());
+		for (Pair p: pairs) {
+			Assert.assertEquals(p.get(SimilarityMetrics.EXACT_JACCARD), p.get(SimilarityMetrics.JACCARD), 0);
+		}
+		Pair renamed = find(pairs, ARITHMETIC, ARITHMETIC_RENAMED);
+		Assert.assertTrue(renamed.get(SimilarityMetrics.JACCARD) < 1.0);
+	}
+
+	@Test
 	public void testInvalidFilter() throws Exception {
 		Assert.assertEquals("", execute("-filter:jaccard>="));
 		Assert.assertEquals("", execute("-filter:unknown-metric>=0.5"));

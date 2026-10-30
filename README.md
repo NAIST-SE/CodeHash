@@ -14,6 +14,8 @@ The source code is written in Java.  You can build the project using Maven.
 
 
 For file similarity, supported programming languages are: C/C++, Java, ECMAScript, Python, PHP, and C#.
+In addition, `PLAINTEXT` treats a file as plain text; it splits the content into words (`[a-zA-Z0-9_]+`) and symbols (other non-whitespace characters).  The tokenizer does not recognize comments; they are also regarded as words and symbols.
+Files with the `.txt` extension are processed as `PLAINTEXT`.
 
 ## Extract 1-bit minhash vectors from source files
 
@@ -82,7 +84,7 @@ The tool accepts the following options.  Other arguments are regarded as source 
 
 #### File selection options
 
-- `-lang:[LANGUAGE]`: This option specifies a language name.  Supported languages are CPP, JAVA, ECMASCRIPT, PYTHON, PHP, and CSHARP.
+- `-lang:[LANGUAGE]`: This option specifies a language name.  Supported languages are CPP, JAVA, ECMASCRIPT, PYTHON, PHP, CSHARP, and PLAINTEXT.  For example, `-lang:PLAINTEXT` compares files in any language as plain text.
 - `-group[GROUP-NAME]:[PATH]` specifies a group name for a file or a directory.  This option is meaningful when `-compare:crossgroup` is specified.
 
 
@@ -110,7 +112,7 @@ Examples (quote the argument so that a shell does not interpret `>`, `<`, `&`, a
 
 `-thnj:0.7` is equivalent to `-filter:jaccard>=0.7`.
 
-## Similarity metrics
+### Similarity metrics
 
  - Jaccard index: Intersection(S1, S2) / Union(S1, S2).
    - `exact-jaccard` compares identifiers as is (i.e., without normalization).
@@ -123,7 +125,7 @@ Examples (quote the argument so that a shell does not interpret `>`, `<`, `&`, a
    - `exact-overlap-similarity` compares identifiers as is. This similarity metric with `-n:1` has been used by SourcererCC (http://dx.doi.org/10.1145/2884781.2884877).
    - `overlap-similarity` compares identifiers with normalization.
 
-### Adding a new similarity metric
+#### Adding a new similarity metric
 
 Each metric is a strategy implementing `jp.naist.se.codehash.comparison.similarity.SimilarityMetric`.
 To add a metric, implement `getName()` and `calculate(FilePair)`, and register an instance in `SimilarityMetrics` (e.g. in its static initializer).
@@ -171,8 +173,6 @@ The example is the output for two sample files in `src/test/resources/c-sample` 
 >            "overlap-similarity" : 0.8148148148148148
 >          } ]
 >        }
-
-With `-metrics:jaccard,overlap-coefficient`, each element of `Pairs` includes only `index1`, `index2`, `jaccard`, and `overlap-coefficient`.
 
 The JSON format is an object comprising a list of files (`Files`) and a list of pair-wise similarity values (`Pairs`). 
 
@@ -224,7 +224,7 @@ Given this example file, the tool computes codehash for files listed in `filelis
 Each file list is a tsv file.  Each line must include three items:
  - Blob ID
  - File name (if available)
- - Programming language type: C, JAVA, JAVASCRIPT, PHP, PYTHON. 
+ - Programming language type: C, JAVA, JAVASCRIPT, PHP, PYTHON, CSHARP, PLAINTEXT. 
    - For Ruby language, a separated program is available in the repository. 
  
 Example for this repository:

@@ -20,6 +20,7 @@ import jp.naist.se.codehash.normalizer.Python3Normalizer;
 import jp.naist.se.commentlister.lexer.CPP14Lexer;
 import jp.naist.se.commentlister.lexer.CSharpLexer;
 import jp.naist.se.commentlister.lexer.ECMAScriptLexer;
+import jp.naist.se.commentlister.lexer.GenericLexer;
 import jp.naist.se.commentlister.lexer.Java8Lexer;
 import jp.naist.se.commentlister.lexer.PhpLexer;
 import jp.naist.se.commentlister.lexer.Python3Lexer;
@@ -28,7 +29,7 @@ import jp.naist.se.commentlister.lexer.Python3Parser;
 
 public enum FileType {
 
-	UNSUPPORTED, CPP, JAVA, ECMASCRIPT, PYTHON, PHP, CSHARP;
+	UNSUPPORTED, CPP, JAVA, ECMASCRIPT, PYTHON, PHP, CSHARP, PLAINTEXT;
 
 	private static HashMap<String, FileType> filetype;
 	private static HashMap<String, FileType> extToFiletype;
@@ -42,6 +43,7 @@ public enum FileType {
 		filetype.put("PYTHON", FileType.PYTHON);
 		filetype.put("PHP", FileType.PHP);
 		filetype.put("CSHARP", FileType.CSHARP);
+		filetype.put("PLAINTEXT", FileType.PLAINTEXT);
 
 		extToFiletype = new HashMap<>(128);
 		extToFiletype.put("c", FileType.CPP);
@@ -64,12 +66,13 @@ public enum FileType {
 		extToFiletype.put("py", FileType.PYTHON);
 		extToFiletype.put("php", FileType.PHP);
 		extToFiletype.put("cs", FileType.CSHARP);
+		extToFiletype.put("txt", FileType.PLAINTEXT);
 
 	}
 	
 	/**
 	 * This method returns a FileType object representing a given language name.
-	 * @param typename should be one of "C", "CPP", "JAVA", "JAVASCRIPT", "PYTHON", "PHP", and "CSHARP". 
+	 * @param typename should be one of "C", "CPP", "JAVA", "JAVASCRIPT", "PYTHON", "PHP", "CSHARP", and "PLAINTEXT".
 	 * @return a FileType instance.
 	 * UNSUPPORTED is returned for an invalid argument.
 	 */
@@ -177,6 +180,17 @@ public enum FileType {
 								(t.getChannel() != CSharpLexer.COMMENTS_CHANNEL);
 					}
 				}, new CSharpNormalizer());
+			}
+			case PLAINTEXT:
+			{
+				// Whitespace is skipped by the lexer
+				GenericLexer lexer = new GenericLexer(stream);
+				return new AntlrTokenReader(lexer, new AntlrTokenReader.Filter() {
+					@Override
+					public boolean accept(Token t) {
+						return t.getChannel() != GenericLexer.HIDDEN;
+					}
+				}, null);
 			}
 			default:
 				return null;
