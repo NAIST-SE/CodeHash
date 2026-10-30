@@ -16,7 +16,6 @@ import org.eclipse.jgit.lib.ObjectReader;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
 
-import jp.naist.se.codehash.hash.CodeHash;
 import jp.naist.se.codehash.hash.CodeHashTokenReader;
 import jp.naist.se.codehash.hash.MurmurMinHash;
 import jp.naist.se.codehash.sha1.SHA1MinHash;
@@ -155,27 +154,23 @@ public class GitCodeHash {
 							TokenReader tokenReader = FileType.createReader(t, l.openStream());
 							long size = l.getSize();
 
-							String codehash, minhash;
+							CodeHashTokenReader wrapper = new CodeHashTokenReader(tokenReader, size);
+							String minhash;
 							if (hashType == HashType.Murmur3MinHash) {
-								CodeHashTokenReader wrapper = new CodeHashTokenReader(tokenReader, size);
 								MurmurMinHash h = new MurmurMinHash(BBITMINHASH_BITCOUNT, BBITMINHASH_NGRAM_SIZE, wrapper);
 								minhash = HashStringUtil.bytesToHex(h.getHash());
-								codehash = HashStringUtil.bytesToHex(wrapper.getHash());
 							} else if (hashType == HashType.SHA1MinHash) {
-								CodeHashTokenReader wrapper = new CodeHashTokenReader(tokenReader, size);
 								SHA1MinHash h = new SHA1MinHash(BBITMINHASH_BITCOUNT, BBITMINHASH_NGRAM_SIZE, wrapper);
 								minhash = HashStringUtil.bytesToHex(h.getHash());
-								codehash = HashStringUtil.bytesToHex(wrapper.getHash());
 							} else if (hashType == HashType.SHA1MinHashInPaper) {
-								CodeHashTokenReader wrapper = new CodeHashTokenReader(tokenReader, size);
 								SHA1MinHashMSR2017 h = new SHA1MinHashMSR2017(BBITMINHASH_BITCOUNT, BBITMINHASH_NGRAM_SIZE, wrapper);
 								minhash = HashStringUtil.bytesToHex(h.getHash());
-								codehash = HashStringUtil.bytesToHex(wrapper.getHash());
 							} else {
-								CodeHash h = new CodeHash(tokenReader, size);
-								codehash = HashStringUtil.bytesToHex(h.getHash());
+								// Read all tokens to compute codehash only
+								while (wrapper.next());
 								minhash = null;
 							}
+							String codehash = HashStringUtil.bytesToHex(wrapper.getHash());
 							
 							StringBuilder result = new StringBuilder(256);
 							result.append(sha1);
