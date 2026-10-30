@@ -117,8 +117,11 @@ Examples (quote the argument so that a shell does not interpret `>`, `<`, `&`, a
    - `jaccard` compares identifiers with normalization. The similarity metric with `-n:3` has been used in https://doi.org/10.1109/MSR.2017.19.
  - Overlap coefficient: Intersection(S1, S2) / Min(S1, S2).  
    - This is defined in https://aircconline.com/mlaij/V3N1/3116mlaij03.pdf
+   - `exact-overlap-coefficient` compares identifiers as is.
+   - `overlap-coefficient` compares identifiers with normalization.
  - Overlap similarity: Intersection(S1, S2) / Max(S1, S2).  
-   - `exact-overlap-similarity` comapres identifiers as is. This similarity metric with `-n:1` has been used by SourcererCC (http://dx.doi.org/10.1145/2884781.2884877).
+   - `exact-overlap-similarity` compares identifiers as is. This similarity metric with `-n:1` has been used by SourcererCC (http://dx.doi.org/10.1145/2884781.2884877).
+   - `overlap-similarity` compares identifiers with normalization.
 
 ### Adding a new similarity metric
 
