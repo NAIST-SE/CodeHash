@@ -226,6 +226,7 @@ Each file list is a tsv file.  Each line must include three items:
  - File name (if available)
  - Programming language type: C, JAVA, JAVASCRIPT, PHP, PYTHON, CSHARP, PLAINTEXT. 
    - For Ruby language, a separated program is available in the repository. 
+   - This column can be omitted.  If a line has only two items (Blob ID and file name), the language is detected by the file extension.  Blobs in unsupported languages are skipped.
  
 Example for this repository:
 >        c01a38dd1b6f66f59515032fd22c9f5b9e46ffce	src/main/java/jp/naist/se/codehash/AntlrTokenReader.java	JAVA
@@ -233,6 +234,17 @@ Example for this repository:
 >        5cf76dd798f47ca7e296fa0582888ff1787f97ce	src/main/java/jp/naist/se/codehash/FileType.java	JAVA
 >        8005e63674d37076fdd36e70291c8573324dd3ff	src/main/java/jp/naist/se/codehash/GitCodeHash.java	JAVA
 >        430582dd4efc0de59502947e5bbd0063cbd73ea1	src/main/java/jp/naist/se/codehash/GitCodeHash.java	JAVA
+
+### Creating a file list using GitFileList
+
+The main class `GitFileList` creates a file list in the two-column format (Blob ID and file name) for a git repository.
+It lists all non-binary blobs reachable from `HEAD`, i.e., file contents in the entire history of the current branch.
+Each blob is reported only once with one of its file paths.
+The tool takes a repository path as an argument (the current directory by default) and writes the list to STDOUT.
+
+>        java -classpath target/CodeHash.jar jp.naist.se.codehash.GitFileList path/to/first > filelist1.txt
+
+The resultant file can be used as a file list for `GitCodeHash`.
 
 
 
