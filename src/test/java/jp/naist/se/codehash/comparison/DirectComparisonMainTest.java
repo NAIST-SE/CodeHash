@@ -2,6 +2,7 @@ package jp.naist.se.codehash.comparison;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.io.PrintStream;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
@@ -81,6 +82,20 @@ public class DirectComparisonMainTest {
 			System.setOut(original);
 		}
 		return buffer.toString(StandardCharsets.UTF_8);
+	}
+
+	/**
+	 * Execute the tool while discarding error messages.
+	 * @return the standard output.
+	 */
+	private static String executeWithoutErrorOutput(String... options) throws URISyntaxException {
+		PrintStream original = System.err;
+		try {
+			System.setErr(new PrintStream(OutputStream.nullOutputStream()));
+			return execute(options);
+		} finally {
+			System.setErr(original);
+		}
 	}
 
 	/**
@@ -168,7 +183,7 @@ public class DirectComparisonMainTest {
 
 	@Test
 	public void testUnknownMetric() throws Exception {
-		Assert.assertEquals("", execute("-metrics:jaccard,unknown-metric"));
+		Assert.assertEquals("", executeWithoutErrorOutput("-metrics:jaccard,unknown-metric"));
 	}
 
 	@Test
@@ -246,8 +261,8 @@ public class DirectComparisonMainTest {
 
 	@Test
 	public void testInvalidFilter() throws Exception {
-		Assert.assertEquals("", execute("-filter:jaccard>="));
-		Assert.assertEquals("", execute("-filter:unknown-metric>=0.5"));
+		Assert.assertEquals("", executeWithoutErrorOutput("-filter:jaccard>="));
+		Assert.assertEquals("", executeWithoutErrorOutput("-filter:unknown-metric>=0.5"));
 	}
 
 }

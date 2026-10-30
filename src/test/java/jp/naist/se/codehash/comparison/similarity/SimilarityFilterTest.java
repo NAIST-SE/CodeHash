@@ -1,5 +1,7 @@
 package jp.naist.se.codehash.comparison.similarity;
 
+import java.io.OutputStream;
+import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.util.function.Predicate;
 
@@ -94,11 +96,16 @@ public class SimilarityFilterTest {
 	}
 
 	private static void assertInvalid(String expr) {
+		// Discard error messages
+		PrintStream original = System.err;
 		try {
+			System.setErr(new PrintStream(OutputStream.nullOutputStream()));
 			SimilarityFilter.parse(expr);
 			Assert.fail("Expected an error: " + expr);
 		} catch (IllegalArgumentException e) {
 			// OK
+		} finally {
+			System.setErr(original);
 		}
 	}
 
