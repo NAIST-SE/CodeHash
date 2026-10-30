@@ -16,14 +16,9 @@ import org.eclipse.jgit.lib.ObjectReader;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
 
-import jp.naist.se.codehash.hash.CodeHashTokenReader;
-import jp.naist.se.codehash.hash.MinHashDefaults;
-import jp.naist.se.codehash.hash.MurmurMinHash;
-import jp.naist.se.codehash.sha1.SHA1MinHash;
-import jp.naist.se.codehash.sha1.SHA1MinHashMSR2017;
+import jp.naist.se.codehash.hash.SourceCodeHash;
+import jp.naist.se.codehash.hash.SourceCodeHash.MinHashType;
 import jp.naist.se.codehash.token.FileType;
-import jp.naist.se.codehash.token.TokenReader;
-import jp.naist.se.codehash.util.HashStringUtil;
 
 
 /**
@@ -32,8 +27,6 @@ import jp.naist.se.codehash.util.HashStringUtil;
  */
 public class GitCodeHash {
 
-	public enum HashType { CodeHash, SHA1MinHash, Murmur3MinHash, SHA1MinHashInPaper };
-	
 	/**
 	 * Extract hash values for source file contents excluding whitespace and comments from Git directories.
 	 * @param args The first argument specifies a CSV file.
@@ -53,13 +46,13 @@ public class GitCodeHash {
 					String filelistPath = tokens[1];
 					String outputFilePath = tokens[2];
 					String hashtype = tokens[3];
-					HashType t = HashType.CodeHash;
+					MinHashType t = MinHashType.None;
 					if (hashtype.equals("minhash")) {
-						t = HashType.Murmur3MinHash;
+						t = MinHashType.Murmur3;
 					} else if (hashtype.equals("sha1minhash")) {
-						t = HashType.SHA1MinHash;
+						t = MinHashType.SHA1;
 					} else if (hashtype.equals("sha1minhashInPaper")) {
-						t = HashType.SHA1MinHashInPaper;
+						t = MinHashType.SHA1InPaper;
 					}
 					
 					File gitDir = new File(repoPath);
@@ -124,7 +117,7 @@ public class GitCodeHash {
 	 * @param gitDir is a .git directory.
 	 * @param target is a list of source files in the repo (.tsv files including SHA1, file name, and LANGUAGE).
 	 */
-	public void parseGitRepository(File gitDir, LineNumberReader target, PrintWriter w, HashType hashType) {
+	public void parseGitRepository(File gitDir, LineNumberReader target, PrintWriter w, MinHashType hashType) {
 		FileRepositoryBuilder b = new FileRepositoryBuilder();
 		b.setGitDir(gitDir);
 		try (Repository repo = b.build()) {
@@ -150,41 +143,23 @@ public class GitCodeHash {
 						
 						try {
 							ObjectLoader l = r.open(id);
-							TokenReader tokenReader = FileType.createReader(t, l.openStream());
 							long size = l.getSize();
+							SourceCodeHash h = new SourceCodeHash(t, l.openStream(), size, hashType);
 
-							CodeHashTokenReader wrapper = new CodeHashTokenReader(tokenReader, size);
-							String minhash;
-							if (hashType == HashType.Murmur3MinHash) {
-								MurmurMinHash h = new MurmurMinHash(MinHashDefaults.BIT_COUNT, MinHashDefaults.DEFAULT_NGRAM_SIZE, wrapper);
-								minhash = HashStringUtil.bytesToHex(h.getHash());
-							} else if (hashType == HashType.SHA1MinHash) {
-								SHA1MinHash h = new SHA1MinHash(MinHashDefaults.BIT_COUNT, MinHashDefaults.DEFAULT_NGRAM_SIZE, wrapper);
-								minhash = HashStringUtil.bytesToHex(h.getHash());
-							} else if (hashType == HashType.SHA1MinHashInPaper) {
-								SHA1MinHashMSR2017 h = new SHA1MinHashMSR2017(MinHashDefaults.BIT_COUNT, MinHashDefaults.DEFAULT_NGRAM_SIZE, wrapper);
-								minhash = HashStringUtil.bytesToHex(h.getHash());
-							} else {
-								// Read all tokens to compute codehash only
-								while (wrapper.next());
-								minhash = null;
-							}
-							String codehash = HashStringUtil.bytesToHex(wrapper.getHash());
-							
 							StringBuilder result = new StringBuilder(256);
 							result.append(sha1);
 							result.append("\t");
 							result.append(t.name());
 							result.append("\t");
-							result.append(codehash);
+							result.append(h.getCodeHash());
 							result.append("\t");
-							if (minhash != null) {
-								result.append(minhash);
+							if (h.getMinHash() != null) {
+								result.append(h.getMinHash());
 								result.append("\t");
 							}
 							result.append(size);
 							result.append("\t");
-							result.append(tokenReader.getTokenCount());
+							result.append(h.getTokenCount());
 							w.println(result.toString());
 
 						} catch (MissingObjectException e) {

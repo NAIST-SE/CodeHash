@@ -6,13 +6,10 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.util.LinkedList;
 
-import jp.naist.se.codehash.hash.CodeHashTokenReader;
 import jp.naist.se.codehash.hash.FileHash;
-import jp.naist.se.codehash.hash.MinHashDefaults;
-import jp.naist.se.codehash.hash.MurmurMinHash;
+import jp.naist.se.codehash.hash.SourceCodeHash;
+import jp.naist.se.codehash.hash.SourceCodeHash.MinHashType;
 import jp.naist.se.codehash.token.FileType;
-import jp.naist.se.codehash.token.TokenReader;
-import jp.naist.se.codehash.util.HashStringUtil;
 
 
 /**
@@ -78,22 +75,8 @@ public class FileCodeHash {
 			if (FileType.isSupported(t)) {
 				byte[] content = Files.readAllBytes(f.toPath());
 				String sha1 = FileHash.compute(content);
-				String codehash = null;
-				String minhash = null;
-				String normalizedMinhash = null;
-				int ngramCount = 0;
-				TokenReader tokenReader = FileType.createReader(t, new ByteArrayInputStream(content));
-				CodeHashTokenReader wrapper = new CodeHashTokenReader(tokenReader, f.length());
-				MurmurMinHash h = new MurmurMinHash(MinHashDefaults.BIT_COUNT, MinHashDefaults.DEFAULT_NGRAM_SIZE, wrapper);
-				if (ignoreDuplication) {
-					minhash = HashStringUtil.bytesToHex(h.getHashIgnoreDuplicatedElements());
-					normalizedMinhash = HashStringUtil.bytesToHex(h.getNormalizedHashIgnoreDuplicatedElements());
-				} else {
-					minhash = HashStringUtil.bytesToHex(h.getHash());
-					normalizedMinhash = HashStringUtil.bytesToHex(h.getNormalizedHash());
-				}
-				codehash = HashStringUtil.bytesToHex(wrapper.getHash());
-				ngramCount = h.getNgramCount();
+				SourceCodeHash h = new SourceCodeHash(t, new ByteArrayInputStream(content), f.length(),
+						ignoreDuplication ? MinHashType.Murmur3IgnoreDuplication : MinHashType.Murmur3);
 
 				StringBuilder result = new StringBuilder(256);
 				result.append(path);
@@ -102,17 +85,17 @@ public class FileCodeHash {
 				result.append("\t");
 				result.append(t.name());
 				result.append("\t");
-				result.append(codehash);
+				result.append(h.getCodeHash());
 				result.append("\t");
-				result.append(minhash);
+				result.append(h.getMinHash());
 				result.append("\t");
-				result.append(normalizedMinhash);
+				result.append(h.getNormalizedMinHash());
 				result.append("\t");
 				result.append(f.length());
 				result.append("\t");
-				result.append(tokenReader.getTokenCount());
+				result.append(h.getTokenCount());
 				result.append("\t");
-				result.append(ngramCount);
+				result.append(h.getNgramCount());
 				System.out.println(result.toString());
 			}
 

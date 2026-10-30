@@ -6,13 +6,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Set;
 
-import jp.naist.se.codehash.hash.CodeHashTokenReader;
 import jp.naist.se.codehash.hash.FileHash;
-import jp.naist.se.codehash.hash.MinHashDefaults;
+import jp.naist.se.codehash.hash.SourceCodeHash;
+import jp.naist.se.codehash.hash.SourceCodeHash.MinHashType;
 import jp.naist.se.codehash.token.FileType;
-import jp.naist.se.codehash.util.HashStringUtil;
-import jp.naist.se.codehash.hash.MurmurMinHash;
-import jp.naist.se.codehash.token.TokenReader;
 import jp.naist.se.codehash.comparison.MinHashEntry;
 import jp.naist.se.codehash.util.StringMultiset;
 
@@ -72,16 +69,14 @@ public class FileEntity {
 		this.type = type;
 		this.byteLength = content.length;
 		filehash = FileHash.compute(content);
-		TokenReader tokenReader = FileType.createReader(type, new ByteArrayInputStream(content));
-		CodeHashTokenReader wrapper = new CodeHashTokenReader(tokenReader, byteLength);
-		MurmurMinHash h = new MurmurMinHash(MinHashDefaults.BIT_COUNT, N, wrapper);
-		minhash = HashStringUtil.bytesToHex(h.getHash());
-		normalizedMinhash = HashStringUtil.bytesToHex(h.getNormalizedHash());
-		codehash = HashStringUtil.bytesToHex(wrapper.getHash());
+		SourceCodeHash h = new SourceCodeHash(type, new ByteArrayInputStream(content), byteLength, MinHashType.Murmur3, N);
+		minhash = h.getMinHash();
+		normalizedMinhash = h.getNormalizedMinHash();
+		codehash = h.getCodeHash();
 		ngramCount = h.getNgramCount();
 		ngrams = h.getNgramMultiset();
 		normalizedNgrams = h.getNormalizedNgramMultiset();
-		tokenLength = tokenReader.getTokenCount();
+		tokenLength = h.getTokenCount();
 
 		minhashEntry = new MinHashEntry(path, filehash, getLanguageName(), codehash, minhash, normalizedMinhash, byteLength, tokenLength, ngramCount);
 	}
