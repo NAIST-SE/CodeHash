@@ -30,6 +30,7 @@ All packages are under `jp.naist.se.codehash`.
 - `comparison`: Main classes to compare files.
   - `ComparisonMain`: Estimates similarity from minhash vectors produced by `FileCodeHash` (`MinHashEntry` represents a line).
   - `DirectComparisonMain`: Compares files directly and writes JSON.  Handles `-lang`, `-group`, `-n`, `-th*`, `-filter`, `-metrics`, `-compare` options.
+  - `SimilarityMatrixMain`: Converts a JSON output of `DirectComparisonMain` into a CSV matrix of a selected metric.
   - `FileTokenizerMain`: Writes tokens of files in JSON.
 - `file`: Files to be compared by `DirectComparisonMain`.
   - `FileEntity`: A file with its hashes, N-gram multisets, and minhash.

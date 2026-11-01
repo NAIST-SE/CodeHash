@@ -206,6 +206,18 @@ The metric names (e.g. `exact-jaccard`, `jaccard`) are listed in "Similarity met
 The metrics are written in the order of the list.
 The identifier normalization used by the metrics without the `exact-` prefix is implemented for C/C++, Java, C Sharp, JavaScript, and Python.
 
+### Converting the output into a similarity matrix
+
+`jp.naist.se.codehash.comparison.SimilarityMatrixMain` converts a JSON output of `DirectComparisonMain` into a CSV matrix of a selected metric.
+The first argument is a metric name.  The second argument is a JSON file; if it is omitted or `-`, the JSON is read from STDIN.
+
+>        java -classpath target/CodeHash.jar jp.naist.se.codehash.comparison.DirectComparisonMain src/test/resources/c-sample > result.json
+>        java -classpath target/CodeHash.jar jp.naist.se.codehash.comparison.SimilarityMatrixMain jaccard result.json > matrix.csv
+
+The header line is `index,path` followed by file indices.
+Each row has a file index, a file path, and the metric values for the files in the header.
+The cells on and below the diagonal are empty, as well as the cells of pairs not included in the JSON (e.g. pairs excluded by `-filter` or files in different languages).
+
 
 
 ## Analyzing a Git repository
