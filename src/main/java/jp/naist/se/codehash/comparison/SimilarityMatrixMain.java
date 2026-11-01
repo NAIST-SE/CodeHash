@@ -13,6 +13,7 @@ import java.util.TreeMap;
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
+import com.fasterxml.jackson.core.json.JsonReadFeature;
 
 import jp.naist.se.codehash.similarity.SimilarityMetrics;
 
@@ -70,7 +71,8 @@ public class SimilarityMatrixMain {
 	 * Read files and pairs from a JSON output of {@link DirectComparisonMain}.
 	 */
 	public void read(InputStream input) throws IOException {
-		JsonFactory f = new JsonFactory();
+		// DirectComparisonMain writes NaN for a pair whose similarity is undefined (e.g. empty files)
+		JsonFactory f = JsonFactory.builder().enable(JsonReadFeature.ALLOW_NON_NUMERIC_NUMBERS).build();
 		try (JsonParser parser = f.createParser(input)) {
 			if (parser.nextToken() != JsonToken.START_OBJECT) throw new IOException("A JSON object is expected.");
 			while (parser.nextToken() == JsonToken.FIELD_NAME) {

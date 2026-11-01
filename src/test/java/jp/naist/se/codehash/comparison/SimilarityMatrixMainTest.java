@@ -51,6 +51,22 @@ public class SimilarityMatrixMainTest {
 	}
 
 	@Test
+	public void testNaN() throws Exception {
+		// DirectComparisonMain writes NaN as a non-standard JSON number
+		String json = "{ \"Files\": [" +
+				"{ \"index\": 0, \"path\": \"empty1.c\" }," +
+				"{ \"index\": 1, \"path\": \"empty2.c\" }" +
+				"], \"Pairs\": [" +
+				"{ \"index1\": 0, \"index2\": 1, \"jaccard\": NaN }" +
+				"] }";
+		Assert.assertEquals(
+				"index,path,0,1\n" +
+				"0,empty1.c,,NaN\n" +
+				"1,empty2.c,,\n",
+				convert("jaccard", json));
+	}
+
+	@Test
 	public void testDirectComparisonOutput() throws Exception {
 		Path dir = Paths.get(SimilarityMatrixMainTest.class.getResource("/c-sample").toURI());
 		String[] args = { "-metrics:jaccard", dir.resolve("arithmetic.c").toString(), dir.resolve("arithmetic_renamed.c").toString(), dir.resolve("geometric.c").toString() };
