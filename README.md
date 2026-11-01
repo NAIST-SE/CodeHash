@@ -41,6 +41,19 @@ For file similarity, supported programming languages are: C/C++, Java, ECMAScrip
 In addition, `PLAINTEXT` treats a file as plain text; it splits the content into words (`[a-zA-Z0-9_]+`) and symbols (other non-whitespace characters).  The tokenizer does not recognize comments; they are also regarded as words and symbols.
 `PLAINTEXT` is not automatically selected by file extensions; it is used only when explicitly specified (e.g., the `-lang:PLAINTEXT` option or the language column of a file list).
 
+### Choosing a comparison method
+
+The tool provides two ways to compare files.  Both of them use the same similarity: Jaccard index of N-gram (trigram by default) multisets of tokens, with or without identifier normalization.
+
+ - Minhash-based comparison (`file-minhash` or `git-minhash`, followed by `minhash-compare`) is fast when you compare a large number of files.
+   Each file is translated into a 2048-bit minhash vector only once, and a file pair is compared by counting different bits of their vectors.
+   In addition, files having the same code hash are compared only once, and a file pair is skipped if the numbers of N-grams are too different to reach the threshold.
+   The result is an estimated similarity; it may include some error.
+ - Direct comparison (`file-compare`, i.e. `DirectComparisonMain`) is not intended for a large number of files.
+   It keeps N-gram multisets of all the files in memory and calculates the similarity of every file pair from the multisets.
+   It is for users who would like to easily use the same similarity: it takes source files as input in a single command and reports exact similarity values in JSON.
+   It also provides other metrics (e.g. overlap coefficient) and filter expressions.
+
 ## Extract 1-bit minhash vectors from source files
 
 The main class `FileCodeHash` accepts file names (or directory names).
@@ -69,6 +82,7 @@ It is a list of tab-separated values (TSV) comprising nine columns.
 ## Estimate file similarity using 1-bit minhash vectors
 
 Another main class `jp.naist.se.codehash.comparison.ComparisonMain` compares 1-bit minhash vectors to estimate source file similarity.
+This is the fast way to compare a large number of files (see "Choosing a comparison method").
 The `minhash.txt` is a file created by `FileCodeHash`.
 
 >        java -jar CodeHash.jar minhash-compare minhash.txt
@@ -100,6 +114,7 @@ The threshold is 0.7 by default.  The `-th:[THRESHOLD]` option (0-1.0) changes t
 
 The main class `jp.naist.se.codehash.comparison.DirectComparisonMain` directly compares a set of files.
 This class calculates the exact similarity between files, while this comparison also can avoid unnecessary comparison using 1-bit minhash vectors.
+This class is for users who would like to easily use the similarity without the minhash-based steps; it is not intended for a large number of files (see "Choosing a comparison method").
 
 It takes as command line arguments source file names (or directory names) on your disk.  For example:
 >        java -jar CodeHash.jar file-compare 001.c 002.c
