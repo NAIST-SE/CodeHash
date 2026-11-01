@@ -19,7 +19,6 @@ import jp.naist.se.codehash.similarity.SimilarityRecord;
 import jp.naist.se.codehash.file.FileEntity;
 import jp.naist.se.codehash.file.FileGroup;
 import jp.naist.se.codehash.hash.MinHashDefaults;
-import jp.naist.se.codehash.util.StringMultiset;
 
 public class DirectComparisonMain {
 
@@ -345,8 +344,6 @@ public class DirectComparisonMain {
 		
 	}
 	
-	
-	
 	/**
 	 * @return true if all the selected metrics are less than the threshold (or NaN).
 	 */
@@ -356,140 +353,5 @@ public class DirectComparisonMain {
 		}
 		return true;
 	}
-
-	// The following metrics are temporarily disabled.
-	// They could be re-introduced as SimilarityMetric implementations registered to SimilarityMetrics.
-	/*
-	public SimilarityRecord calculateSimilarity(FileEntity e1, FileEntity e2, StringMultiset frequencyInAllFiles, StringMultiset frequencyInSelectedFiles) {
-		SimilarityRecord sim = new SimilarityRecord();
-
-//		double v = getWeightedJaccard(e1.normalizedNgrams, e2.normalizedNgrams, frequencyInAllFiles, idfFiles.size(), 0);
-//		sim.add("w-all-jaccard", v);
-//
-//		double v5 = getWeightedOverlap(e1.normalizedNgrams, e2.normalizedNgrams, frequencyInAllFiles, idfFiles.size(), 0);
-//		sim.add("w-all-overlap", v5);
-//
-//		double v2 = getWeightedJaccard(e1.normalizedNgrams, e2.normalizedNgrams, frequencyInAllFiles, idfFiles.size(), 1);
-//		sim.add("i-all-jaccard", v2);
-//
-//		double v6 = getWeightedOverlap(e1.normalizedNgrams, e2.normalizedNgrams, frequencyInAllFiles, idfFiles.size(), 1);
-//		sim.add("i-all-overlap", v6);
-//
-//		double v3 = getWeightedJaccard(e1.normalizedNgrams, e2.normalizedNgrams, frequencyInSelectedFiles, files.size(), 0);
-//		sim.add("w-sel-jaccard", v3);
-//
-//		double v4 = getWeightedJaccard(e1.normalizedNgrams, e2.normalizedNgrams, frequencyInSelectedFiles, files.size(), 0);
-//		sim.add("i-sel-jaccard", v4);
-//
-//		double v7 = getWeightedOverlap(e1.normalizedNgrams, e2.normalizedNgrams, frequencyInSelectedFiles, files.size(), 0);
-//		sim.add("w-sel-overlap", v7);
-//
-//		double v8 = getWeightedOverlap(e1.normalizedNgrams, e2.normalizedNgrams, frequencyInSelectedFiles, files.size(), 0);
-//		sim.add("i-sel-jaccard", v4);
-
-
-
-//		double cosineN = CosineSimilarity.getTFIDFCosineSimilarity(e1.getNormalizedNgramMultiset(), e2.getNormalizedNgramMultiset(), frequencyInAllFiles, idfFiles.size());
-//		sim.add("tfidf-all-cosine", cosineN);
-//
-//		double cosineNIDF = CosineSimilarity.getIDFCosineSimilarity(e1.getNormalizedNgramMultiset(), e2.getNormalizedNgramMultiset(), frequencyInAllFiles, idfFiles.size());
-//		sim.add("idf-all-cosine", cosineNIDF);
-
-//		cosineN = CosineSimilarity.getTFIDFCosineSimilarity(e1.getNormalizedNgramMultiset(), e2.getNormalizedNgramMultiset(), frequencyInSelectedFiles, files.size());
-//		sim.add("tfidf-sel-cosine", cosineN);
-//
-//		cosineNIDF = CosineSimilarity.getIDFCosineSimilarity(e1.getNormalizedNgramMultiset(), e2.getNormalizedNgramMultiset(), frequencyInSelectedFiles, files.size());
-//		sim.add("idf-sel-cosine", cosineNIDF);
-
-		return sim;
-	}
-	*/
-
-	public static double weight(int numFiles, int freq, int smooth) {
-		return Math.log(numFiles * 1.0 / freq) + smooth;
-	}
-	
-	public static double getWeightedJaccard(StringMultiset ngram1, StringMultiset ngram2, StringMultiset ngramFrequency, int numFiles, int smooth) {
-		double intersection = 0;
-		double size1 = 0;
-		for (String s: ngram1.keySet()) {
-			intersection += Math.min(ngram1.get(s), ngram2.get(s)) * weight(numFiles, ngramFrequency.get(s), smooth);
-			size1 += ngram1.get(s) * weight(numFiles, ngramFrequency.get(s), smooth);
-		}
-		double size2 = 0;
-		for (String s: ngram2.keySet()) {
-			size2 += ngram2.get(s) * weight(numFiles, ngramFrequency.get(s), smooth);
-		}
-		
-		double jaccard = intersection / (size1 + size2 - intersection);
-		return jaccard;
-	}
-
-	public static double getWeightedOverlap(StringMultiset ngram1, StringMultiset ngram2, StringMultiset ngramFrequency, int numFiles, int smooth) {
-		double intersection = 0;
-		double size1 = 0;
-		for (String s: ngram1.keySet()) {
-			intersection += Math.min(ngram1.get(s), ngram2.get(s)) * weight(numFiles, ngramFrequency.get(s), smooth);
-			size1 += ngram1.get(s) * weight(numFiles, ngramFrequency.get(s), smooth);
-		}
-		double size2 = 0;
-		for (String s: ngram2.keySet()) {
-			size2 += ngram2.get(s) * weight(numFiles, ngramFrequency.get(s), smooth);
-		}
-		
-		double overlap = intersection / Math.min(size1, size2);
-		return overlap;
-	}
-
-	public static class CosineSimilarity {
-
-		public static double weight(int numFiles, int freq) {
-			return Math.log(numFiles * 1.0 / freq);
-		}
-
-		public static double getTFIDFCosineSimilarity(StringMultiset ngram1, StringMultiset ngram2, StringMultiset ngramFrequency, int numFiles) {
-			double product = 0;
-			double v1 = 0;
-			double v2 = 0;
-			for (String s: ngram1.keySet()) {
-				double tf1 = ngram1.get(s) * 1.0 / ngram1.size();
-				double tf2 = ngram2.get(s) * 1.0 / ngram2.size();
-				double w = weight(numFiles, ngramFrequency.get(s));
-				product += tf1 * tf2 * w * w;
-				v1 += tf1 * tf1 * w * w;
-			}
-			for (String s: ngram2.keySet()) {
-				double tf2 = ngram2.get(s) * 1.0 / ngram2.size();
-				double w = weight(numFiles, ngramFrequency.get(s));
-				v2 += tf2 * tf2 * w * w;
-			}
-			double cosine = product / Math.sqrt(v1 * v2);
-			if (Double.isNaN(cosine)) return 0;
-			return cosine;
-		}
-
-		public static double getIDFCosineSimilarity(StringMultiset ngram1, StringMultiset ngram2, StringMultiset ngramFrequency, int numFiles) {
-			double product = 0;
-			double v1 = 0;
-			double v2 = 0;
-			for (String s: ngram1.keySet()) {
-				double tf1 = 1;
-				double tf2 = ngram2.get(s) > 0 ? 1 : 0;
-				double w = weight(numFiles, ngramFrequency.get(s));
-				product += tf1 * tf2 * w * w;
-				v1 += tf1 * tf1 * w * w;
-			}
-			for (String s: ngram2.keySet()) {
-				double tf2 = 1;
-				double w = weight(numFiles, ngramFrequency.get(s));
-				v2 += tf2 * tf2 * w * w;
-			}
-			double cosine = product / Math.sqrt(v1 * v2);
-			if (Double.isNaN(cosine)) return 0;
-			return cosine;
-		}
-	}
-	
-	
 
 }
