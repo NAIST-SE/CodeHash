@@ -20,6 +20,16 @@ import jp.naist.se.codehash.file.FileEntity;
 import jp.naist.se.codehash.file.FileGroup;
 import jp.naist.se.codehash.hash.MinHashDefaults;
 
+/**
+ * Compares source files using N-gram multisets of tokens and writes similarity values in JSON to STDOUT.
+ * Command line arguments are options and names of source files (or directories).
+ * An argument that is not an option is added to the default file group.
+ * 
+ * Only files in the same language are compared.
+ * The output is a JSON object with two arrays: "Files" lists the files with their indices and attributes,
+ * and "Pairs" lists the compared file pairs ("index1" and "index2") with the values of the selected metrics.
+ * See README.md for the details of the output format.
+ */
 public class DirectComparisonMain {
 
 	/**
@@ -80,8 +90,8 @@ public class DirectComparisonMain {
 
 	
 	/**
-	 * Compare two source files.
-	 * @param args
+	 * Compare source files and write the result to STDOUT.
+	 * @param args specifies options and names of source files (or directories).  See the class description for the details.
 	 */
 	public static void main(String[] args) {
 		DirectComparisonMain main = new DirectComparisonMain(args);
