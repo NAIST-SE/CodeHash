@@ -55,7 +55,7 @@ public class ComparisonMain {
 			languages.put(lang, lang);
 			langCommonInstance = lang;
 		}
-		return lang;
+		return langCommonInstance;
 	}
 	
 	/**
@@ -106,7 +106,7 @@ public class ComparisonMain {
 			MinHashEntry e1 = entries.get(i);
 			for (int j=i+1; j<entries.size(); j++) {
 				MinHashEntry e2 = entries.get(j);
-				if (e1.getMaxSimilairty(e2) < THRESHOLD) break;
+				if (e1.getMaxSimilarity(e2) < THRESHOLD) break;
 				if (!e1.isSameLanguage(e2)) continue;
 				double normalizedEstimated = e1.estimateNormalizedSimilarity(e2);
 				// Check only normalized estimated because normalized similarity is always higher than exact similarity 

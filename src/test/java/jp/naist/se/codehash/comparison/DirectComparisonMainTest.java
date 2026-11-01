@@ -202,6 +202,17 @@ public class DirectComparisonMainTest {
 	}
 
 	@Test
+	public void testEstimatedThreshold() throws Exception {
+		// The renamed copy has the same normalized N-grams, so that its estimated similarity is 1
+		List<Pair> pairs = run("-thenj:1");
+		Assert.assertEquals(1, pairs.size());
+		Assert.assertTrue(pairs.get(0).isPairOf(ARITHMETIC, ARITHMETIC_RENAMED));
+
+		// A threshold 0 does not skip any pairs
+		Assert.assertEquals(6, run("-thenj:0").size());
+	}
+
+	@Test
 	public void testFilterExpression() throws Exception {
 		List<Pair> all = run();
 		double geometricJaccard = find(all, ARITHMETIC, GEOMETRIC).get(SimilarityMetrics.JACCARD);

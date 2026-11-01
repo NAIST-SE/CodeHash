@@ -28,7 +28,7 @@ All packages are under `jp.naist.se.codehash`.
   - `GitCodeHash`: Computes hashes of blobs in git repositories, given a CSV of file lists or a repository directory.
   - `GitFileList`: Lists non-binary blobs reachable from HEAD.  `visitBlobs` is also used by `GitCodeHash`.
 - `comparison`: Main classes to compare files.
-  - `ComparisonMain`: Estimates similarity from minhash vectors produced by `FileCodeHash` (`MinHashEntry` represents a line).
+  - `ComparisonMain`: Estimates similarity from minhash vectors produced by `FileCodeHash` (`MinHashEntry` represents a line).  `MinHashEntry` is used only by `ComparisonMain`.
   - `DirectComparisonMain`: Compares files directly and writes JSON.  Handles `-lang`, `-group`, `-n`, `-th*`, `-filter`, `-metrics`, `-compare` options.
   - `SimilarityMatrixMain`: Converts a JSON output of `DirectComparisonMain` into a CSV matrix of a selected metric.
   - `FileTokenizerMain`: Writes tokens of files in JSON.
@@ -41,6 +41,7 @@ All packages are under `jp.naist.se.codehash`.
   - `CodeHashTokenReader`: A token reader computing codehash (SHA-1 of tokens ignoring comments and whitespace).
   - `NgramReader`, `NgramMultiset`: N-grams of tokens.
   - `MurmurHash3`, `MurmurMinHash`: b-bit minhash using MurmurHash3.
+  - `BitMinHash`: A 1-bit minhash vector with the number of N-grams; estimates the Jaccard index.  Used by `MinHashEntry` and `FileEntity` (`-thenj` option).
   - `MinHashDefaults`: Shared minhash parameters.
 - `sha1`: b-bit minhash using SHA-1.  `SHA1MinHashMSR2017` reproduces the computation used in the MSR 2017 paper.
 - `similarity`: Similarity metrics and filters for `DirectComparisonMain`.

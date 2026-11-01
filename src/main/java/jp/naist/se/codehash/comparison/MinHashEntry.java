@@ -1,91 +1,82 @@
 package jp.naist.se.codehash.comparison;
 
-import java.util.BitSet;
-
-import jp.naist.se.codehash.util.HashStringUtil;
+import jp.naist.se.codehash.hash.BitMinHash;
 
 
+/**
+ * A line of a minhash list produced by FileCodeHash.
+ * {@link ComparisonMain} compares entries to estimate similarity.
+ */
 public class MinHashEntry {
 
 	private String filename;
 	private String sha1;
 	private String lang;
 	private String codehash;
-	private BitSet minhash;
-	private BitSet normalizedMinhash;
+	private BitMinHash minhash;
+	private BitMinHash normalizedMinhash;
 	private long fileLength;
 	private int tokenLength;
-	private int size;
-	
+
 	public MinHashEntry(String filename, String sha1, String lang, String codehash, String bits, String normalizedBits, long fileLength, int tokenLength, int size) {
 		this.filename = filename;
 		this.sha1 = sha1;
 		this.lang = lang;
 		this.codehash = codehash;
-		this.minhash = BitSet.valueOf(HashStringUtil.hexToBytes(bits));
-		this.normalizedMinhash = BitSet.valueOf(HashStringUtil.hexToBytes(normalizedBits));
+		this.minhash = new BitMinHash(bits, size);
+		this.normalizedMinhash = new BitMinHash(normalizedBits, size);
 		this.fileLength = fileLength;
 		this.tokenLength = tokenLength;
-		this.size = size;
 	}
-	
+
 	public String getFilename() {
 		return filename;
 	}
-	
+
 	public String getSha1() {
 		return sha1;
 	}
-	
+
 	public String getCodehash() {
 		return codehash;
 	}
-	
+
 	public boolean equivalent(MinHashEntry another) {
 		return this.sha1.equals(another.sha1);
 	}
-	
+
 	public long getFileLength() {
 		return fileLength;
 	}
-	
+
 	public int getTokenLength() {
 		return tokenLength;
 	}
-	
-	private double estimateSimilarity(MinHashEntry another, BitSet thisSet, BitSet anotherSet) {
-		if (this.lang.equals(another.lang)) {
-			BitSet copy = (BitSet)thisSet.clone(); 
-			copy.xor(anotherSet);
-			int differentBitCount = copy.cardinality();
-			double sim = 1 - (differentBitCount * 1.0 / (copy.size() / 2));
-			// The upper bound of similarity can be computed from N-gram set size
-			double maxSim = Math.min(this.size, another.size) * 1.0 / Math.max(this.size, another.size);
-			return Math.min(sim, maxSim);
-		} else {
-			return 0;
-		}
+
+	public double getMaxSimilarity(MinHashEntry another) {
+		return minhash.getMaxSimilarity(another.minhash);
 	}
-	
-	public double getMaxSimilairty(MinHashEntry another) {
-		return  Math.min(this.size, another.size) * 1.0 / Math.max(this.size, another.size);
-	}
-	
+
 	public int compareTo(MinHashEntry another) {
-		return this.size - another.size;
+		return minhash.getNgramCount() - another.minhash.getNgramCount();
 	}
-	
+
 	public boolean isSameLanguage(MinHashEntry another) {
 		return this.lang.equals(another.lang);
 	}
-	
+
+	/**
+	 * @return the estimated similarity.  0 if the files are written in different languages.
+	 */
 	public double estimateSimilarity(MinHashEntry another) {
-		return estimateSimilarity(another, this.minhash, another.minhash);
+		return isSameLanguage(another) ? minhash.estimateSimilarity(another.minhash) : 0;
 	}
 
+	/**
+	 * @return the estimated similarity with normalization.  0 if the files are written in different languages.
+	 */
 	public double estimateNormalizedSimilarity(MinHashEntry another) {
-		return estimateSimilarity(another, this.normalizedMinhash, another.normalizedMinhash);
+		return isSameLanguage(another) ? normalizedMinhash.estimateSimilarity(another.normalizedMinhash) : 0;
 	}
-
 
 }

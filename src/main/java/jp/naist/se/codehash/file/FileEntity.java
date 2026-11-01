@@ -6,11 +6,11 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Set;
 
+import jp.naist.se.codehash.hash.BitMinHash;
 import jp.naist.se.codehash.hash.FileHash;
 import jp.naist.se.codehash.hash.SourceCodeHash;
 import jp.naist.se.codehash.hash.SourceCodeHash.MinHashType;
 import jp.naist.se.codehash.token.FileType;
-import jp.naist.se.codehash.comparison.MinHashEntry;
 import jp.naist.se.codehash.util.StringMultiset;
 
 public class FileEntity {
@@ -24,12 +24,10 @@ public class FileEntity {
 	private int tokenLength;
 	private String filehash;
 	private String codehash;
-	private String minhash;
-	private String normalizedMinhash;
 	private int ngramCount;
 	private StringMultiset ngrams;
 	private StringMultiset normalizedNgrams;
-	private MinHashEntry minhashEntry;
+	private BitMinHash normalizedMinhash;
 	
 	/**
 	 * Create a FileEntity object from a File.
@@ -70,15 +68,12 @@ public class FileEntity {
 		this.byteLength = content.length;
 		filehash = FileHash.compute(content);
 		SourceCodeHash h = new SourceCodeHash(type, new ByteArrayInputStream(content), byteLength, MinHashType.Murmur3, N);
-		minhash = h.getMinHash();
-		normalizedMinhash = h.getNormalizedMinHash();
 		codehash = h.getCodeHash();
 		ngramCount = h.getNgramCount();
 		ngrams = h.getNgramMultiset();
 		normalizedNgrams = h.getNormalizedNgramMultiset();
 		tokenLength = h.getTokenCount();
-
-		minhashEntry = new MinHashEntry(path, filehash, getLanguageName(), codehash, minhash, normalizedMinhash, byteLength, tokenLength, ngramCount);
+		normalizedMinhash = new BitMinHash(h.getNormalizedMinHash(), ngramCount);
 	}
 	
 	/**
@@ -176,8 +171,12 @@ public class FileEntity {
 		return normalizedNgrams;
 	}
 	
+	/**
+	 * @param another is compared with this file.
+	 * @return the Jaccard index of normalized N-grams estimated by minhash.  0 if the files are written in different languages.
+	 */
 	public double estimateNormalizedSimilarity(FileEntity another) {
-		return this.minhashEntry.estimateNormalizedSimilarity(another.minhashEntry);
+		return isSameLanguage(another) ? normalizedMinhash.estimateSimilarity(another.normalizedMinhash) : 0;
 	}
 
 }
