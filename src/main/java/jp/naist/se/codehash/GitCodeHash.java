@@ -51,6 +51,7 @@ public class GitCodeHash {
 		if (new File(inputFileName).isDirectory()) {
 			MinHashType t = args.length > 1 ? parseHashType(args[1]) : MinHashType.None;
 			try (PrintWriter w = new PrintWriter(new BufferedWriter(new OutputStreamWriter(System.out), 65536))) {
+				w.println(FileCodeHash.HEADER);
 				analyzer.parseGitRepository(new File(inputFileName), w, t);
 			}
 			return;
@@ -73,6 +74,7 @@ public class GitCodeHash {
 						File outputFileTemp = new File(outputFilePath + ".tmp");
 						try (LineNumberReader reader = new LineNumberReader(new FileReader(filelistPath))) {
 							try (PrintWriter w = new PrintWriter(new BufferedWriter(new FileWriter(outputFileTemp), 65536))) {
+								w.println(FileCodeHash.HEADER);
 								analyzer.parseGitRepository(gitDir, reader, w, t);
 							}
 							outputFileTemp.renameTo(outputFile);

@@ -32,6 +32,7 @@ public class FileCodeHash {
 		
 		if (!files.isEmpty()) {
 			FileCodeHash h = new FileCodeHash(ignoreDuplication);
+			System.out.println(HEADER);
 			h.scan(files);
 		}  else {
 			System.err.println("No files are specified.");
@@ -94,6 +95,11 @@ public class FileCodeHash {
 		}
 		
 	}
+
+	/**
+	 * The header line of a minhash list.  Column names correspond to {@link #toLine(String, String, FileType, SourceCodeHash, long)}.
+	 */
+	public static final String HEADER = "FileName\tSHA1\tLanguage\tCodeHash\tMinHash\tMinHashWithNormalization\tFileLength\tTokenLength\tNgramCount";
 
 	/**
 	 * Format a line of a minhash list.  {@link jp.naist.se.codehash.comparison.ComparisonMain} reads this format.

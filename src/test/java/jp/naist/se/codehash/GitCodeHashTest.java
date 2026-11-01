@@ -10,6 +10,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.List;
 
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.lib.ConfigConstants;
@@ -111,6 +112,23 @@ public class GitCodeHashTest {
 		Assert.assertEquals(expected[6], actual[6]);
 		Assert.assertEquals(expected[7], actual[7]);
 		Assert.assertEquals("0", actual[8]);
+	}
+
+	@Test
+	public void testHeader() throws Exception {
+		File dir = temp.newFolder("repo");
+		ObjectId blob = createRepository(dir);
+		File filelist = temp.newFile("filelist.txt");
+		Files.write(filelist.toPath(), Arrays.asList(blob.getName() + "\t" + FILENAME));
+		File output = new File(temp.getRoot(), "output.txt");
+		File csv = temp.newFile("input.csv");
+		Files.write(csv.toPath(), Arrays.asList(dir.getAbsolutePath() + "," + filelist.getAbsolutePath() + "," + output.getAbsolutePath() + ",minhash"));
+
+		GitCodeHash.main(new String[] { csv.getAbsolutePath() });
+		List<String> lines = Files.readAllLines(output.toPath());
+		Assert.assertEquals(2, lines.size());
+		Assert.assertEquals(FileCodeHash.HEADER, lines.get(0));
+		Assert.assertArrayEquals(run(dir, null, MinHashType.Murmur3), lines.get(1).split("\t", -1));
 	}
 
 }

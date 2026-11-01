@@ -11,6 +11,8 @@ import java.util.Arrays;
 import org.junit.Assert;
 import org.junit.Test;
 
+import jp.naist.se.codehash.FileCodeHash;
+
 
 public class ComparisonMainTest {
 
@@ -20,12 +22,19 @@ public class ComparisonMainTest {
 	 * and that of A-C is 0.5 (4 of 16 bits are different).
 	 */
 	private static final String[] LINES = {
+		FileCodeHash.HEADER,
 		"A.c\tsha1-a\tCPP\tcodehash-a\tffff\tffff\t100\t50\t50",
 		"B.c\tsha1-b\tCPP\tcodehash-b\tfffc\tfffc\t100\t50\t50",
+		// A header line in the middle of files concatenated by cat
+		FileCodeHash.HEADER,
 		"C.c\tsha1-c\tCPP\tcodehash-c\tfff0\tfff0\t100\t50\t50",
 		// Lines without minhash vectors (GitCodeHash in codehash and sha1minhash modes) are skipped
 		"D.c\tblob-d\tCPP\tcodehash-d\t\t\t100\t50\t0",
 		"E.c\tblob-e\tCPP\tcodehash-e\tffff\t\t100\t50\t0",
+		// Lines that are not recognized as data are skipped
+		"F.c\tsha1-f\tCPP\tcodehash-f\tffff\tffff\t100\t50\tabc",
+		"G.c\tsha1-g\tCPP\tcodehash-g\tfffz\tffff\t100\t50\t50",
+		"",
 	};
 
 	/**

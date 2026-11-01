@@ -10,6 +10,8 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 
+import jp.naist.se.codehash.FileCodeHash;
+
 public class ComparisonMain {
 
 	/**
@@ -93,9 +95,13 @@ public class ComparisonMain {
 		try (LineNumberReader reader = new LineNumberReader(new FileReader(f))) {
 			int skipped = 0;
 			for (String line = reader.readLine(); line != null; line = reader.readLine()) {
+				// Header lines may appear in the middle of a file concatenated from multiple files
+				if (line.equals(FileCodeHash.HEADER)) continue;
+
 				String[] tokens = line.split("\t");
-				// Skip a line without 1-bit minhash vectors, e.g. GitCodeHash in codehash or sha1minhash mode
-				if (tokens.length != 9 || tokens[4].isEmpty() || tokens[5].isEmpty()) {
+				// Skip a line that is not recognized as data,
+				// e.g. a line without 1-bit minhash vectors (GitCodeHash in codehash or sha1minhash mode)
+				if (tokens.length != 9 || !isHex(tokens[4]) || !isHex(tokens[5])) {
 					skipped++;
 					continue;
 				}
@@ -105,10 +111,18 @@ public class ComparisonMain {
 				String codehash = tokens[3];
 				String minhash = tokens[4];
 				String normalizedMinhash = tokens[5];
-				int fileLength = Integer.parseInt(tokens[6]);
-				int tokenLength = Integer.parseInt(tokens[7]);
-				int ngramSize = Integer.parseInt(tokens[8]);
-				
+				int fileLength;
+				int tokenLength;
+				int ngramSize;
+				try {
+					fileLength = Integer.parseInt(tokens[6]);
+					tokenLength = Integer.parseInt(tokens[7]);
+					ngramSize = Integer.parseInt(tokens[8]);
+				} catch (NumberFormatException e) {
+					skipped++;
+					continue;
+				}
+
 				if (!codehashToFileNames.containsKey(codehash)) {
 					entries.add(new MinHashEntry(filename, sha1, toSingleInstance(lang), codehash, minhash, normalizedMinhash, fileLength, tokenLength, ngramSize));
 					ArrayList<String> filenames = new ArrayList<>();
@@ -120,11 +134,22 @@ public class ComparisonMain {
 				}
 			}
 			if (skipped > 0) {
-				System.err.println(skipped + " lines without minhash vectors are skipped in " + f.getAbsolutePath());
+				System.err.println(skipped + " lines without valid minhash vectors are skipped in " + f.getAbsolutePath());
 			}
 		} catch (IOException e) {
 			System.err.println("Failed to read " + f.getAbsolutePath());
 		}
+	}
+
+	/**
+	 * @return true if s is a non-empty hexadecimal string representing a byte array.
+	 */
+	private static boolean isHex(String s) {
+		if (s.isEmpty() || s.length() % 2 != 0) return false;
+		for (int i=0; i<s.length(); i++) {
+			if (Character.digit(s.charAt(i), 16) < 0) return false;
+		}
+		return true;
 	}
 
 	public void analyze(PrintStream out) {
