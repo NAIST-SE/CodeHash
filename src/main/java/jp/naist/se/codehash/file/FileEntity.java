@@ -33,7 +33,7 @@ public class FileEntity {
 	
 	/**
 	 * Create a FileEntity object from a File.
-	 * @param f specifies a file.  The content will be loaded.
+	 * @param filePath specifies a file.  The content will be loaded.
 	 * @param enforceLanguage specifies a programming language.  
 	 * If null, the method automatically tries to recognize a programming language from the file extension.
 	 * @param N specifies the size of N-gram to compare files.
@@ -81,26 +81,44 @@ public class FileEntity {
 		minhashEntry = new MinHashEntry(path, filehash, getLanguageName(), codehash, minhash, normalizedMinhash, byteLength, tokenLength, ngramCount);
 	}
 	
+	/**
+	 * @return a sequential number of the file.  It is assigned in the order of object creation, starting from 0.
+	 */
 	public int getIndex() {
 		return index;
 	}
 	
+	/**
+	 * @return the file path given to the constructor.
+	 */
 	public String getPath() {
 		return path;
 	}
 	
+	/**
+	 * @return a hexadecimal string of the SHA-1 hash of the file content.
+	 */
 	public String getFileHash() {
 		return filehash;
 	}
 	
+	/**
+	 * @return a hexadecimal string of the SHA-1 hash of the tokens, ignoring whitespace and comments.
+	 */
 	public String getCodeHash() {
 		return codehash;
 	}
 	
+	/**
+	 * @return the programming language used to parse the file.
+	 */
 	public FileType getLanguage() {
 		return type;
 	}
 	
+	/**
+	 * @return the name of the programming language, e.g. "JAVA".
+	 */
 	public String getLanguageName() {
 		return type.name();
 	}
@@ -109,30 +127,51 @@ public class FileEntity {
 		return this.type == another.type;
 	}
 	
+	/**
+	 * @return the number of bytes of the file content.
+	 */
 	public int getByteLength() {
 		return byteLength;
 	}
 
+	/**
+	 * @return the number of tokens in the file.
+	 */
 	public int getTokenLength() {
 		return tokenLength;
 	}
 	
+	/**
+	 * @return the number of N-grams in the file, including duplicated ones.
+	 */
 	public int getNgramCount() {
 		return ngramCount;
 	}
 	
+	/**
+	 * @return a set of distinct N-grams in the file.
+	 */
 	public Set<String> getNgrams() {
 		return ngrams.keySet();
 	}
 
+	/**
+	 * @return a set of distinct N-grams in the file after identifier normalization.
+	 */
 	public Set<String> getNormalizedNgrams() {
 		return normalizedNgrams.keySet();
 	}
 
+	/**
+	 * @return a multiset of N-grams in the file.
+	 */
 	public StringMultiset getNgramMultiset() {
 		return ngrams;
 	}
 
+	/**
+	 * @return a multiset of N-grams in the file after identifier normalization.
+	 */
 	public StringMultiset getNormalizedNgramMultiset() {
 		return normalizedNgrams;
 	}
