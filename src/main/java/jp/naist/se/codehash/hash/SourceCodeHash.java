@@ -90,6 +90,9 @@ public class SourceCodeHash {
 		tokenCount = tokenReader.getTokenCount();
 	}
 
+	/**
+	 * @return a hexadecimal string of the SHA-1 hash of the tokens, ignoring whitespace and comments.
+	 */
 	public String getCodeHash() {
 		return codehash;
 	}
@@ -102,12 +105,16 @@ public class SourceCodeHash {
 	}
 
 	/**
+	 * Normalization ignores differences such as variable names, following the rules of each programming language.
 	 * @return minhash value of normalized N-grams.  null unless a Murmur3 minhash is specified.
 	 */
 	public String getNormalizedMinHash() {
 		return normalizedMinhash;
 	}
 
+	/**
+	 * @return the number of tokens in the file.
+	 */
 	public int getTokenCount() {
 		return tokenCount;
 	}
@@ -127,7 +134,7 @@ public class SourceCodeHash {
 	}
 
 	/**
-	 * @return normalized N-grams of the file.  null unless a Murmur3 minhash is specified.
+	 * @return N-grams of the file composed of normalized tokens.  null unless a Murmur3 minhash is specified.
 	 */
 	public StringMultiset getNormalizedNgramMultiset() {
 		return normalizedNgrams;

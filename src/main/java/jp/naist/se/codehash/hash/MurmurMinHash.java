@@ -123,38 +123,69 @@ public class MurmurMinHash {
 		return computeMinHash(k, ngramMultiset.getRegular());
 	}
 	
+	/**
+	 * @return 1-bit minhash array of the normalized N-grams.
+	 * Normalization ignores differences such as variable names, following the rules of each programming language.
+	 */
 	public byte[] getNormalizedHash() {
 		return computeMinHash(k, ngramMultiset.getNormalized());
 	}
 	
+	/**
+	 * @return 1-bit minhash array computed using SHA-1 instead of MurmurHash3.
+	 */
 	public byte[] getSHA1MinHash() {
 		return getSHA1MinHash(k, ngramMultiset.getRegular());
 	}
 	
+	/**
+	 * @return 1-bit minhash array of the normalized N-grams computed using SHA-1 instead of MurmurHash3.
+	 */
 	public byte[] getNormalizedSHA1MinHash() {
 		return getSHA1MinHash(k, ngramMultiset.getNormalized());
 	}
 	
+	/**
+	 * @return the number of N-grams including duplicated ones.
+	 * @see NgramMultiset#getNgramCount()
+	 */
 	public int getNgramCount() {
 		return ngramMultiset.getNgramCount();
 	}
 	
+	/**
+	 * @return 1-bit minhash array of the set of N-grams, i.e., duplicated N-grams are regarded as a single element.
+	 */
 	public byte[] getHashIgnoreDuplicatedElements() {
 		return computeMinHash(k, ngramMultiset.getRegular().toOrdinarySet());
 	}
 
+	/**
+	 * @return 1-bit minhash array of the set of normalized N-grams, i.e., duplicated N-grams are regarded as a single element.
+	 */
 	public byte[] getNormalizedHashIgnoreDuplicatedElements() {
 		return computeMinHash(k, ngramMultiset.getNormalized().toOrdinarySet());
 	}
 
+	/**
+	 * @return the number of distinct N-grams (without normalization).
+	 */
 	public int getUniqueNgramCount() {
 		return ngramMultiset.getUniqueNgramCount();
 	}
 	
+	/**
+	 * @return a multiset of N-grams composed of tokens as they are.
+	 * @see NgramMultiset#getRegular()
+	 */
 	public StringMultiset getNgramMultiset() {
 		return ngramMultiset.getRegular();
 	}
 
+	/**
+	 * @return a multiset of N-grams composed of normalized tokens.
+	 * @see NgramMultiset#getNormalized()
+	 */
 	public StringMultiset getNormalizedNgramMultiset() {
 		return ngramMultiset.getNormalized();
 	}

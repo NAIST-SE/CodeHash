@@ -41,18 +41,35 @@ public class NgramMultiset {
 		ngramCount = ngramReader.getNgramCount();
 	}
 	
+	/**
+	 * @return a multiset of N-grams composed of tokens as they are.
+	 * An element is a string concatenating the tokens, each followed by '\0'.
+	 * A missing token at the beginning/end of a file is represented by a character whose code is the position in the N-gram.
+	 */
 	public StringMultiset getRegular() {
 		return regular;
 	}
 	
+	/**
+	 * @return a multiset of N-grams composed of normalized tokens.
+	 * Normalization ignores differences such as variable names, following the rules of each programming language.
+	 * The format of an element is the same as {@link #getRegular()}.
+	 */
 	public StringMultiset getNormalized() {
 		return normalized;
 	}
 	
+	/**
+	 * @return the number of N-grams including duplicated ones.
+	 * It includes N-grams containing missing tokens at the beginning/end of a file.
+	 */
 	public int getNgramCount() {
 		return ngramCount;
 	}
 
+	/**
+	 * @return the number of distinct N-grams (without normalization).
+	 */
 	public int getUniqueNgramCount() {
 		return regular.size();
 	}

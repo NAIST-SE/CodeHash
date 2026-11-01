@@ -19,7 +19,10 @@ public interface TokenReader {
 	public String getText();
 
 	/**
-	 * @return a normalized text of the current token. 
+	 * Normalization translates a token so that differences such as variable names are ignored,
+	 * following the rules of each programming language (see {@link jp.naist.se.codehash.normalizer.Normalizer}).
+	 * @return a normalized text of the current token.
+	 * The text is the same as {@link #getText()} if the language has no normalization rules.
 	 */
 	public String getNormalizedText();
 	

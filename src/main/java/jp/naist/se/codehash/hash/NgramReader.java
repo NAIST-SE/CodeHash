@@ -17,6 +17,9 @@ public class NgramReader {
 		this.reader = reader;
 	}
 	
+	/**
+	 * @return N, the number of tokens in an N-gram.
+	 */
 	public int getN() {
 		return tokens.length;
 	}
@@ -51,7 +54,7 @@ public class NgramReader {
 	}
 
 	/**
-	 * @param i specifies an index (0 <= i < N).
+	 * @param i specifies an index ({@code 0 <= i < N}).
 	 * @return the content of i-th token.  It may be null if the token is unavailable (at the begin/end of a file). 
 	 */
 	public String getToken(int i) { 
@@ -59,7 +62,7 @@ public class NgramReader {
 	}
 	
 	/**
-	 * @param i specifies an index (0 <= i < N).
+	 * @param i specifies an index ({@code 0 <= i < N}).
 	 * @return the normalized content of i-th token.  It may be null if the token is unavailable (at the begin/end of a file). 
 	 */
 	public String getNormalizedToken(int i) {
