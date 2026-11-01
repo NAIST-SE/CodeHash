@@ -281,5 +281,10 @@ If you would like to see how a file is translated into tokens, you can use `File
 >        java -classpath target/CodeHash.jar jp.naist.se.codehash.comparison.FileTokenizerMain 001.c
 
 It generates a list of tokens in a JSON format.
-The program reads source code from STDIN when `-` is specified as a file name. 
+The program reads source code from STDIN when `-` is specified as a file name.
+In that case, specify a language using `-lang:[LANGUAGE]` option, e.g. `-lang:JAVA`.
+The option also overrides the language recognized from file extensions.
+
+>        cat 001.c | java -classpath target/CodeHash.jar jp.naist.se.codehash.comparison.FileTokenizerMain -lang:CPP -
+
 
