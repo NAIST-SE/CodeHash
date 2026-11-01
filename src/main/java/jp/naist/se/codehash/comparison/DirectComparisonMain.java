@@ -186,8 +186,6 @@ public class DirectComparisonMain {
 				}
 			} else if (s.equals(COMPARE_CRSOS_GROUP)) {
 				compareGroups = true;
-//			} else if (s.startsWith(FILENAME_SELECTOR)) {
-//				filePrefix = s.substring(FILENAME_SELECTOR.length());
 			} else if (s.startsWith(DIR_OPTION) || s.startsWith(GROUP_OPTION)) {
 				// Add a specified path (file or directory) to the specified group  
 				String path;
