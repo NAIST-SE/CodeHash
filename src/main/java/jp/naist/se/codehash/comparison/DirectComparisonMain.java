@@ -305,7 +305,16 @@ public class DirectComparisonMain {
 		}
 
 	}
-	
+
+	/**
+	 * Compare two files and write their similarity values as an element of "Pairs".
+	 * Nothing is written if the files are written in different languages,
+	 * or the pair is excluded by the thresholds (-thenj, -th, -thnj) or the filters.
+	 * @param gen is the JSON generator to write the result.
+	 * @param e1 is the first file, written as "index1".
+	 * @param e2 is the second file, written as "index2".
+	 * @throws IOException if an error occurred while writing the result.
+	 */
 	private void compare(JsonGenerator gen, FileEntity e1, FileEntity e2) throws IOException {
 		// Compare them if they are written in the same language
 		if (e1.isSameLanguage(e2)) {

@@ -48,6 +48,10 @@ public class FileCodeHash {
 		this.ignoreDuplication = ignoreDuplication;
 	}
 	
+	/**
+	 * Scan given files.  This method recursively analyzes directories.
+	 * @param files
+	 */
 	public void scan(LinkedList<File> files) {
 		while (!files.isEmpty()) {
 			File f = files.removeFirst();
@@ -68,6 +72,10 @@ public class FileCodeHash {
 		}
 	}
 	
+	/**
+	 * Calculate a code hash for a given file and output the result. 
+	 * @param f
+	 */
 	public void process(File f) {
 		try {
 			String path = f.getAbsolutePath();
