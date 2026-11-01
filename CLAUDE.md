@@ -24,6 +24,7 @@ Commands:
 All packages are under `jp.naist.se.codehash`.
 
 - (root) `jp.naist.se.codehash`: Main classes for files and git repositories.
+  - `CodeHashMain`: The `Main-Class` of the jar with dependencies.  Dispatches a command (e.g. `file-compare`) to a main class.  A new main class must be registered here and listed in README.md.
   - `FileCodeHash`: Computes hashes and 1-bit minhash vectors of files on disk.
   - `GitCodeHash`: Computes hashes of blobs in git repositories, given a CSV of file lists or a repository directory.
   - `GitFileList`: Lists non-binary blobs reachable from HEAD.  `visitBlobs` is also used by `GitCodeHash`.

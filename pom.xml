@@ -49,7 +49,7 @@
 	        </descriptorRefs>
 	        <archive>
 	            <manifest>
-	                <mainClass>jp.naist.se.codehash.GitCodeHash</mainClass>
+	                <mainClass>jp.naist.se.codehash.CodeHashMain</mainClass>
 	            </manifest>
 	        </archive>
 	    </configuration>

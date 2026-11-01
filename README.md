@@ -16,6 +16,26 @@ The tool requires JDK 11 or later.
 The command creates `target/CodeHash-[VERSION]-jar-with-dependencies.jar` that includes all dependencies.
 The command lines in this document refer to the file as `CodeHash.jar`.
 
+### Running the tools
+
+Each tool is a main class.  You can run a tool in either of the following ways; they are equivalent.
+
+ - `java -jar CodeHash.jar [COMMAND] [ARGUMENTS...]` selects a tool by a command name.  `java -jar CodeHash.jar help` shows the list of commands.
+ - `java -classpath CodeHash.jar [MAIN-CLASS] [ARGUMENTS...]` runs a main class directly.
+
+|Command          |Main class                                            |Description                                                |
+|:----------------|:-----------------------------------------------------|:----------------------------------------------------------|
+|`file-minhash`   |`jp.naist.se.codehash.FileCodeHash`                   |Compute hashes and minhash of files on disk                |
+|`minhash-compare`|`jp.naist.se.codehash.comparison.ComparisonMain`      |Estimate similarity from minhash produced by `file-minhash`|
+|`file-compare`   |`jp.naist.se.codehash.comparison.DirectComparisonMain`|Compare files directly and write JSON                      |
+|`json-to-matrix` |`jp.naist.se.codehash.comparison.SimilarityMatrixMain`|Convert a JSON output of `file-compare` into a CSV matrix  |
+|`git-file-list`  |`jp.naist.se.codehash.GitFileList`                    |List blobs reachable from HEAD of a git repository         |
+|`git-minhash`    |`jp.naist.se.codehash.GitCodeHash`                    |Compute hashes of blobs in git repositories                |
+|`tokenize`       |`jp.naist.se.codehash.comparison.FileTokenizerMain`   |Write tokens of files in JSON                              |
+
+A simple name of a main class (e.g. `DirectComparisonMain`) is also accepted as a command name.
+The examples in this document show both ways.
+
 
 For file similarity, supported programming languages are: C/C++, Java, ECMAScript, Python, PHP, and C#.
 In addition, `PLAINTEXT` treats a file as plain text; it splits the content into words (`[a-zA-Z0-9_]+`) and symbols (other non-whitespace characters).  The tokenizer does not recognize comments; they are also regarded as words and symbols.
@@ -29,6 +49,7 @@ The main class reports hash values for each file with file names in addition to 
 The following command line is an example to extract minhash values from source files in `src` directory and store them into a file.
 The command uses a redirection because the tool write the result to STDOUT by default.
 
+>        java -jar CodeHash.jar file-minhash src > minhash.txt
 >        java -classpath CodeHash.jar jp.naist.se.codehash.FileCodeHash src > minhash.txt
 
 ### Output Format
@@ -50,6 +71,7 @@ It is a list of tab-separated values (TSV) comprising nine columns.
 Another main class `jp.naist.se.codehash.comparison.ComparisonMain` compares 1-bit minhash vectors to estimate source file similarity.
 The `minhash.txt` is a file created by `FileCodeHash`.
 
+>        java -jar CodeHash.jar minhash-compare minhash.txt
 >        java -classpath CodeHash.jar jp.naist.se.codehash.comparison.ComparisonMain minhash.txt
 
 The hamming distance between a pair of min-hash vectors approximate the similarity of the file pair: `Estimated-similarity = 1 - (The-cardinality-of-XOR-of-two-vectors / 1024)`.   
@@ -70,6 +92,7 @@ Each line shows a pair of files to be compared.
 A file pair is reported if its EstimatedSimWithNormalization is greater than or equal to a threshold.
 The threshold is 0.7 by default.  The `-th:[THRESHOLD]` option (0-1.0) changes the threshold, as well as `DirectComparisonMain`.
 
+>        java -jar CodeHash.jar minhash-compare -th:0.8 minhash.txt
 >        java -classpath CodeHash.jar jp.naist.se.codehash.comparison.ComparisonMain -th:0.8 minhash.txt
 
 
@@ -79,7 +102,8 @@ The main class `jp.naist.se.codehash.comparison.DirectComparisonMain` directly c
 This class calculates the exact similarity between files, while this comparison also can avoid unnecessary comparison using 1-bit minhash vectors.
 
 It takes as command line arguments source file names (or directory names) on your disk.  For example:
->        java -classpath target/CodeHash.jar jp.naist.se.codehash.comparison.DirectComparisonMain 001.c 002.c
+>        java -jar CodeHash.jar file-compare 001.c 002.c
+>        java -classpath CodeHash.jar jp.naist.se.codehash.comparison.DirectComparisonMain 001.c 002.c
 
 
 
@@ -114,8 +138,10 @@ A filter expression compares similarity metrics with numbers (or other metrics) 
 
 Examples (quote the argument so that a shell does not interpret `>`, `<`, `&`, and `|`):
 
->        java -classpath target/CodeHash.jar jp.naist.se.codehash.comparison.DirectComparisonMain "-filter:jaccard>=0.7" src
->        java -classpath target/CodeHash.jar jp.naist.se.codehash.comparison.DirectComparisonMain "-filter:jaccard>=0.7 or (overlap-coefficient>=0.9 and exact-jaccard<0.5)" src
+>        java -jar CodeHash.jar file-compare "-filter:jaccard>=0.7" src
+>        java -classpath CodeHash.jar jp.naist.se.codehash.comparison.DirectComparisonMain "-filter:jaccard>=0.7" src
+>        java -jar CodeHash.jar file-compare "-filter:jaccard>=0.7 or (overlap-coefficient>=0.9 and exact-jaccard<0.5)" src
+>        java -classpath CodeHash.jar jp.naist.se.codehash.comparison.DirectComparisonMain "-filter:jaccard>=0.7 or (overlap-coefficient>=0.9 and exact-jaccard<0.5)" src
 
 `-thnj:0.7` is equivalent to `-filter:jaccard>=0.7`.
 
@@ -145,7 +171,8 @@ The registered metric becomes available in `-metrics:` and `-filter:` options au
 The program produces a JSON format like this.
 The example is the output for two sample files in `src/test/resources/c-sample` (an arithmetic progression and a geometric progression).
 
->        java -classpath target/CodeHash.jar jp.naist.se.codehash.comparison.DirectComparisonMain src/test/resources/c-sample/arithmetic.c src/test/resources/c-sample/geometric.c
+>        java -jar CodeHash.jar file-compare src/test/resources/c-sample/arithmetic.c src/test/resources/c-sample/geometric.c
+>        java -classpath CodeHash.jar jp.naist.se.codehash.comparison.DirectComparisonMain src/test/resources/c-sample/arithmetic.c src/test/resources/c-sample/geometric.c
 
 >        {
 >          "Files" : [ {
@@ -214,8 +241,11 @@ The identifier normalization used by the metrics without the `exact-` prefix is 
 `jp.naist.se.codehash.comparison.SimilarityMatrixMain` converts a JSON output of `DirectComparisonMain` into a CSV matrix of a selected metric.
 The first argument is a metric name.  The second argument is a JSON file; if it is omitted or `-`, the JSON is read from STDIN.
 
->        java -classpath target/CodeHash.jar jp.naist.se.codehash.comparison.DirectComparisonMain src/test/resources/c-sample > result.json
->        java -classpath target/CodeHash.jar jp.naist.se.codehash.comparison.SimilarityMatrixMain jaccard result.json > matrix.csv
+>        java -jar CodeHash.jar file-compare src/test/resources/c-sample > result.json
+>        java -classpath CodeHash.jar jp.naist.se.codehash.comparison.DirectComparisonMain src/test/resources/c-sample > result.json
+>        
+>        java -jar CodeHash.jar json-to-matrix jaccard result.json > matrix.csv
+>        java -classpath CodeHash.jar jp.naist.se.codehash.comparison.SimilarityMatrixMain jaccard result.json > matrix.csv
 
 The header line is `index,path` followed by file indices.
 Each row has a file index, a file path, and the metric values for the files in the header.
@@ -261,7 +291,8 @@ It lists all non-binary blobs reachable from `HEAD`, i.e., file contents in the 
 Each blob is reported only once with one of its file paths.
 The tool takes a repository path as an argument (the current directory by default) and writes the list to STDOUT.
 
->        java -classpath target/CodeHash.jar jp.naist.se.codehash.GitFileList path/to/first > filelist1.txt
+>        java -jar CodeHash.jar git-file-list path/to/first > filelist1.txt
+>        java -classpath CodeHash.jar jp.naist.se.codehash.GitFileList path/to/first > filelist1.txt
 
 The resultant file can be used as a file list for `GitCodeHash`.
 
@@ -272,7 +303,8 @@ It processes the same blobs as `GitFileList` (all blobs reachable from `HEAD`, e
 The second argument optionally specifies a type of computed hash (`codehash` by default).
 The result is written to STDOUT in the same format as the CSV mode.
 
->        java -classpath target/CodeHash.jar jp.naist.se.codehash.GitCodeHash path/to/first minhash > output-minhash.txt
+>        java -jar CodeHash.jar git-minhash path/to/first minhash > output-minhash.txt
+>        java -classpath CodeHash.jar jp.naist.se.codehash.GitCodeHash path/to/first minhash > output-minhash.txt
 
 
 
@@ -281,13 +313,15 @@ The result is written to STDOUT in the same format as the CSV mode.
 
 If you would like to see how a file is translated into tokens, you can use `FileTokenizerMain`.
  
->        java -classpath target/CodeHash.jar jp.naist.se.codehash.comparison.FileTokenizerMain 001.c
+>        java -jar CodeHash.jar tokenize 001.c
+>        java -classpath CodeHash.jar jp.naist.se.codehash.comparison.FileTokenizerMain 001.c
 
 It generates a list of tokens in a JSON format.
 The program reads source code from STDIN when `-` is specified as a file name.
 In that case, specify a language using `-lang:[LANGUAGE]` option, e.g. `-lang:JAVA`.
 The option also overrides the language recognized from file extensions.
 
->        cat 001.c | java -classpath target/CodeHash.jar jp.naist.se.codehash.comparison.FileTokenizerMain -lang:CPP -
+>        cat 001.c | java -jar CodeHash.jar tokenize -lang:CPP -
+>        cat 001.c | java -classpath CodeHash.jar jp.naist.se.codehash.comparison.FileTokenizerMain -lang:CPP -
 
 
