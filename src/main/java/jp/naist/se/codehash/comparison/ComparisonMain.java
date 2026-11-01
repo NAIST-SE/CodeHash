@@ -12,32 +12,59 @@ import java.util.HashMap;
 
 public class ComparisonMain {
 
-	
-	public static final double THRESHOLD = 0.7;
-	
+	/**
+	 * The default threshold of similarity.
+	 */
+	public static final double DEFAULT_THRESHOLD = 0.7;
+
+	/**
+	 * A file pair is reported if its estimated similarity with normalization is greater than or equal to this threshold, e.g. "-th:0.8".
+	 * The option name is the same as {@link DirectComparisonMain}.
+	 */
+	private static final String THRESHOLD = "-th:";
+
 	/**
 	 * Compare minhash in given files
-	 * @param args specify a list of file names
+	 * @param args specify a list of file names.  "-th:[THRESHOLD]" option specifies a threshold (0.7 by default).
 	 */
 	public static void main(String[] args) {
-		// Load entries ignoring same codehash files
-		ComparisonMain main = new ComparisonMain();
+		double threshold = DEFAULT_THRESHOLD;
+		ArrayList<File> files = new ArrayList<>();
 		for (String arg: args) {
-			File f = new File(arg);
+			if (arg.startsWith(THRESHOLD)) {
+				threshold = DirectComparisonMain.parseThreshold(THRESHOLD, arg);
+				if (Double.isNaN(threshold)) return;
+			} else {
+				files.add(new File(arg));
+			}
+		}
+
+		// Load entries ignoring same codehash files
+		ComparisonMain main = new ComparisonMain(threshold);
+		for (File f: files) {
 			if (f.exists() && f.isFile() && f.canRead()) {
 				main.read(f);
 			}
 		}
-		
+
 		System.err.println(main.getEntryCount() + " unique files found.");
 		main.analyze(System.out);
 	}
-	
+
+	private double threshold;
 	private ArrayList<MinHashEntry> entries = new ArrayList<>();
 	private HashMap<String, ArrayList<String>> codehashToFileNames = new HashMap<>();
 	private HashMap<String, String> languages = new HashMap<>(32);
-	
+
 	public ComparisonMain() {
+		this(DEFAULT_THRESHOLD);
+	}
+
+	/**
+	 * @param threshold specifies the minimum estimated similarity with normalization to report a file pair.
+	 */
+	public ComparisonMain(double threshold) {
+		this.threshold = threshold;
 	}
 	
 	public int getEntryCount() {
@@ -106,12 +133,12 @@ public class ComparisonMain {
 			MinHashEntry e1 = entries.get(i);
 			for (int j=i+1; j<entries.size(); j++) {
 				MinHashEntry e2 = entries.get(j);
-				if (e1.getMaxSimilarity(e2) < THRESHOLD) break;
+				if (e1.getMaxSimilarity(e2) < threshold) break;
 				if (!e1.isSameLanguage(e2)) continue;
 				double normalizedEstimated = e1.estimateNormalizedSimilarity(e2);
 				// Check only normalized estimated because normalized similarity is always higher than exact similarity 
 				// (though there exists a risk that the estimated value is lower than actual)
-				if (normalizedEstimated >= THRESHOLD) {
+				if (normalizedEstimated >= threshold) {
 					double estimated = e1.estimateSimilarity(e2); 
 					StringBuilder buf = new StringBuilder(1024);
 					buf.append(e1.getCodehash());

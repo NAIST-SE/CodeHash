@@ -341,12 +341,12 @@ public class DirectComparisonMain {
 	}
 
 	/**
-	 * 
-	 * @param key
-	 * @param value
-	 * @return a parsed value.  Double.NaN is returned if an invalid value is specified. 
+	 * Parse a threshold option.  This method is shared with {@link ComparisonMain}.
+	 * @param key is an option string, e.g. "-th:".
+	 * @param value is a command line argument starting with the key.
+	 * @return a parsed value.  Double.NaN is returned if an invalid value is specified.
 	 */
-	private static double parseThreshold(String key, String value) {
+	static double parseThreshold(String key, String value) {
 		String nString = value.substring(key.length());
 		try {
 			double newThreshold = Double.parseDouble(nString);

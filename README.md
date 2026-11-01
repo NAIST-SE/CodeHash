@@ -67,7 +67,10 @@ Each line shows a pair of files to be compared.
  - FileNames1: File paths whose code-hash equals to CodeHash1.
  - FileNames2: File paths whose code-hash equals to CodeHash2.
 
-The minimum threshold is 0.7.
+A file pair is reported if its EstimatedSimWithNormalization is greater than or equal to a threshold.
+The threshold is 0.7 by default.  The `-th:[THRESHOLD]` option (0-1.0) changes the threshold, as well as `DirectComparisonMain`.
+
+>        java -classpath CodeHash.jar jp.naist.se.codehash.comparison.ComparisonMain -th:0.8 minhash.txt
 
 
 ## Directly compare source files 
