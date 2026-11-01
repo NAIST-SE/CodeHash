@@ -13,7 +13,7 @@ import jp.naist.se.codehash.comparison.SimilarityMatrixMain;
 /**
  * The entry point of the jar file.
  * The first argument selects a command, and the remaining arguments are passed to the main class of the command,
- * e.g. "java -jar CodeHash.jar compare src" is equivalent to "java -classpath CodeHash.jar jp.naist.se.codehash.comparison.DirectComparisonMain src".
+ * e.g. "java -jar CodeHash.jar file-compare src" is equivalent to "java -classpath CodeHash.jar jp.naist.se.codehash.comparison.DirectComparisonMain src".
  * A simple name of a main class (e.g. "DirectComparisonMain") is also accepted as a command name.
  */
 public class CodeHashMain {
@@ -45,9 +45,9 @@ public class CodeHashMain {
 
 	static {
 		register("file-minhash", FileCodeHash.class, FileCodeHash::main, "Compute hashes and minhash of files on disk.");
-		register("minhash-compare", ComparisonMain.class, ComparisonMain::main, "Estimate similarity from minhash produced by file-hash.");
+		register("minhash-compare", ComparisonMain.class, ComparisonMain::main, "Estimate similarity from minhash produced by file-minhash.");
 		register("file-compare", DirectComparisonMain.class, DirectComparisonMain::main, "Compare files directly and write JSON.");
-		register("json-to-matrix", SimilarityMatrixMain.class, SimilarityMatrixMain::main, "Convert a JSON output of compare into a CSV matrix.");
+		register("json-to-matrix", SimilarityMatrixMain.class, SimilarityMatrixMain::main, "Convert a JSON output of file-compare into a CSV matrix.");
 		register("git-file-list", GitFileList.class, GitFileList::main, "List blobs reachable from HEAD of a git repository.");
 		register("git-minhash", GitCodeHash.class, GitCodeHash::main, "Compute hashes of blobs in git repositories.");
 		register("tokenize", FileTokenizerMain.class, FileTokenizerMain::main, "Write tokens of files in JSON.");
