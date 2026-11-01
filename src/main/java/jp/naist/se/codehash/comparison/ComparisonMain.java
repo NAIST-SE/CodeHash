@@ -91,8 +91,14 @@ public class ComparisonMain {
 	 */
 	public void read(File f) {
 		try (LineNumberReader reader = new LineNumberReader(new FileReader(f))) {
+			int skipped = 0;
 			for (String line = reader.readLine(); line != null; line = reader.readLine()) {
 				String[] tokens = line.split("\t");
+				// Skip a line without 1-bit minhash vectors, e.g. GitCodeHash in codehash or sha1minhash mode
+				if (tokens.length != 9 || tokens[4].isEmpty() || tokens[5].isEmpty()) {
+					skipped++;
+					continue;
+				}
 				String filename = tokens[0];
 				String sha1 = tokens[1];
 				String lang = tokens[2];
@@ -112,6 +118,9 @@ public class ComparisonMain {
 					ArrayList<String> filenames = codehashToFileNames.get(codehash);
 					filenames.add(filename);
 				}
+			}
+			if (skipped > 0) {
+				System.err.println(skipped + " lines without minhash vectors are skipped in " + f.getAbsolutePath());
 			}
 		} catch (IOException e) {
 			System.err.println("Failed to read " + f.getAbsolutePath());

@@ -82,11 +82,14 @@ It is a list of tab-separated values (TSV) comprising nine columns.
  - The number of tokens in the file 
  - The number of n-grams in the file
 
+`GitCodeHash` (`git-minhash`) also writes this format; see "Analyzing a Git repository".
+
 ## Estimate file similarity using 1-bit minhash vectors
 
 Another main class `jp.naist.se.codehash.comparison.ComparisonMain` compares 1-bit minhash vectors to estimate source file similarity.
 This is the fast way to compare a large number of files (see "Choosing a comparison method").
-The `minhash.txt` is a file created by `FileCodeHash`.
+The `minhash.txt` is a file created by `FileCodeHash`, or by `GitCodeHash` in the `minhash` mode.
+Lines without 1-bit minhash vectors (e.g. the output of the `codehash` and `sha1minhash` modes of `GitCodeHash`) are skipped.
 
 >        java -jar CodeHash.jar minhash-compare minhash.txt
 >        java -classpath CodeHash.jar jp.naist.se.codehash.comparison.ComparisonMain minhash.txt
@@ -312,6 +315,16 @@ The tool takes a repository path as an argument (the current directory by defaul
 >        java -classpath CodeHash.jar jp.naist.se.codehash.GitFileList path/to/first > filelist1.txt
 
 The resultant file can be used as a file list for `GitCodeHash`.
+
+### Output Format
+
+The output has the same nine columns as `FileCodeHash` (see "Extract 1-bit minhash vectors from source files"), so that `ComparisonMain` can read the output of the `minhash` mode.
+Some columns have different contents:
+
+ - File path: `[Blob ID]:[file name]`, where the file name is given by the file list (or the path found in the repository without a file list), e.g. `8005e63674d37076fdd36e70291c8573324dd3ff:src/main/java/jp/naist/se/codehash/GitCodeHash.java`.  Only the blob ID is written if the file name is empty.
+ - SHA-1 file hash: the SHA-1 hash of the file content, the same as `FileCodeHash`.  Note that it is different from the blob ID, because git computes a blob ID with a header.
+ - Minhash columns: empty unless the `minhash` mode is used.  The `sha1minhash` modes fill only the first minhash column.
+ - The number of n-grams: 0 unless the `minhash` mode is used.
 
 ### Analyzing a single repository without a file list
 

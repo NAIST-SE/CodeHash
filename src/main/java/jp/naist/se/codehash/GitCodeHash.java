@@ -1,6 +1,7 @@
 package jp.naist.se.codehash;
 
 import java.io.BufferedWriter;
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
@@ -16,6 +17,7 @@ import org.eclipse.jgit.lib.ObjectLoader;
 import org.eclipse.jgit.lib.ObjectReader;
 import org.eclipse.jgit.lib.Repository;
 
+import jp.naist.se.codehash.hash.FileHash;
 import jp.naist.se.codehash.hash.SourceCodeHash;
 import jp.naist.se.codehash.hash.SourceCodeHash.MinHashType;
 import jp.naist.se.codehash.token.FileType;
@@ -122,17 +124,19 @@ public class GitCodeHash {
 					if (firstTabIndex < 0) continue; // Skip a bad format line
 
 					FileType t;
+					String filename;
 					if (firstTabIndex == lastTabIndex) { // 2-columns format (blob-id,filename)
-						String filename = line.substring(firstTabIndex+1, line.length());
+						filename = line.substring(firstTabIndex+1, line.length());
 						t = FileType.getFileTypeFromName(filename);
 					} else { // 3-column format (blob-id,filename,lang)
+						filename = line.substring(firstTabIndex+1, lastTabIndex);
 						String filetype = line.substring(lastTabIndex+1, line.length());
 						t = FileType.getFileType(filetype);
 					}
 
 					if (t != FileType.UNSUPPORTED) {
 						String sha1 = line.substring(0, firstTabIndex);
-						processBlob(r, ObjectId.fromString(sha1), t, w, hashType);
+						processBlob(r, ObjectId.fromString(sha1), filename, t, w, hashType);
 					}
 				}
 			}
@@ -152,7 +156,7 @@ public class GitCodeHash {
 				boolean found = GitFileList.visitBlobs(repo, GitFileList.DEFAULT_TARGET, (id, path) -> {
 					FileType t = FileType.getFileTypeFromName(path);
 					if (t != FileType.UNSUPPORTED) {
-						processBlob(r, id, t, w, hashType);
+						processBlob(r, id, path, t, w, hashType);
 					}
 				});
 				if (!found) {
@@ -165,30 +169,20 @@ public class GitCodeHash {
 	}
 
 	/**
-	 * Compute hash values for a blob and write them to w.
+	 * Compute hash values for a blob and write them to w in the same format as {@link FileCodeHash}.
+	 * The first column is "[blob ID]:[path]" (only the blob ID if the path is empty),
+	 * and the second column is the SHA-1 hash of the content (different from the blob ID including a header).
 	 * Missing objects and I/O errors are ignored.
+	 * @param path is a file name of the blob in the repository.
 	 */
-	private void processBlob(ObjectReader r, AnyObjectId id, FileType t, PrintWriter w, MinHashType hashType) {
+	private void processBlob(ObjectReader r, AnyObjectId id, String path, FileType t, PrintWriter w, MinHashType hashType) {
 		try {
 			ObjectLoader l = r.open(id);
-			long size = l.getSize();
-			SourceCodeHash h = new SourceCodeHash(t, l.openStream(), size, hashType);
-
-			StringBuilder result = new StringBuilder(256);
-			result.append(id.getName());
-			result.append("\t");
-			result.append(t.name());
-			result.append("\t");
-			result.append(h.getCodeHash());
-			result.append("\t");
-			if (h.getMinHash() != null) {
-				result.append(h.getMinHash());
-				result.append("\t");
-			}
-			result.append(size);
-			result.append("\t");
-			result.append(h.getTokenCount());
-			w.println(result.toString());
+			byte[] content = l.getCachedBytes(Integer.MAX_VALUE);
+			String sha1 = FileHash.compute(content);
+			SourceCodeHash h = new SourceCodeHash(t, new ByteArrayInputStream(content), content.length, hashType);
+			String name = path.isEmpty() ? id.getName() : id.getName() + ":" + path;
+			w.println(FileCodeHash.toLine(name, sha1, t, h, content.length));
 
 		} catch (MissingObjectException e) {
 			// Ignore missing objects

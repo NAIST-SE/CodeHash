@@ -23,6 +23,9 @@ public class ComparisonMainTest {
 		"A.c\tsha1-a\tCPP\tcodehash-a\tffff\tffff\t100\t50\t50",
 		"B.c\tsha1-b\tCPP\tcodehash-b\tfffc\tfffc\t100\t50\t50",
 		"C.c\tsha1-c\tCPP\tcodehash-c\tfff0\tfff0\t100\t50\t50",
+		// Lines without minhash vectors (GitCodeHash in codehash and sha1minhash modes) are skipped
+		"D.c\tblob-d\tCPP\tcodehash-d\t\t\t100\t50\t0",
+		"E.c\tblob-e\tCPP\tcodehash-e\tffff\t\t100\t50\t0",
 	};
 
 	/**

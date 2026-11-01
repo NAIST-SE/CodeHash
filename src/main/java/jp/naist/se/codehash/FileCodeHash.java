@@ -86,31 +86,45 @@ public class FileCodeHash {
 				SourceCodeHash h = new SourceCodeHash(t, new ByteArrayInputStream(content), f.length(),
 						ignoreDuplication ? MinHashType.Murmur3IgnoreDuplication : MinHashType.Murmur3);
 
-				StringBuilder result = new StringBuilder(256);
-				result.append(path);
-				result.append("\t");
-				result.append(sha1);
-				result.append("\t");
-				result.append(t.name());
-				result.append("\t");
-				result.append(h.getCodeHash());
-				result.append("\t");
-				result.append(h.getMinHash());
-				result.append("\t");
-				result.append(h.getNormalizedMinHash());
-				result.append("\t");
-				result.append(f.length());
-				result.append("\t");
-				result.append(h.getTokenCount());
-				result.append("\t");
-				result.append(h.getNgramCount());
-				System.out.println(result.toString());
+				System.out.println(toLine(path, sha1, t, h, f.length()));
 			}
 
 		} catch (IOException e) {
 			// Ignore 
 		}
 		
+	}
+
+	/**
+	 * Format a line of a minhash list.  {@link jp.naist.se.codehash.comparison.ComparisonMain} reads this format.
+	 * GitCodeHash also uses this format.
+	 * @param path is a file path (or a blob ID and a path in a git repository).
+	 * @param sha1 is the SHA-1 hash of the file content.
+	 * @param t is the language of the file.
+	 * @param h is the hash values of the file.  A minhash value unavailable in h is written as an empty string.
+	 * @param size is the byte length of the file.
+	 * @return a tab-separated line comprising nine columns.
+	 */
+	public static String toLine(String path, String sha1, FileType t, SourceCodeHash h, long size) {
+		StringBuilder result = new StringBuilder(256);
+		result.append(path);
+		result.append("\t");
+		result.append(sha1);
+		result.append("\t");
+		result.append(t.name());
+		result.append("\t");
+		result.append(h.getCodeHash());
+		result.append("\t");
+		if (h.getMinHash() != null) result.append(h.getMinHash());
+		result.append("\t");
+		if (h.getNormalizedMinHash() != null) result.append(h.getNormalizedMinHash());
+		result.append("\t");
+		result.append(size);
+		result.append("\t");
+		result.append(h.getTokenCount());
+		result.append("\t");
+		result.append(h.getNgramCount());
+		return result.toString();
 	}
 	
 	
