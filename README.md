@@ -3,6 +3,9 @@
 This tool computes source file similarity using 3-gram multiset ignoring whitespace and comments.
 The tool can estimate source code siimlarity using b-bit minhash; the tool can skip unnecessary comparison if two files are unlikely similar.
 
+The tool has been developed to detect file-level reuse in open source software, i.e., source files copied from other projects.
+It is also used for other purposes, e.g., comparing programs submitted by students ignoring differences in comments, whitespace, and identifier names.
+
 The implementation is a revised version that has been used in our technical paper: 
 >        Takashi Ishio, Yusuke Sakaguchi, Kaoru Ito and Katsuro Inoue: 
 >        Source File Set Search for Clone-and-Own Reuse Analysis, In Proc. of MSR 2017.
@@ -114,7 +117,6 @@ The threshold is 0.7 by default.  The `-th:[THRESHOLD]` option (0-1.0) changes t
 
 The main class `jp.naist.se.codehash.comparison.DirectComparisonMain` directly compares a set of files.
 This class calculates the exact similarity between files, while this comparison also can avoid unnecessary comparison using 1-bit minhash vectors.
-This class is for users who would like to easily use the similarity without the minhash-based steps; it is not intended for a large number of files (see "Choosing a comparison method").
 
 It takes as command line arguments source file names (or directory names) on your disk.  For example:
 >        java -jar CodeHash.jar file-compare 001.c 002.c
