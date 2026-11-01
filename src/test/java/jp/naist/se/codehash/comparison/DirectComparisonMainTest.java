@@ -276,4 +276,11 @@ public class DirectComparisonMainTest {
 		Assert.assertEquals("", executeWithoutErrorOutput("-filter:unknown-metric>=0.5"));
 	}
 
+	@Test
+	public void testInvalidNgramSize() throws Exception {
+		Assert.assertEquals("", executeWithoutErrorOutput("-n:0"));
+		Assert.assertEquals("", executeWithoutErrorOutput("-n:17"));
+		Assert.assertEquals("", executeWithoutErrorOutput("-n:abc"));
+	}
+
 }

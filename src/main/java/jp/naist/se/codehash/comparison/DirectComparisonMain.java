@@ -18,7 +18,7 @@ import jp.naist.se.codehash.similarity.SimilarityMetrics;
 import jp.naist.se.codehash.similarity.SimilarityRecord;
 import jp.naist.se.codehash.file.FileEntity;
 import jp.naist.se.codehash.file.FileGroup;
-import jp.naist.se.codehash.hash.MinHashDefaults;
+import jp.naist.se.codehash.hash.MinHashOptions;
 
 /**
  * Compares source files using N-gram multisets of tokens and writes similarity values in JSON to STDOUT.
@@ -37,11 +37,6 @@ public class DirectComparisonMain {
 	 */
 	private static String LANG_OPTION = "-lang:";
 	
-	/**
-	 * An option to select N for N-grams.  It should be one of 1--1024.  "-n:3" is the default.     
-	 */
-	private static String NGRAM_OPTION = "-n:";
-
 	/**
 	 * A file pair is reported if any of the selected metrics is greater than or equal to this threshold.
 	 */
@@ -107,7 +102,7 @@ public class DirectComparisonMain {
 	 */
 	private FileType selectedLanguage = null;
 	
-	private int N = MinHashDefaults.DEFAULT_NGRAM_SIZE;
+	private int N = MinHashOptions.DEFAULT_NGRAM_SIZE;
 	private double threshold = 0;
 	private double thresholdNormalizedJaccard = -1;
 	private double thresholdEstimatedNormalizedJaccard = -1;
@@ -140,18 +135,10 @@ public class DirectComparisonMain {
 		for (String s: args) {
 			if (s.startsWith(LANG_OPTION)) {
 				selectedLanguage = FileType.getFileType(s.substring(LANG_OPTION.length()));
-			} else if (s.startsWith(NGRAM_OPTION)) {
-				String nString = s.substring(NGRAM_OPTION.length());
-				try {
-					int newN = Integer.parseInt(nString);
-					if (1 <= newN && newN <= 1024) { 
-						N = newN;
-					} else {
-						System.err.println("N is out of range: " + nString);
-						return;
-					}
-				} catch (NumberFormatException e) {
-					System.err.println("Invalid number: " + nString);
+			} else if (s.startsWith(MinHashOptions.NGRAM_OPTION)) {
+				N = MinHashOptions.parseNgramSize(s);
+				if (N < 0) {
+					invalid = true;
 					return;
 				}
 			} else if (s.startsWith(THRESHOLD_ESTIMATED_NORMALIZED_JACCARD)) {

@@ -43,7 +43,7 @@ All packages are under `jp.naist.se.codehash`.
   - `NgramReader`, `NgramMultiset`: N-grams of tokens.
   - `MurmurHash3`, `MurmurMinHash`: b-bit minhash using MurmurHash3.
   - `BitMinHash`: A 1-bit minhash vector with the number of N-grams; estimates the Jaccard index.  Used by `MinHashEntry` and `FileEntity` (`-thenj` option).
-  - `MinHashDefaults`: Shared minhash parameters.
+  - `MinHashOptions`: Shared minhash parameters (`BIT_COUNT`, `DEFAULT_NGRAM_SIZE`) and command line options `-n:` and `-ignoreduplication` shared by `FileCodeHash` and `GitCodeHash` (`-n:` is also used by `DirectComparisonMain`).
 - `sha1`: b-bit minhash using SHA-1.  `SHA1MinHashMSR2017` reproduces the computation used in the MSR 2017 paper.
 - `similarity`: Similarity metrics and filters for `DirectComparisonMain`.
   - `SimilarityMetric`: Strategy interface of a metric.  `NgramSimilarityMetric` is the base class of the N-gram metrics (Jaccard, overlap coefficient, overlap similarity, each with and without identifier normalization).

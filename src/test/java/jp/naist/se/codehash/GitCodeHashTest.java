@@ -22,6 +22,7 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import jp.naist.se.codehash.hash.FileHash;
+import jp.naist.se.codehash.hash.MinHashOptions;
 import jp.naist.se.codehash.hash.SourceCodeHash;
 import jp.naist.se.codehash.hash.SourceCodeHash.MinHashType;
 import jp.naist.se.codehash.token.FileType;
@@ -62,7 +63,10 @@ public class GitCodeHashTest {
 	}
 
 	private static String[] run(File dir, String filelist, MinHashType hashType) {
-		GitCodeHash analyzer = new GitCodeHash();
+		return run(new GitCodeHash(), dir, filelist, hashType);
+	}
+
+	private static String[] run(GitCodeHash analyzer, File dir, String filelist, MinHashType hashType) {
 		StringWriter buffer = new StringWriter();
 		try (PrintWriter w = new PrintWriter(buffer)) {
 			if (filelist == null) {
@@ -112,6 +116,42 @@ public class GitCodeHashTest {
 		Assert.assertEquals(expected[6], actual[6]);
 		Assert.assertEquals(expected[7], actual[7]);
 		Assert.assertEquals("0", actual[8]);
+	}
+
+	@Test
+	public void testOptions() throws Exception {
+		File dir = temp.newFolder("repo");
+		createRepository(dir);
+		File f = new File(dir, FILENAME);
+		byte[] content = Files.readAllBytes(f.toPath());
+		SourceCodeHash h = new SourceCodeHash(FileType.CPP, new ByteArrayInputStream(content), content.length, MinHashType.Murmur3IgnoreDuplication, 1);
+		String[] expected = FileCodeHash.toLine(f.getAbsolutePath(), FileHash.compute(content), FileType.CPP, h, content.length).split("\t", -1);
+
+		MinHashOptions options = new MinHashOptions();
+		options.parse("-n:1");
+		options.parse("-ignoreduplication");
+		String[] actual = run(new GitCodeHash(options), dir, null, MinHashType.Murmur3);
+		Assert.assertEquals(Arrays.asList(expected).subList(1, 9), Arrays.asList(actual).subList(1, 9));
+		Assert.assertFalse(Arrays.equals(actual, run(dir, null, MinHashType.Murmur3)));
+	}
+
+	@Test
+	public void testOptionsInCommandLine() throws Exception {
+		File dir = temp.newFolder("repo");
+		ObjectId blob = createRepository(dir);
+		File filelist = temp.newFile("filelist.txt");
+		Files.write(filelist.toPath(), Arrays.asList(blob.getName() + "\t" + FILENAME));
+		File output = new File(temp.getRoot(), "output.txt");
+		File csv = temp.newFile("input.csv");
+		Files.write(csv.toPath(), Arrays.asList(dir.getAbsolutePath() + "," + filelist.getAbsolutePath() + "," + output.getAbsolutePath() + ",minhash"));
+
+		// Options can be placed before and after the input file
+		GitCodeHash.main(new String[] { "-n:1", csv.getAbsolutePath(), "-ignoreduplication" });
+		List<String> lines = Files.readAllLines(output.toPath());
+		MinHashOptions options = new MinHashOptions();
+		options.parse("-n:1");
+		options.parse("-ignoreduplication");
+		Assert.assertArrayEquals(run(new GitCodeHash(options), dir, null, MinHashType.Murmur3), lines.get(1).split("\t", -1));
 	}
 
 	@Test

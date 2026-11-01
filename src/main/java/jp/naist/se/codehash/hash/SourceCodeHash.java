@@ -38,7 +38,7 @@ public class SourceCodeHash {
 	 * @see #SourceCodeHash(FileType, InputStream, long, MinHashType, int)
 	 */
 	public SourceCodeHash(FileType type, InputStream content, long size, MinHashType minhashType) {
-		this(type, content, size, minhashType, MinHashDefaults.DEFAULT_NGRAM_SIZE);
+		this(type, content, size, minhashType, MinHashOptions.DEFAULT_NGRAM_SIZE);
 	}
 
 	/**
@@ -56,7 +56,7 @@ public class SourceCodeHash {
 		case Murmur3:
 		case Murmur3IgnoreDuplication:
 		{
-			MurmurMinHash h = new MurmurMinHash(MinHashDefaults.BIT_COUNT, N, wrapper);
+			MurmurMinHash h = new MurmurMinHash(MinHashOptions.BIT_COUNT, N, wrapper);
 			if (minhashType == MinHashType.Murmur3IgnoreDuplication) {
 				minhash = HashStringUtil.bytesToHex(h.getHashIgnoreDuplicatedElements());
 				normalizedMinhash = HashStringUtil.bytesToHex(h.getNormalizedHashIgnoreDuplicatedElements());
@@ -71,13 +71,13 @@ public class SourceCodeHash {
 		}
 		case SHA1:
 		{
-			SHA1MinHash h = new SHA1MinHash(MinHashDefaults.BIT_COUNT, N, wrapper);
+			SHA1MinHash h = new SHA1MinHash(MinHashOptions.BIT_COUNT, N, wrapper);
 			minhash = HashStringUtil.bytesToHex(h.getHash());
 			break;
 		}
 		case SHA1InPaper:
 		{
-			SHA1MinHashMSR2017 h = new SHA1MinHashMSR2017(MinHashDefaults.BIT_COUNT, N, wrapper);
+			SHA1MinHashMSR2017 h = new SHA1MinHashMSR2017(MinHashOptions.BIT_COUNT, N, wrapper);
 			minhash = HashStringUtil.bytesToHex(h.getHash());
 			break;
 		}

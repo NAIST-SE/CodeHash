@@ -7,6 +7,7 @@ import java.nio.file.Files;
 import java.util.LinkedList;
 
 import jp.naist.se.codehash.hash.FileHash;
+import jp.naist.se.codehash.hash.MinHashOptions;
 import jp.naist.se.codehash.hash.SourceCodeHash;
 import jp.naist.se.codehash.hash.SourceCodeHash.MinHashType;
 import jp.naist.se.codehash.token.FileType;
@@ -17,36 +18,35 @@ import jp.naist.se.codehash.token.FileType;
  */
 public class FileCodeHash {
 
-	public static final String ARG_MINHASH_IGNORE_DUPLICATION = "-ignoreduplication";
-	
+	/**
+	 * @param args specifies options (see {@link MinHashOptions}) and names of source files (or directories).
+	 */
 	public static void main(String[] args) {
-		boolean ignoreDuplication = false;
+		MinHashOptions options = new MinHashOptions();
 		LinkedList<File> files = new LinkedList<>();
 		for (String arg: args) {
-			if (arg.equals(ARG_MINHASH_IGNORE_DUPLICATION)) {
-				ignoreDuplication = true;
-			} else {
+			if (!options.parse(arg)) {
 				files.add(new File(arg));
 			}
 		}
-		
+		if (options.isInvalid()) return;
+
 		if (!files.isEmpty()) {
-			FileCodeHash h = new FileCodeHash(ignoreDuplication);
+			FileCodeHash h = new FileCodeHash(options);
 			System.out.println(HEADER);
 			h.scan(files);
 		}  else {
 			System.err.println("No files are specified.");
 		}
 	}
-	
-	private boolean ignoreDuplication;
-	
+
+	private MinHashOptions options;
+
 	/**
-	 * 
-	 * @param ignoreDuplication If true, this object uses a set rather than a multiset to manage N-grams. 
+	 * @param options specifies N for N-grams and whether this object uses a set rather than a multiset to manage N-grams.
 	 */
-	public FileCodeHash(boolean ignoreDuplication) {
-		this.ignoreDuplication = ignoreDuplication;
+	public FileCodeHash(MinHashOptions options) {
+		this.options = options;
 	}
 	
 	/**
@@ -85,7 +85,7 @@ public class FileCodeHash {
 				byte[] content = Files.readAllBytes(f.toPath());
 				String sha1 = FileHash.compute(content);
 				SourceCodeHash h = new SourceCodeHash(t, new ByteArrayInputStream(content), f.length(),
-						ignoreDuplication ? MinHashType.Murmur3IgnoreDuplication : MinHashType.Murmur3);
+						options.getMinHashType(MinHashType.Murmur3), options.getN());
 
 				System.out.println(toLine(path, sha1, t, h, f.length()));
 			}

@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.io.LineNumberReader;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.util.ArrayList;
 
 import org.eclipse.jgit.errors.MissingObjectException;
 import org.eclipse.jgit.lib.AnyObjectId;
@@ -18,6 +19,7 @@ import org.eclipse.jgit.lib.ObjectReader;
 import org.eclipse.jgit.lib.Repository;
 
 import jp.naist.se.codehash.hash.FileHash;
+import jp.naist.se.codehash.hash.MinHashOptions;
 import jp.naist.se.codehash.hash.SourceCodeHash;
 import jp.naist.se.codehash.hash.SourceCodeHash.MinHashType;
 import jp.naist.se.codehash.token.FileType;
@@ -38,18 +40,28 @@ public class GitCodeHash {
 	 * If the first argument is a directory, it is regarded as a git repository.
 	 * In this case, all blobs reachable from HEAD are processed and the result is written to STDOUT.
 	 * The second argument optionally specifies a hash type (codehash by default).
+	 * Options (see {@link MinHashOptions}) can be placed anywhere in the arguments.
 	 */
 	public static void main(String[] args) {
-		GitCodeHash analyzer = new GitCodeHash();
-		if (args.length == 0) {
-			System.err.println("Usage: GitCodeHash input.csv");
-			System.err.println("       GitCodeHash path/to/repo [codehash|minhash|sha1minhash]");
+		MinHashOptions options = new MinHashOptions();
+		ArrayList<String> arguments = new ArrayList<>();
+		for (String arg: args) {
+			if (!options.parse(arg)) {
+				arguments.add(arg);
+			}
+		}
+		if (options.isInvalid()) return;
+
+		GitCodeHash analyzer = new GitCodeHash(options);
+		if (arguments.isEmpty()) {
+			System.err.println("Usage: GitCodeHash [-n:N] [-ignoreduplication] input.csv");
+			System.err.println("       GitCodeHash [-n:N] [-ignoreduplication] path/to/repo [codehash|minhash|sha1minhash]");
 			return;
 		}
 
-		String inputFileName = args[0];
+		String inputFileName = arguments.get(0);
 		if (new File(inputFileName).isDirectory()) {
-			MinHashType t = args.length > 1 ? parseHashType(args[1]) : MinHashType.None;
+			MinHashType t = arguments.size() > 1 ? parseHashType(arguments.get(1)) : MinHashType.None;
 			try (PrintWriter w = new PrintWriter(new BufferedWriter(new OutputStreamWriter(System.out), 65536))) {
 				w.println(FileCodeHash.HEADER);
 				analyzer.parseGitRepository(new File(inputFileName), w, t);
@@ -109,7 +121,20 @@ public class GitCodeHash {
 		}
 	}
 
+	private MinHashOptions options;
+
+	/**
+	 * Create an object using the default N-gram size.
+	 */
 	public GitCodeHash() {
+		this(new MinHashOptions());
+	}
+
+	/**
+	 * @param options specifies N for N-grams and whether a set rather than a multiset of N-grams is used for the minhash mode.
+	 */
+	public GitCodeHash(MinHashOptions options) {
+		this.options = options;
 	}
 
 	/**
@@ -182,7 +207,7 @@ public class GitCodeHash {
 			ObjectLoader l = r.open(id);
 			byte[] content = l.getCachedBytes(Integer.MAX_VALUE);
 			String sha1 = FileHash.compute(content);
-			SourceCodeHash h = new SourceCodeHash(t, new ByteArrayInputStream(content), content.length, hashType);
+			SourceCodeHash h = new SourceCodeHash(t, new ByteArrayInputStream(content), content.length, options.getMinHashType(hashType), options.getN());
 			String name = path.isEmpty() ? id.getName() : id.getName() + ":" + path;
 			w.println(FileCodeHash.toLine(name, sha1, t, h, content.length));
 

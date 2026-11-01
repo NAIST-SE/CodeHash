@@ -68,6 +68,18 @@ The command uses a redirection because the tool write the result to STDOUT by de
 >        java -jar CodeHash.jar file-minhash src > minhash.txt
 >        java -classpath CodeHash.jar jp.naist.se.codehash.FileCodeHash src > minhash.txt
 
+### Options
+
+The following options are shared with `GitCodeHash`.
+
+- `-n:[NGRAM]` specifies N for N-gram (1-16).  The default is trigrams (i.e., `-n:3`), the same as `DirectComparisonMain`.
+- `-ignoreduplication` uses a set rather than a multiset of N-grams to compute minhash vectors, i.e., duplicated N-grams in a file are counted only once.
+
+>        java -jar CodeHash.jar file-minhash -n:1 -ignoreduplication src > minhash.txt
+
+Minhash vectors computed with different options are not comparable.
+Use the same options for all the files given to `ComparisonMain`.
+
 ### Output Format
 
 It is a list of tab-separated values (TSV) comprising nine columns.
@@ -142,7 +154,7 @@ The tool accepts the following options.  Other arguments are regarded as source 
 
 
 #### Comparison Options
-- `-n:[NGRAM]` specifies N for N-gram.  The default is trigrams (i.e., `-n:3`).
+- `-n:[NGRAM]` specifies N for N-gram (1-16).  The default is trigrams (i.e., `-n:3`).
 - `-th:[THRESHOLD]` specifies a similarity threshold (0-1.0).  If all of similarity values for a file pair are less than this threshold, the file pair is excluded from the output.
 - `-thnj:[THRESHOLD]` specifies a similarity threshold for normalized jaccard distance.  If the similarity value for a file pair is less than this threshold, the file pair is excluded from the output.
 - `-thenj:[THRESHOLD]` specifies a threshold for estimated normalized jaccard distance.  If a similarity estimated by b-bit minhash is less than this threshold, an actual comparison is skipped.
@@ -337,6 +349,14 @@ The result is written to STDOUT in the same format as the CSV mode.
 
 >        java -jar CodeHash.jar git-minhash path/to/first minhash > output-minhash.txt
 >        java -classpath CodeHash.jar jp.naist.se.codehash.GitCodeHash path/to/first minhash > output-minhash.txt
+
+### Options
+
+`GitCodeHash` accepts the same options as `FileCodeHash` (`-n:[NGRAM]` and `-ignoreduplication`; see "Extract 1-bit minhash vectors from source files") in both the CSV mode and the single repository mode.
+The options can be placed anywhere in the arguments, and they are applied to all the lines of a CSV file.
+`-n:[NGRAM]` affects all the minhash modes, while `-ignoreduplication` affects only the `minhash` mode.
+
+>        java -jar CodeHash.jar git-minhash -n:1 -ignoreduplication path/to/first minhash > output-minhash.txt
 
 
 
