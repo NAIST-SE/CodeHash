@@ -28,24 +28,32 @@ public class ComparisonMain {
 	/**
 	 * Compare minhash in given files
 	 * @param args specify a list of file names.  "-th:[THRESHOLD]" option specifies a threshold (0.7 by default).
+	 * "-compare:crossgroup" option regards each file as a group and compares only file pairs across groups.
 	 */
 	public static void main(String[] args) {
 		double threshold = DEFAULT_THRESHOLD;
+		boolean compareGroups = false;
 		ArrayList<File> files = new ArrayList<>();
 		for (String arg: args) {
 			if (arg.startsWith(THRESHOLD)) {
 				threshold = DirectComparisonMain.parseThreshold(THRESHOLD, arg);
 				if (Double.isNaN(threshold)) return;
+			} else if (arg.equals(DirectComparisonMain.COMPARE_CROSS_GROUP)) {
+				compareGroups = true;
 			} else {
 				files.add(new File(arg));
 			}
 		}
+		if (compareGroups && files.size() < 2) {
+			System.err.println("Warning: " + DirectComparisonMain.COMPARE_CROSS_GROUP + " requires two or more files.");
+		}
 
-		// Load entries ignoring same codehash files
-		ComparisonMain main = new ComparisonMain(threshold);
-		for (File f: files) {
+		// Load entries ignoring same codehash files (in each group)
+		ComparisonMain main = new ComparisonMain(threshold, compareGroups);
+		for (int i=0; i<files.size(); i++) {
+			File f = files.get(i);
 			if (f.exists() && f.isFile() && f.canRead()) {
-				main.read(f);
+				main.read(f, compareGroups ? i : 0);
 			}
 		}
 
@@ -54,6 +62,7 @@ public class ComparisonMain {
 	}
 
 	private double threshold;
+	private boolean compareGroups;
 	private ArrayList<MinHashEntry> entries = new ArrayList<>();
 	private HashMap<String, ArrayList<String>> codehashToFileNames = new HashMap<>();
 	private HashMap<String, String> languages = new HashMap<>(32);
@@ -66,7 +75,17 @@ public class ComparisonMain {
 	 * @param threshold specifies the minimum estimated similarity with normalization to report a file pair.
 	 */
 	public ComparisonMain(double threshold) {
+		this(threshold, false);
+	}
+
+	/**
+	 * @param threshold specifies the minimum estimated similarity with normalization to report a file pair.
+	 * @param compareGroups If true, only file pairs across groups are compared.
+	 * Files having the same codehash are regarded as the same file only within a group.
+	 */
+	public ComparisonMain(double threshold, boolean compareGroups) {
 		this.threshold = threshold;
+		this.compareGroups = compareGroups;
 	}
 	
 	public int getEntryCount() {
@@ -88,10 +107,19 @@ public class ComparisonMain {
 	}
 	
 	/**
-	 * Read a hash list file  
+	 * Read a hash list file into the default group
 	 * @param f specifies a file
 	 */
 	public void read(File f) {
+		read(f, 0);
+	}
+
+	/**
+	 * Read a hash list file
+	 * @param f specifies a file
+	 * @param group specifies a group of the files listed in f
+	 */
+	public void read(File f, int group) {
 		try (LineNumberReader reader = new LineNumberReader(new FileReader(f))) {
 			int skipped = 0;
 			for (String line = reader.readLine(); line != null; line = reader.readLine()) {
@@ -123,13 +151,14 @@ public class ComparisonMain {
 					continue;
 				}
 
-				if (!codehashToFileNames.containsKey(codehash)) {
-					entries.add(new MinHashEntry(filename, sha1, toSingleInstance(lang), codehash, minhash, normalizedMinhash, fileLength, tokenLength, ngramSize));
+				String key = getKey(group, codehash);
+				if (!codehashToFileNames.containsKey(key)) {
+					entries.add(new MinHashEntry(filename, sha1, toSingleInstance(lang), codehash, minhash, normalizedMinhash, fileLength, tokenLength, ngramSize, group));
 					ArrayList<String> filenames = new ArrayList<>();
 					filenames.add(filename);
-					codehashToFileNames.put(codehash, filenames);
+					codehashToFileNames.put(key, filenames);
 				} else {
-					ArrayList<String> filenames = codehashToFileNames.get(codehash);
+					ArrayList<String> filenames = codehashToFileNames.get(key);
 					filenames.add(filename);
 				}
 			}
@@ -168,36 +197,50 @@ public class ComparisonMain {
 			for (int j=i+1; j<entries.size(); j++) {
 				MinHashEntry e2 = entries.get(j);
 				if (e1.getMaxSimilarity(e2) < threshold) break;
+				if (compareGroups && e1.getGroup() == e2.getGroup()) continue;
 				if (!e1.isSameLanguage(e2)) continue;
 				double normalizedEstimated = e1.estimateNormalizedSimilarity(e2);
-				// Check only normalized estimated because normalized similarity is always higher than exact similarity 
+				// Check only normalized estimated because normalized similarity is always higher than exact similarity
 				// (though there exists a risk that the estimated value is lower than actual)
 				if (normalizedEstimated >= threshold) {
-					double estimated = e1.estimateSimilarity(e2); 
+					double estimated = e1.estimateSimilarity(e2);
+					// Write a file in the former group first
+					MinHashEntry first = e1.getGroup() <= e2.getGroup() ? e1 : e2;
+					MinHashEntry second = first == e1 ? e2 : e1;
 					StringBuilder buf = new StringBuilder(1024);
-					buf.append(e1.getCodehash());
+					buf.append(first.getCodehash());
 					buf.append("\t");
-					buf.append(e2.getCodehash());
+					buf.append(second.getCodehash());
 					buf.append("\t");
-					buf.append(e1.getTokenLength());
+					buf.append(first.getTokenLength());
 					buf.append("\t");
-					buf.append(e2.getTokenLength());
+					buf.append(second.getTokenLength());
 					buf.append("\t");
 					buf.append(estimated);
 					buf.append("\t");
 					buf.append(normalizedEstimated);
 					buf.append("\t");
-					buf.append(getFileNames(e1.getCodehash()));
+					buf.append(getFileNames(first));
 					buf.append("\t");
-					buf.append(getFileNames(e2.getCodehash()));
+					buf.append(getFileNames(second));
 					out.println(buf.toString());
 				}
 			}
 		}
 	}
-	
-	private String getFileNames(String codehash) {
-		ArrayList<String> filenames = codehashToFileNames.get(codehash);
+
+	/**
+	 * @return a key to identify files having the same codehash in a group.
+	 */
+	private static String getKey(int group, String codehash) {
+		return group + "\t" + codehash;
+	}
+
+	/**
+	 * @return file names having the same codehash as e in the same group.
+	 */
+	private String getFileNames(MinHashEntry e) {
+		ArrayList<String> filenames = codehashToFileNames.get(getKey(e.getGroup(), e.getCodehash()));
 		Collections.sort(filenames);
 		StringBuilder buf = new StringBuilder();
 		for (String filename: filenames) {

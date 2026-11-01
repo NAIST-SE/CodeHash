@@ -129,6 +129,16 @@ The threshold is 0.7 by default.  The `-th:[THRESHOLD]` option (0-1.0) changes t
 >        java -jar CodeHash.jar minhash-compare -th:0.8 minhash.txt
 >        java -classpath CodeHash.jar jp.naist.se.codehash.comparison.ComparisonMain -th:0.8 minhash.txt
 
+When multiple files are given, the tool compares all the files listed in them as a single set by default.
+The `-compare:crossgroup` option regards each input file as a group and compares only file pairs across groups, as well as `DirectComparisonMain`.
+For example, the following command compares files in project A with files in project B, skipping file pairs within each project.
+
+>        java -jar CodeHash.jar minhash-compare -compare:crossgroup minhash-a.txt minhash-b.txt
+
+In this mode, files having the same code hash are merged only within a group.
+Files having the same code hash in different groups are reported as a pair (EstimatedSim is 1.0).
+CodeHash1, TokenLength1, and FileNames1 represent a file in the group given earlier in the command line.
+
 
 ## Directly compare source files 
 

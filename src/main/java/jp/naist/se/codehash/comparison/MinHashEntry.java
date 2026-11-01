@@ -17,8 +17,16 @@ public class MinHashEntry {
 	private BitMinHash normalizedMinhash;
 	private long fileLength;
 	private int tokenLength;
+	private int group;
 
 	public MinHashEntry(String filename, String sha1, String lang, String codehash, String bits, String normalizedBits, long fileLength, int tokenLength, int size) {
+		this(filename, sha1, lang, codehash, bits, normalizedBits, fileLength, tokenLength, size, 0);
+	}
+
+	/**
+	 * @param group specifies a group of the entry, e.g. an index of an input file.
+	 */
+	public MinHashEntry(String filename, String sha1, String lang, String codehash, String bits, String normalizedBits, long fileLength, int tokenLength, int size, int group) {
 		this.filename = filename;
 		this.sha1 = sha1;
 		this.lang = lang;
@@ -27,6 +35,14 @@ public class MinHashEntry {
 		this.normalizedMinhash = new BitMinHash(normalizedBits, size);
 		this.fileLength = fileLength;
 		this.tokenLength = tokenLength;
+		this.group = group;
+	}
+
+	/**
+	 * @return the group of the entry.
+	 */
+	public int getGroup() {
+		return group;
 	}
 
 	public String getFilename() {

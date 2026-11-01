@@ -74,8 +74,9 @@ public class DirectComparisonMain {
 
 	/**
 	 * This option enables to compare files across groups.
+	 * This option is shared with {@link ComparisonMain}.
 	 */
-	private static String COMPARE_CRSOS_GROUP = "-compare:crossgroup";
+	static final String COMPARE_CROSS_GROUP = "-compare:crossgroup";
 	
 	/**
 	 * This option is to select metrics to be calculated.
@@ -180,7 +181,7 @@ public class DirectComparisonMain {
 					invalid = true;
 					return;
 				}
-			} else if (s.equals(COMPARE_CRSOS_GROUP)) {
+			} else if (s.equals(COMPARE_CROSS_GROUP)) {
 				compareGroups = true;
 			} else if (s.startsWith(DIR_OPTION) || s.startsWith(GROUP_OPTION)) {
 				// Add a specified path (file or directory) to the specified group  
