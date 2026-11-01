@@ -10,12 +10,10 @@ import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.Lexer;
 import org.antlr.v4.runtime.Token;
 
-import jp.naist.se.codehash.token.AntlrTokenReader.Filter;
 import jp.naist.se.codehash.normalizer.CPP14Normalizer;
 import jp.naist.se.codehash.normalizer.CSharpNormalizer;
 import jp.naist.se.codehash.normalizer.ECMAScriptNormalizer;
 import jp.naist.se.codehash.normalizer.Java8Normalizer;
-import jp.naist.se.codehash.normalizer.Normalizer;
 import jp.naist.se.codehash.normalizer.Python3Normalizer;
 import jp.naist.se.commentlister.lexer.CPP14Lexer;
 import jp.naist.se.commentlister.lexer.CSharpLexer;
@@ -133,8 +131,6 @@ public enum FileType {
 			case CPP:
 			{
 				CPP14Lexer lexer = new CPP14Lexer(stream);
-				//CommonTokenStream c = new CommonTokenStream(lexer, Java8Lexer.HIDDEN);
-				//System.out.println(c.size());
 				return new AntlrTokenReader(lexer, new AntlrTokenReader.Filter() {
 					@Override
 					public boolean accept(Token t) {
@@ -210,8 +206,6 @@ public enum FileType {
 				public boolean accept(Token t) {
 					return (t.getChannel() != Python3Lexer.HIDDEN) &&
 							(t.getType() != Python3Lexer.NEWLINE); 
-							//(t.getType() != Python3Parser.INDENT) &&
-							//(t.getType() != Python3Parser.DEDENT);
 				}
 			}, new Python3Normalizer());
 		}

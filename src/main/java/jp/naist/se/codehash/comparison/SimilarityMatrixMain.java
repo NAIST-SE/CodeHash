@@ -71,11 +71,10 @@ public class SimilarityMatrixMain {
 	 */
 	public void read(InputStream input) throws IOException {
 		JsonFactory f = new JsonFactory();
-		f.enable(JsonParser.Feature.ALLOW_NON_NUMERIC_NUMBERS);
 		try (JsonParser parser = f.createParser(input)) {
 			if (parser.nextToken() != JsonToken.START_OBJECT) throw new IOException("A JSON object is expected.");
 			while (parser.nextToken() == JsonToken.FIELD_NAME) {
-				String section = parser.getCurrentName();
+				String section = parser.currentName();
 				if (parser.nextToken() != JsonToken.START_ARRAY) {
 					parser.skipChildren();
 					continue;
@@ -83,7 +82,7 @@ public class SimilarityMatrixMain {
 				while (parser.nextToken() == JsonToken.START_OBJECT) {
 					HashMap<String, String> fields = new HashMap<>();
 					while (parser.nextToken() == JsonToken.FIELD_NAME) {
-						String name = parser.getCurrentName();
+						String name = parser.currentName();
 						parser.nextToken();
 						fields.put(name, parser.getText());
 						parser.skipChildren();

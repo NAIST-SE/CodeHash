@@ -109,12 +109,12 @@ public class DirectComparisonMainTest {
 		try (JsonParser parser = new JsonFactory().createParser(output)) {
 			Assert.assertEquals(JsonToken.START_OBJECT, parser.nextToken());
 			while (parser.nextToken() == JsonToken.FIELD_NAME) {
-				String section = parser.getCurrentName();
+				String section = parser.currentName();
 				Assert.assertEquals(JsonToken.START_ARRAY, parser.nextToken());
 				while (parser.nextToken() == JsonToken.START_OBJECT) {
 					LinkedHashMap<String, String> fields = new LinkedHashMap<>();
 					while (parser.nextToken() == JsonToken.FIELD_NAME) {
-						String name = parser.getCurrentName();
+						String name = parser.currentName();
 						parser.nextToken();
 						fields.put(name, parser.getText());
 					}

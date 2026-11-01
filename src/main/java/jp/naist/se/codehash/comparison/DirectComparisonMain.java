@@ -54,14 +54,6 @@ public class DirectComparisonMain {
 	private static String FILTER_OPTION = "-filter:";
 
 	/**
-	 * A file name filter to select files for comparison
-	 * (other files are included only for IDF)
-	 * An old README says: `-prefix:[PREFIX]` specifies a prefix filter for file names to be compared by the tool.  
-	 * This option extracts a subset of files listed by arguments and `-dir` options.
-	 */
-	private static String FILENAME_SELECTOR = "-prefix:";
-
-	/**
 	 * This is to specify a file group. 
 	 */
 	private static String GROUP_OPTION = "-group";
@@ -100,9 +92,6 @@ public class DirectComparisonMain {
 
 	private boolean invalid = false;
 
-	private ArrayList<FileEntity> files = new ArrayList<>();
-	private ArrayList<FileEntity> idfFiles = new ArrayList<>();
-	
 	/**
 	 * A programming language to process source files.
 	 * If none is selected, the tool extracts a language from a file extension. 
@@ -232,24 +221,6 @@ public class DirectComparisonMain {
  				defaultGroup.add(s);
 			}
 		}
-//		
-//		
-//		
-//		for (String s: filenames) {
-//			File f = new File(s);
-//			FileEntity entity = FileEntity.parse(f, t, N);
-//			if (entity != null) {
-//				if (filePrefix == null || s.startsWith(filePrefix)) {
-//					files.add(entity);
-//				}
-//				idfFiles.add(entity);
-//			}
-//		}
-//		if (files.size() <= 1) {
-//			System.err.println("Arguments: Two or more source file names should be specified.");
-//			invalid = true;
-//			return;
-//		}
 	}
 	
 	public void run() {
@@ -259,20 +230,6 @@ public class DirectComparisonMain {
 		for (FileGroup g: groups.values()) {
 			g.loadEntities(selectedLanguage, N);
 		}
-		
-//		// Count the number of Ngrams
-//		StringMultiset normalizedNgramFrequencyInSelectedFiles = new StringMultiset(1024);
-//		StringMultiset normalizedNgramFrequencyInAllFiles = new StringMultiset(1024);
-//		for (FileEntity f: idfFiles) {
-//			for (String s: f.getNormalizedNgramMultiset().keySet()) {
-//				normalizedNgramFrequencyInAllFiles.add(s);
-//			}
-//		}
-//		for (FileEntity f: files) {
-//			for (String s: f.getNormalizedNgramMultiset().keySet()) {
-//				normalizedNgramFrequencyInSelectedFiles.add(s);
-//			}
-//		}
 
 		JsonFactory f = new JsonFactory();
 		try (JsonGenerator gen = f.createGenerator(System.out)) {
