@@ -68,9 +68,9 @@ public class DirectComparisonMain {
 	private static String DIR_OPTION = "-dir";
 
 	/**
-	 * The default group name.
+	 * The default group name.  This is shared with {@link ComparisonMain}.
 	 */
-	private static String DEFAULT_GROUP = "<default>";
+	static final String DEFAULT_GROUP = "<default>";
 
 	/**
 	 * This option enables to compare files across groups.

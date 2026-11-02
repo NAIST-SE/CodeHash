@@ -3,6 +3,7 @@ package jp.naist.se.codehash;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.function.Consumer;
@@ -10,6 +11,7 @@ import java.util.function.Consumer;
 import org.junit.Assert;
 import org.junit.Test;
 
+import jp.naist.se.codehash.comparison.ComparisonMain;
 import jp.naist.se.codehash.comparison.FileTokenizerMain;
 
 
@@ -64,13 +66,28 @@ public class CodeHashMainTest {
 	public void testUsage() {
 		Result r = execute(CodeHashMain::main, "help");
 		Assert.assertTrue(r.out.startsWith("Usage:"));
-		for (String command: new String[] { "file-minhash", "minhash-compare", "file-compare", "json-to-matrix", "git-file-list", "git-minhash", "tokenize" }) {
+		for (String command: new String[] { "file-minhash", "minhash-compare", "minhash-compare-json", "file-compare", "json-to-matrix", "git-file-list", "git-minhash", "tokenize" }) {
 			Assert.assertTrue(command, r.out.contains("  " + command + " "));
 		}
 
 		r = execute(CodeHashMain::main);
 		Assert.assertEquals("", r.out);
 		Assert.assertTrue(r.err.startsWith("Usage:"));
+	}
+
+	@Test
+	public void testCommandWithOptions() throws Exception {
+		Path list = Files.createTempFile("minhash", ".txt");
+		try {
+			Files.write(list, execute(FileCodeHash::main, sampleFile(), sampleFile()).out.getBytes(StandardCharsets.UTF_8));
+			String expected = execute(ComparisonMain::main, ComparisonMain.JSON_OPTION, list.toString()).out;
+			Assert.assertTrue(expected.startsWith("{"));
+			Assert.assertEquals(expected, execute(CodeHashMain::main, "minhash-compare-json", list.toString()).out);
+			// A class name refers to the command without additional options
+			Assert.assertEquals(execute(ComparisonMain::main, list.toString()).out, execute(CodeHashMain::main, "ComparisonMain", list.toString()).out);
+		} finally {
+			Files.delete(list);
+		}
 	}
 
 	@Test

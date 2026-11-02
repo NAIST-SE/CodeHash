@@ -30,6 +30,7 @@ Each tool is a main class.  You can run a tool in either of the following ways; 
 |:----------------|:-----------------------------------------------------|:----------------------------------------------------------|
 |`file-minhash`   |`jp.naist.se.codehash.FileCodeHash`                   |Compute hashes and minhash of files on disk                |
 |`minhash-compare`|`jp.naist.se.codehash.comparison.ComparisonMain`      |Estimate similarity from minhash produced by `file-minhash`|
+|`minhash-compare-json`|`jp.naist.se.codehash.comparison.ComparisonMain`|`minhash-compare` with the `-json` option (JSON in the format of `file-compare`)|
 |`file-compare`   |`jp.naist.se.codehash.comparison.DirectComparisonMain`|Compare files directly and write JSON                      |
 |`json-to-matrix` |`jp.naist.se.codehash.comparison.SimilarityMatrixMain`|Convert a JSON output of `file-compare` into a CSV matrix  |
 |`git-file-list`  |`jp.naist.se.codehash.GitFileList`                    |List blobs reachable from HEAD of a git repository         |
@@ -37,6 +38,7 @@ Each tool is a main class.  You can run a tool in either of the following ways; 
 |`tokenize`       |`jp.naist.se.codehash.comparison.FileTokenizerMain`   |Write tokens of files in JSON                              |
 
 A simple name of a main class (e.g. `DirectComparisonMain`) is also accepted as a command name.
+`ComparisonMain` refers to `minhash-compare` (without the `-json` option).
 The examples in this document show both ways.
 
 
@@ -138,6 +140,28 @@ For example, the following command compares files in project A with files in pro
 In this mode, files having the same code hash are merged only within a group.
 Files having the same code hash in different groups are reported as a pair (EstimatedSim is 1.0).
 CodeHash1, TokenLength1, and FileNames1 represent a file in the group given earlier in the command line.
+
+### JSON output
+
+The `-json` option writes the result in the JSON format of `DirectComparisonMain` (see "Directly compare source files"), so that the tools for the format (e.g. `json-to-matrix`) can read the result.
+The `minhash-compare-json` command is equivalent to `minhash-compare -json`.
+
+>        java -jar CodeHash.jar minhash-compare-json minhash.txt > result.json
+>        java -classpath CodeHash.jar jp.naist.se.codehash.comparison.ComparisonMain -json minhash.txt > result.json
+>        java -jar CodeHash.jar json-to-matrix jaccard result.json > matrix.csv
+
+The differences from the output of `DirectComparisonMain` are as follows.
+
+ - The first attribute `Similarity` is `estimated-by-minhash`, indicating that the similarity values are estimated by 1-bit minhash vectors.  `DirectComparisonMain` does not write this attribute.  `json-to-matrix` ignores it.
+ - `Files` lists all the files in the input files, including files having the same code hash.  The attributes are taken from the input columns (`path` is `FileName`, `byte-sha1` is `SHA1`, `token-sha1` is `CodeHash`, and so on).
+ - `group` is `<default>`.  If `-compare:crossgroup` is specified, `group` is the path of the input file listing the file.
+ - `Pairs` has only two metrics: `exact-jaccard` is EstimatedSim, and `jaccard` is EstimatedSimWithNormalization.  Note that they are estimated values, not exact values.
+ - A line of the TSV output (a pair of code hash values) is expanded to all the pairs of files listed in FileNames1 and FileNames2.
+ - Files having the same code hash in a group are reported as pairs whose `exact-jaccard` and `jaccard` are 1.0 (except for the `-compare:crossgroup` mode, in which pairs within a group are not compared).
+ - `index1` is always less than `index2`.
+
+Note that the number of pairs may be much larger than the number of lines of the TSV output if many files have the same code hash.
+
 
 
 ## Directly compare source files 

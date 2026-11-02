@@ -40,12 +40,25 @@ public class CodeHashMain {
 	private static void register(String name, Class<?> mainClass, Consumer<String[]> main, String description) {
 		Command c = new Command(name, mainClass, main, description);
 		COMMANDS.put(name, c);
-		COMMANDS.put(mainClass.getSimpleName(), c);
+		// A class name refers to the first command registered for the class
+		COMMANDS.putIfAbsent(mainClass.getSimpleName(), c);
+	}
+
+	/**
+	 * @return a main method that runs the given main method with options inserted before the arguments.
+	 */
+	private static Consumer<String[]> withOptions(Consumer<String[]> main, String... options) {
+		return args -> {
+			String[] newArgs = Arrays.copyOf(options, options.length + args.length);
+			System.arraycopy(args, 0, newArgs, options.length, args.length);
+			main.accept(newArgs);
+		};
 	}
 
 	static {
 		register("file-minhash", FileCodeHash.class, FileCodeHash::main, "Compute hashes and minhash of files on disk.");
 		register("minhash-compare", ComparisonMain.class, ComparisonMain::main, "Estimate similarity from minhash produced by file-minhash.");
+		register("minhash-compare-json", ComparisonMain.class, withOptions(ComparisonMain::main, ComparisonMain.JSON_OPTION), "minhash-compare writing JSON in the format of file-compare.");
 		register("file-compare", DirectComparisonMain.class, DirectComparisonMain::main, "Compare files directly and write JSON.");
 		register("json-to-matrix", SimilarityMatrixMain.class, SimilarityMatrixMain::main, "Convert a JSON output of file-compare into a CSV matrix.");
 		register("git-file-list", GitFileList.class, GitFileList::main, "List blobs reachable from HEAD of a git repository.");
@@ -80,7 +93,7 @@ public class CodeHashMain {
 		for (String name: COMMANDS.keySet()) {
 			Command c = COMMANDS.get(name);
 			if (c.name.equals(name)) {
-				out.println(String.format("  %-16s %s (%s)", name, c.description, c.mainClass.getName()));
+				out.println(String.format("  %-20s %s (%s)", name, c.description, c.mainClass.getName()));
 			}
 		}
 		out.println("See README.md for the arguments of each command.");

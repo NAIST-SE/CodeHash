@@ -29,7 +29,7 @@ All packages are under `jp.naist.se.codehash`.
   - `GitCodeHash`: Computes hashes of blobs in git repositories, given a CSV of file lists or a repository directory.
   - `GitFileList`: Lists non-binary blobs reachable from HEAD.  `visitBlobs` is also used by `GitCodeHash`.
 - `comparison`: Main classes to compare files.
-  - `ComparisonMain`: Estimates similarity from minhash vectors produced by `FileCodeHash` or `GitCodeHash` (`MinHashEntry` represents a line).  `MinHashEntry` is used only by `ComparisonMain`.  Handles `-th:` and `-compare:crossgroup` (each input file is a group) options shared with `DirectComparisonMain`.
+  - `ComparisonMain`: Estimates similarity from minhash vectors produced by `FileCodeHash` or `GitCodeHash` (`MinHashEntry` represents a line).  `MinHashEntry` is used only by `ComparisonMain`.  Handles `-th:` and `-compare:crossgroup` (each input file is a group) options shared with `DirectComparisonMain`.  `-json` writes the result in the JSON format of `DirectComparisonMain` (the `minhash-compare-json` command).
   - `DirectComparisonMain`: Compares files directly and writes JSON.  Handles `-lang`, `-group`, `-n`, `-th*`, `-filter`, `-metrics`, `-compare` options.
   - `SimilarityMatrixMain`: Converts a JSON output of `DirectComparisonMain` into a CSV matrix of a selected metric.
   - `FileTokenizerMain`: Writes tokens of files in JSON.

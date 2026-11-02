@@ -8,10 +8,15 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 
 import org.junit.Assert;
 import org.junit.Test;
+
+import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.JsonToken;
 
 import jp.naist.se.codehash.FileCodeHash;
 
@@ -105,6 +110,16 @@ public class ComparisonMainTest {
 	 * @return the output lines excluding the header line.
 	 */
 	private static List<String> runGroups(String... options) throws Exception {
+		List<String> output = new ArrayList<>(Arrays.asList(runGroupsOutput(options).split("\r?\n")));
+		output.remove(0);
+		return output;
+	}
+
+	/**
+	 * Execute the tool with options and minhash lists in {@link #GROUPS}.
+	 * @return the standard output.
+	 */
+	private static String runGroupsOutput(String... options) throws Exception {
 		ArrayList<Path> lists = new ArrayList<>();
 		try {
 			ArrayList<String> args = new ArrayList<>(Arrays.asList(options));
@@ -126,9 +141,7 @@ public class ComparisonMainTest {
 				System.setOut(originalOut);
 				System.setErr(originalErr);
 			}
-			List<String> output = new ArrayList<>(Arrays.asList(buffer.toString(StandardCharsets.UTF_8).split("\r?\n")));
-			output.remove(0);
-			return output;
+			return buffer.toString(StandardCharsets.UTF_8);
 		} finally {
 			for (Path list: lists) {
 				Files.delete(list);
@@ -169,6 +182,86 @@ public class ComparisonMainTest {
 		Assert.assertTrue(same.startsWith("codehash-a\tcodehash-a\t50\t50\t1.0\t1.0\t"));
 
 		Assert.assertEquals(3, runGroups("-th:0.75", "-compare:crossgroup").size());
+	}
+
+	/**
+	 * Parse a JSON output.
+	 * @return file entries ("group:path") in the order of index, followed by pairs ("path1-path2:exact-jaccard:jaccard").
+	 */
+	private static List<String> parseJson(String output) throws Exception {
+		ArrayList<String> files = new ArrayList<>();
+		ArrayList<String> pairs = new ArrayList<>();
+		try (JsonParser parser = new JsonFactory().createParser(output)) {
+			Assert.assertEquals(JsonToken.START_OBJECT, parser.nextToken());
+			// The first attribute indicates estimated similarity
+			Assert.assertEquals(JsonToken.FIELD_NAME, parser.nextToken());
+			Assert.assertEquals("Similarity", parser.currentName());
+			Assert.assertEquals(JsonToken.VALUE_STRING, parser.nextToken());
+			Assert.assertEquals(ComparisonMain.JSON_SIMILARITY_ESTIMATED, parser.getText());
+			while (parser.nextToken() == JsonToken.FIELD_NAME) {
+				String section = parser.currentName();
+				Assert.assertEquals(JsonToken.START_ARRAY, parser.nextToken());
+				while (parser.nextToken() == JsonToken.START_OBJECT) {
+					HashMap<String, String> fields = new HashMap<>();
+					while (parser.nextToken() == JsonToken.FIELD_NAME) {
+						String name = parser.currentName();
+						parser.nextToken();
+						fields.put(name, parser.getText());
+					}
+					if (section.equals("Files")) {
+						Assert.assertEquals(files.size(), Integer.parseInt(fields.get("index")));
+						Assert.assertEquals("CPP", fields.get("lang"));
+						Assert.assertEquals("50", fields.get("ngram-count"));
+						files.add(fields.get("group") + ":" + fields.get("path"));
+					} else if (section.equals("Pairs")) {
+						int index1 = Integer.parseInt(fields.get("index1"));
+						int index2 = Integer.parseInt(fields.get("index2"));
+						Assert.assertTrue(index1 < index2);
+						pairs.add(path(files.get(index1)) + "-" + path(files.get(index2)) + ":" + fields.get("exact-jaccard") + ":" + fields.get("jaccard"));
+					}
+				}
+			}
+		}
+		ArrayList<String> result = new ArrayList<>(files);
+		result.addAll(pairs);
+		return result;
+	}
+
+	private static String path(String file) {
+		return file.substring(file.lastIndexOf(':') + 1);
+	}
+
+	@Test
+	public void testJson() throws Exception {
+		List<String> result = parseJson(runGroupsOutput("-th:0.5", ComparisonMain.JSON_OPTION));
+		// All files including duplicated ones are listed
+		Assert.assertEquals(Arrays.asList("<default>:A.c", "<default>:B.c", "<default>:C.c", "<default>:A2.c"), result.subList(0, 4));
+		List<String> pairs = result.subList(4, result.size());
+		// Pairs are expanded to files having the same codehash
+		Assert.assertEquals(6, pairs.size());
+		Assert.assertTrue(pairs.contains("A.c-A2.c:1.0:1.0"));
+		Assert.assertTrue(pairs.contains("A.c-B.c:0.75:0.75"));
+		Assert.assertTrue(pairs.contains("B.c-A2.c:0.75:0.75"));
+		Assert.assertTrue(pairs.contains("B.c-C.c:0.75:0.75"));
+		Assert.assertTrue(pairs.contains("A.c-C.c:0.5:0.5"));
+		Assert.assertTrue(pairs.contains("C.c-A2.c:0.5:0.5"));
+
+		// The default threshold excludes A-C and C-A2
+		Assert.assertEquals(4 + 4,parseJson(runGroupsOutput(ComparisonMain.JSON_OPTION)).size());
+	}
+
+	@Test
+	public void testJsonCrossGroup() throws Exception {
+		List<String> result = parseJson(runGroupsOutput("-th:0.5", "-compare:crossgroup", ComparisonMain.JSON_OPTION));
+		// Group names are input file names
+		Assert.assertTrue(result.get(0).endsWith(".txt:A.c"));
+		Assert.assertNotEquals(result.get(0).replace(":A.c", ""), result.get(2).replace(":C.c", ""));
+		List<String> pairs = result.subList(4, result.size());
+		Assert.assertEquals(4, pairs.size());
+		Assert.assertTrue(pairs.contains("A.c-A2.c:1.0:1.0"));
+		Assert.assertTrue(pairs.contains("A.c-C.c:0.5:0.5"));
+		Assert.assertTrue(pairs.contains("B.c-C.c:0.75:0.75"));
+		Assert.assertTrue(pairs.contains("B.c-A2.c:0.75:0.75"));
 	}
 
 }

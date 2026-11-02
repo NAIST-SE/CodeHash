@@ -10,7 +10,11 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 
+import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.core.JsonGenerator;
+
 import jp.naist.se.codehash.FileCodeHash;
+import jp.naist.se.codehash.similarity.SimilarityMetrics;
 
 public class ComparisonMain {
 
@@ -26,13 +30,26 @@ public class ComparisonMain {
 	private static final String THRESHOLD = "-th:";
 
 	/**
+	 * This option writes the result in the JSON format of {@link DirectComparisonMain}.
+	 */
+	public static final String JSON_OPTION = "-json";
+
+	/**
+	 * The value of the "Similarity" attribute in the JSON output.
+	 * It indicates that the similarity values are estimated by 1-bit minhash vectors.
+	 */
+	public static final String JSON_SIMILARITY_ESTIMATED = "estimated-by-minhash";
+
+	/**
 	 * Compare minhash in given files
 	 * @param args specify a list of file names.  "-th:[THRESHOLD]" option specifies a threshold (0.7 by default).
 	 * "-compare:crossgroup" option regards each file as a group and compares only file pairs across groups.
+	 * "-json" option writes the result in the JSON format of {@link DirectComparisonMain}.
 	 */
 	public static void main(String[] args) {
 		double threshold = DEFAULT_THRESHOLD;
 		boolean compareGroups = false;
+		boolean json = false;
 		ArrayList<File> files = new ArrayList<>();
 		for (String arg: args) {
 			if (arg.startsWith(THRESHOLD)) {
@@ -40,6 +57,8 @@ public class ComparisonMain {
 				if (Double.isNaN(threshold)) return;
 			} else if (arg.equals(DirectComparisonMain.COMPARE_CROSS_GROUP)) {
 				compareGroups = true;
+			} else if (arg.equals(JSON_OPTION)) {
+				json = true;
 			} else {
 				files.add(new File(arg));
 			}
@@ -58,13 +77,46 @@ public class ComparisonMain {
 		}
 
 		System.err.println(main.getEntryCount() + " unique files found.");
-		main.analyze(System.out);
+		if (json) {
+			main.analyzeJson(System.out);
+		} else {
+			main.analyze(System.out);
+		}
+	}
+
+	/**
+	 * A file listed in an input file.
+	 * Files having the same codehash in a group share a single {@link MinHashEntry}.
+	 */
+	private static class FileRecord {
+		private int index;
+		private int group;
+		private String filename;
+		private String sha1;
+		private String lang;
+		private String codehash;
+		private long fileLength;
+		private int tokenLength;
+		private int ngramCount;
+	}
+
+	/**
+	 * A callback to receive a file pair whose estimated similarity is greater than or equal to the threshold.
+	 */
+	private interface PairVisitor {
+		/**
+		 * @param first is a file in the former group.
+		 * @param second is the other file.
+		 */
+		void visit(MinHashEntry first, MinHashEntry second, double estimated, double normalizedEstimated) throws IOException;
 	}
 
 	private double threshold;
 	private boolean compareGroups;
 	private ArrayList<MinHashEntry> entries = new ArrayList<>();
-	private HashMap<String, ArrayList<String>> codehashToFileNames = new HashMap<>();
+	private ArrayList<FileRecord> files = new ArrayList<>();
+	private HashMap<String, ArrayList<FileRecord>> codehashToFiles = new HashMap<>();
+	private HashMap<Integer, String> groupNames = new HashMap<>();
 	private HashMap<String, String> languages = new HashMap<>(32);
 
 	public ComparisonMain() {
@@ -87,11 +139,11 @@ public class ComparisonMain {
 		this.threshold = threshold;
 		this.compareGroups = compareGroups;
 	}
-	
+
 	public int getEntryCount() {
 		return entries.size();
 	}
-	
+
 	/**
 	 * Replace a language string into a common string for faster comparison
 	 * @param lang
@@ -105,7 +157,7 @@ public class ComparisonMain {
 		}
 		return langCommonInstance;
 	}
-	
+
 	/**
 	 * Read a hash list file into the default group
 	 * @param f specifies a file
@@ -120,6 +172,9 @@ public class ComparisonMain {
 	 * @param group specifies a group of the files listed in f
 	 */
 	public void read(File f, int group) {
+		if (compareGroups) {
+			groupNames.putIfAbsent(group, f.getPath());
+		}
 		try (LineNumberReader reader = new LineNumberReader(new FileReader(f))) {
 			int skipped = 0;
 			for (String line = reader.readLine(); line != null; line = reader.readLine()) {
@@ -135,7 +190,7 @@ public class ComparisonMain {
 				}
 				String filename = tokens[0];
 				String sha1 = tokens[1];
-				String lang = tokens[2];
+				String lang = toSingleInstance(tokens[2]);
 				String codehash = tokens[3];
 				String minhash = tokens[4];
 				String normalizedMinhash = tokens[5];
@@ -151,16 +206,26 @@ public class ComparisonMain {
 					continue;
 				}
 
+				FileRecord r = new FileRecord();
+				r.index = files.size();
+				r.group = group;
+				r.filename = filename;
+				r.sha1 = sha1;
+				r.lang = lang;
+				r.codehash = codehash;
+				r.fileLength = fileLength;
+				r.tokenLength = tokenLength;
+				r.ngramCount = ngramSize;
+				files.add(r);
+
 				String key = getKey(group, codehash);
-				if (!codehashToFileNames.containsKey(key)) {
-					entries.add(new MinHashEntry(filename, sha1, toSingleInstance(lang), codehash, minhash, normalizedMinhash, fileLength, tokenLength, ngramSize, group));
-					ArrayList<String> filenames = new ArrayList<>();
-					filenames.add(filename);
-					codehashToFileNames.put(key, filenames);
-				} else {
-					ArrayList<String> filenames = codehashToFileNames.get(key);
-					filenames.add(filename);
+				ArrayList<FileRecord> sameFiles = codehashToFiles.get(key);
+				if (sameFiles == null) {
+					entries.add(new MinHashEntry(filename, sha1, lang, codehash, minhash, normalizedMinhash, fileLength, tokenLength, ngramSize, group));
+					sameFiles = new ArrayList<>();
+					codehashToFiles.put(key, sameFiles);
 				}
+				sameFiles.add(r);
 			}
 			if (skipped > 0) {
 				System.err.println(skipped + " lines without valid minhash vectors are skipped in " + f.getAbsolutePath());
@@ -181,7 +246,110 @@ public class ComparisonMain {
 		return true;
 	}
 
+	/**
+	 * Write file pairs in TSV.  Files having the same codehash in a group are written in a single line.
+	 */
 	public void analyze(PrintStream out) {
+		out.println("CodeHash1\tCodeHash2\tTokenLength1\tTokenLength2\tEstimatedSim\tEstimatedSimWithNormalization\tFileNames1\tFileNames2");
+		try {
+			compare((first, second, estimated, normalizedEstimated) -> {
+				StringBuilder buf = new StringBuilder(1024);
+				buf.append(first.getCodehash());
+				buf.append("\t");
+				buf.append(second.getCodehash());
+				buf.append("\t");
+				buf.append(first.getTokenLength());
+				buf.append("\t");
+				buf.append(second.getTokenLength());
+				buf.append("\t");
+				buf.append(estimated);
+				buf.append("\t");
+				buf.append(normalizedEstimated);
+				buf.append("\t");
+				buf.append(getFileNames(first));
+				buf.append("\t");
+				buf.append(getFileNames(second));
+				out.println(buf.toString());
+			});
+		} catch (IOException e) {
+			// PrintStream does not throw IOException
+			e.printStackTrace();
+		}
+	}
+
+	/**
+	 * Write files and file pairs in the JSON format of {@link DirectComparisonMain}.
+	 * The first attribute "Similarity" indicates that the values are estimated by minhash.
+	 * Each file listed in the input files is an element of "Files".
+	 * Each pair of files is an element of "Pairs"; estimated similarity values are written as "exact-jaccard" and "jaccard".
+	 * Files having the same codehash in a group are reported as pairs whose estimated similarity is 1.0,
+	 * unless the -compare:crossgroup option is specified.
+	 */
+	public void analyzeJson(PrintStream out) {
+		JsonFactory f = new JsonFactory();
+		try (JsonGenerator gen = f.createGenerator(out)) {
+			gen.useDefaultPrettyPrinter();
+			gen.writeStartObject();
+			gen.writeStringField("Similarity", JSON_SIMILARITY_ESTIMATED);
+
+			gen.writeArrayFieldStart("Files");
+			for (FileRecord r: files) {
+				gen.writeStartObject();
+				gen.writeStringField("group", groupNames.getOrDefault(r.group, DirectComparisonMain.DEFAULT_GROUP));
+				gen.writeNumberField("index", r.index);
+				gen.writeStringField("path", r.filename);
+				gen.writeStringField("lang", r.lang);
+				gen.writeStringField("byte-sha1", r.sha1);
+				gen.writeStringField("token-sha1", r.codehash);
+				gen.writeNumberField("byte-length", r.fileLength);
+				gen.writeNumberField("token-length", r.tokenLength);
+				gen.writeNumberField("ngram-count", r.ngramCount);
+				gen.writeEndObject();
+			}
+			gen.writeEndArray();
+
+			gen.writeArrayFieldStart("Pairs");
+			if (!compareGroups) {
+				// Files having the same codehash are identical in terms of tokens
+				for (MinHashEntry e: entries) {
+					ArrayList<FileRecord> sameFiles = getFiles(e);
+					for (int i=0; i<sameFiles.size(); i++) {
+						for (int j=i+1; j<sameFiles.size(); j++) {
+							writePair(gen, sameFiles.get(i), sameFiles.get(j), 1.0, 1.0);
+						}
+					}
+				}
+			}
+			compare((first, second, estimated, normalizedEstimated) -> {
+				for (FileRecord r1: getFiles(first)) {
+					for (FileRecord r2: getFiles(second)) {
+						writePair(gen, r1, r2, estimated, normalizedEstimated);
+					}
+				}
+			});
+			gen.writeEndArray();
+			gen.writeEndObject();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+
+	/**
+	 * Write a pair as an element of "Pairs".  A smaller index is written as "index1".
+	 */
+	private static void writePair(JsonGenerator gen, FileRecord r1, FileRecord r2, double estimated, double normalizedEstimated) throws IOException {
+		gen.writeStartObject();
+		gen.writeNumberField("index1", Math.min(r1.index, r2.index));
+		gen.writeNumberField("index2", Math.max(r1.index, r2.index));
+		gen.writeNumberField(SimilarityMetrics.EXACT_JACCARD, estimated);
+		gen.writeNumberField(SimilarityMetrics.JACCARD, normalizedEstimated);
+		gen.writeEndObject();
+	}
+
+	/**
+	 * Compare entries and pass file pairs satisfying the threshold to the visitor.
+	 */
+	private void compare(PairVisitor visitor) throws IOException {
 		// Sort for efficient comparison
 		entries.sort(new Comparator<MinHashEntry>() {
 			@Override
@@ -190,7 +358,6 @@ public class ComparisonMain {
 			}
 		});
 
-		out.println("CodeHash1\tCodeHash2\tTokenLength1\tTokenLength2\tEstimatedSim\tEstimatedSimWithNormalization\tFileNames1\tFileNames2");
 		// Compare all pairs
 		for (int i=0; i<entries.size(); i++) {
 			MinHashEntry e1 = entries.get(i);
@@ -207,23 +374,7 @@ public class ComparisonMain {
 					// Write a file in the former group first
 					MinHashEntry first = e1.getGroup() <= e2.getGroup() ? e1 : e2;
 					MinHashEntry second = first == e1 ? e2 : e1;
-					StringBuilder buf = new StringBuilder(1024);
-					buf.append(first.getCodehash());
-					buf.append("\t");
-					buf.append(second.getCodehash());
-					buf.append("\t");
-					buf.append(first.getTokenLength());
-					buf.append("\t");
-					buf.append(second.getTokenLength());
-					buf.append("\t");
-					buf.append(estimated);
-					buf.append("\t");
-					buf.append(normalizedEstimated);
-					buf.append("\t");
-					buf.append(getFileNames(first));
-					buf.append("\t");
-					buf.append(getFileNames(second));
-					out.println(buf.toString());
+					visitor.visit(first, second, estimated, normalizedEstimated);
 				}
 			}
 		}
@@ -237,17 +388,22 @@ public class ComparisonMain {
 	}
 
 	/**
+	 * @return files having the same codehash as e in the same group, in the order of index.
+	 */
+	private ArrayList<FileRecord> getFiles(MinHashEntry e) {
+		return codehashToFiles.get(getKey(e.getGroup(), e.getCodehash()));
+	}
+
+	/**
 	 * @return file names having the same codehash as e in the same group.
 	 */
 	private String getFileNames(MinHashEntry e) {
-		ArrayList<String> filenames = codehashToFileNames.get(getKey(e.getGroup(), e.getCodehash()));
-		Collections.sort(filenames);
-		StringBuilder buf = new StringBuilder();
-		for (String filename: filenames) {
-			if (buf.length() > 0) buf.append(",");
-			buf.append(filename);
+		ArrayList<String> filenames = new ArrayList<>();
+		for (FileRecord r: getFiles(e)) {
+			filenames.add(r.filename);
 		}
-		return buf.toString();
+		Collections.sort(filenames);
+		return String.join(",", filenames);
 	}
-	
+
 }
