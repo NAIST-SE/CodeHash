@@ -36,6 +36,7 @@ Each tool is a main class.  You can run a tool in either of the following ways; 
 |`git-file-list`  |`jp.naist.se.codehash.GitFileList`                    |List blobs reachable from HEAD of a git repository         |
 |`git-minhash`    |`jp.naist.se.codehash.GitCodeHash`                    |Compute hashes of blobs in git repositories                |
 |`tokenize`       |`jp.naist.se.codehash.comparison.FileTokenizerMain`   |Write tokens of files in JSON                              |
+|`pair-viewer`    |`jp.naist.se.codehash.viewer.PairViewerMain`          |View similar file pairs in a JSON output in a web browser  |
 
 A simple name of a main class (e.g. `DirectComparisonMain`) is also accepted as a command name.
 `ComparisonMain` refers to `minhash-compare` (without the `-json` option).
@@ -321,6 +322,23 @@ The first argument is a metric name.  The second argument is a JSON file; if it 
 The header line is `index,path` followed by file indices.
 Each row has a file index, a file path, and the metric values for the files in the header.
 The cells on and below the diagonal are empty, as well as the cells of pairs not included in the JSON (e.g. pairs excluded by `-filter` or files in different languages).
+
+### Viewing similar file pairs
+
+`jp.naist.se.codehash.viewer.PairViewerMain` is a simple viewer of a JSON output of `DirectComparisonMain` or `ComparisonMain` (`-json`).
+It starts an HTTP server on the local host and prints the URL of the viewer page; open it in a web browser.  Press Ctrl+C to stop the server.
+
+
+>        java -jar CodeHash.jar pair-viewer result.json
+>        java -classpath CodeHash.jar jp.naist.se.codehash.viewer.PairViewerMain result.json
+>        java -jar CodeHash.jar pair-viewer -port:8080 -git:path/to/repo result.json
+
+ - The page lists file pairs whose values of a selected metric are greater than or equal to a threshold, in descending order of the values.  Selecting a pair shows the two files side by side; lines that also appear in the other file (ignoring whitespace) are highlighted.
+ - The "Clusters" view groups files connected by the listed pairs (i.e. connected components); "(all pairs)" indicates that every pair of files in a cluster satisfies the threshold.  Files are compared pair by pair.
+ - Files are read from the paths in the JSON, i.e. the compared files must be stored in the local file system.  A warning is shown if a file has been modified after comparison (`byte-sha1`).
+ - A path written by `GitCodeHash` (`[blob ID]:[path]`) is searched in git repositories specified by `-git:` options (multiple options are allowed) or added on the page.  A blob not found in the repositories is shown as unavailable.
+ - `-port:N` specifies a port number.  An available port is selected by default.
+ - At most 1000 pairs (and 1000 clusters) are listed at once; raise the threshold to see others.
 
 
 
