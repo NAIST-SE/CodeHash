@@ -30,12 +30,12 @@ All packages are under `jp.naist.se.codehash`.
   - `GitFileList`: Lists non-binary blobs reachable from HEAD.  `visitBlobs` is also used by `GitCodeHash`.
 - `comparison`: Main classes to compare files.
   - `ComparisonMain`: Estimates similarity from minhash vectors produced by `FileCodeHash` or `GitCodeHash` (`MinHashEntry` represents a line).  `MinHashEntry` is used only by `ComparisonMain`.  Handles `-th:` and `-compare:crossgroup` (each input file is a group) options shared with `DirectComparisonMain`.  `-json` writes the result in the JSON format of `DirectComparisonMain` (the `minhash-compare-json` command).
-  - `DirectComparisonMain`: Compares files directly and writes JSON.  Handles `-lang`, `-group`, `-n`, `-th*`, `-filter`, `-metrics`, `-compare` options.
+  - `DirectComparisonMain`: Compares files directly and writes JSON.  Handles `-lang`, `-group`, `-n`, `-th*`, `-filter`, `-metrics`, `-compare`, `-threads` options.  Loads files and compares rows of file pairs (a file and the files compared with it) using `-threads` worker threads; results are written in the row order, keeping a bounded number of rows in progress.
   - `SimilarityMatrixMain`: Converts a JSON output of `DirectComparisonMain` into a CSV matrix of a selected metric.
   - `FileTokenizerMain`: Writes tokens of files in JSON.
 - `file`: Files to be compared by `DirectComparisonMain`.
   - `FileEntity`: A file with its hashes, N-gram multisets (`IntMultiset` of IDs from a `StringDictionary` shared by the files to be compared), and minhash vectors (computed only when `-thej`/`-thenj` is specified).
-  - `FileGroup`: A named group of files (`-group` option).  Loads files in parallel; file indices are assigned sequentially in the order of the paths.
+  - `FileGroup`: A named group of files (`-group` option).  Loads files in parallel using a given `ExecutorService`; file indices are assigned sequentially in the order of the paths.
 - `hash`: Hash computation.
   - `FileHash`: SHA-1 of a file content.
   - `SourceCodeHash`: Tokenizes a source file and computes its codehash and minhash (`MinHashType` selects None, Murmur3, SHA1, or SHA1InPaper).  Murmur3 minhash vectors are computed lazily by the getters.
@@ -55,6 +55,6 @@ All packages are under `jp.naist.se.codehash`.
   - `FileType`: Supported languages (CPP, JAVA, ECMASCRIPT, PYTHON, PHP, CSHARP, PLAINTEXT), mapping from language names and file extensions, and creation of token readers.  `PLAINTEXT` is never selected by a file extension.
   - `TokenReader`: Interface to read tokens.  `AntlrTokenReader` implements it with ANTLR lexers.
 - `normalizer`: Identifier normalization for each language (`Normalizer` and its implementations for C/C++, Java, C#, ECMAScript, and Python).
-- `util`: Utilities (`GitRepositoryUtil` to open a repository, `HashStringUtil`, `StringMultiset`, `Counter`, `StringDictionary` and `IntMultiset` for fast multiset intersection).
+- `util`: Utilities (`GitRepositoryUtil` to open a repository, `HashStringUtil`, `StringMultiset`, `Counter`, `StringDictionary` and `IntMultiset` for fast multiset intersection, `FutureUtil`).
 
 `org.antlr.v4.runtime.CaseChangingCharStream` is a helper for the case-insensitive PHP lexer.

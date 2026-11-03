@@ -197,6 +197,7 @@ The tool accepts the following options.  Other arguments are regarded as source 
 - `-filter:[EXPRESSION]` specifies a condition to report a file pair.  Only file pairs satisfying the condition are included in the output.  If the option is specified multiple times, a file pair must satisfy all of them.  See "Filter expressions" below.
 - `-metrics:[NAME,NAME,...]` selects similarity metrics written to the output.  All the metrics are written by default.  A filter expression can use metrics that are not selected by this option.
 - `-compare:crossgroup` compares only file pairs across groups.  It skips comparison between file pairs within a group.
+- `-threads:[N]` specifies the number of threads to load and compare files.  The default is the number of available processors.  `-threads:1` processes files in a single thread.  The output (including the order of file pairs) does not depend on the number of threads.
 
 #### Filter expressions
 

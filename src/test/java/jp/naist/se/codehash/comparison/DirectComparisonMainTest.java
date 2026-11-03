@@ -233,6 +233,33 @@ public class DirectComparisonMainTest {
 		Assert.assertEquals("", executeWithoutErrorOutput("-thej:1.5"));
 	}
 
+	/**
+	 * @return a string representation of pairs to compare outputs including their order.
+	 */
+	private static List<String> toStrings(List<Pair> pairs) {
+		ArrayList<String> result = new ArrayList<>();
+		for (Pair p: pairs) {
+			result.add(p.file1 + "," + p.file2 + "," + p.values);
+		}
+		return result;
+	}
+
+	@Test
+	public void testThreads() throws Exception {
+		// The output (including the order of pairs) does not depend on the number of threads
+		List<String> expected = toStrings(run("-threads:1"));
+		Assert.assertEquals(6, expected.size());
+		Assert.assertEquals(expected, toStrings(run("-threads:2")));
+		Assert.assertEquals(expected, toStrings(run("-threads:16")));
+		Assert.assertEquals(expected, toStrings(run()));
+
+		// Crossgroup comparison with a filter
+		Assert.assertEquals(toStrings(run("-threads:1", "-compare:crossgroup", "-thenj:0.1")), toStrings(run("-threads:3", "-compare:crossgroup", "-thenj:0.1")));
+
+		Assert.assertEquals("", executeWithoutErrorOutput("-threads:0"));
+		Assert.assertEquals("", executeWithoutErrorOutput("-threads:abc"));
+	}
+
 	@Test
 	public void testFileIndices() throws Exception {
 		// Indices are consecutive numbers in the order of command line arguments, even though files are loaded in parallel

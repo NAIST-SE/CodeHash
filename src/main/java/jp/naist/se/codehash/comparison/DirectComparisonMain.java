@@ -1,10 +1,15 @@
 package jp.naist.se.codehash.comparison;
 
 import java.io.IOException;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.function.Predicate;
 
 import com.fasterxml.jackson.core.JsonFactory;
@@ -19,6 +24,7 @@ import jp.naist.se.codehash.similarity.SimilarityRecord;
 import jp.naist.se.codehash.file.FileEntity;
 import jp.naist.se.codehash.file.FileGroup;
 import jp.naist.se.codehash.hash.MinHashOptions;
+import jp.naist.se.codehash.util.FutureUtil;
 import jp.naist.se.codehash.util.StringDictionary;
 
 /**
@@ -95,6 +101,19 @@ public class DirectComparisonMain {
 	 */
 	private static String METRICS = "-metrics:";
 
+	/**
+	 * This option specifies the number of threads to load and compare files, e.g. "-threads:4".
+	 * The default is the number of available processors.
+	 * "-threads:1" processes files in the main thread.
+	 */
+	private static String THREADS_OPTION = "-threads:";
+
+	/**
+	 * The number of rows (a file and files compared with it) processed in parallel per thread.
+	 * It limits the number of results kept in memory before they are written.
+	 */
+	private static final int ROWS_PER_THREAD = 4;
+
 	
 	/**
 	 * Compare source files and write the result to STDOUT.
@@ -119,6 +138,8 @@ public class DirectComparisonMain {
 	private double thresholdNormalizedJaccard = -1;
 	private double thresholdEstimatedNormalizedJaccard = -1;
 	private double thresholdEstimatedJaccard = -1;
+	private int threads = Runtime.getRuntime().availableProcessors();
+	private SimilarityMetric jaccard = SimilarityMetrics.get(SimilarityMetrics.JACCARD);
 	private HashMap<String, FileGroup> groups = new HashMap<>();
 	
 	/**
@@ -199,6 +220,18 @@ public class DirectComparisonMain {
 					invalid = true;
 					return;
 				}
+			} else if (s.startsWith(THREADS_OPTION)) {
+				String nString = s.substring(THREADS_OPTION.length());
+				try {
+					threads = Integer.parseInt(nString);
+				} catch (NumberFormatException e) {
+					threads = 0;
+				}
+				if (threads < 1) {
+					System.err.println("Invalid number of threads: " + nString);
+					invalid = true;
+					return;
+				}
 			} else if (s.equals(COMPARE_CROSS_GROUP)) {
 				compareGroups = true;
 			} else if (s.startsWith(DIR_OPTION) || s.startsWith(GROUP_OPTION)) {
@@ -238,11 +271,25 @@ public class DirectComparisonMain {
 	
 	public void run() {
 		if (invalid) return;
-		
+
+		// Files are processed in the main thread if a single thread is specified
+		ExecutorService executor = threads > 1 ? Executors.newFixedThreadPool(threads) : null;
+		try {
+			run(executor);
+		} finally {
+			if (executor != null) executor.shutdownNow();
+		}
+	}
+
+	/**
+	 * Load and compare files.
+	 * @param executor executes tasks in parallel.  If null, tasks are executed in the main thread.
+	 */
+	private void run(ExecutorService executor) {
 		// Load files.  Minhash vectors are computed only if they are used to skip comparison.
 		StringDictionary dictionary = new StringDictionary();
 		for (FileGroup g: groups.values()) {
-			g.loadEntities(selectedLanguage, N, dictionary, thresholdEstimatedJaccard > 0, thresholdEstimatedNormalizedJaccard > 0);
+			g.loadEntities(selectedLanguage, N, dictionary, thresholdEstimatedJaccard > 0, thresholdEstimatedNormalizedJaccard > 0, executor);
 		}
 
 		JsonFactory f = new JsonFactory();
@@ -271,40 +318,7 @@ public class DirectComparisonMain {
 			gen.writeEndArray();
 
 			gen.writeArrayFieldStart("Pairs");
-
-			if (compareGroups) {
-				// Compare across groups
-				ArrayList<FileGroup> groupList = new ArrayList<>(groups.values());
-				
-				for (int i=0; i<groupList.size(); i++) {
-					for (int j=i+1; j<groupList.size(); j++) {
-						
-						ArrayList<FileEntity> files1 = groupList.get(i).getFiles();
-						ArrayList<FileEntity> files2 = groupList.get(j).getFiles();
-						
-						for (FileEntity e1: files1) {
-							for (FileEntity e2: files2) {
-								compare(gen, e1, e2);
-							}
-						}
-						
-					}
-				}
-				
-			} else {
-				// Compare within groups
-				for (FileGroup g: groups.values()) {
-					ArrayList<FileEntity> files = g.getFiles();
-					for (int i=0; i<files.size(); i++) {
-						FileEntity e1 = files.get(i);
-						for (int j=i+1; j<files.size(); j++) {
-							FileEntity e2 = files.get(j);
-							compare(gen, e1, e2);
-						}
-					}
-				}
-			}
-			
+			compareRows(gen, createRows(), executor);
 			gen.writeEndArray();
 			gen.writeEndObject();
 		} catch (IOException e) {
@@ -314,38 +328,130 @@ public class DirectComparisonMain {
 	}
 
 	/**
-	 * Compare two files and write their similarity values as an element of "Pairs".
-	 * Nothing is written if the files are written in different languages,
-	 * or the pair is excluded by the thresholds (-thej, -thenj, -th, -thnj) or the filters.
-	 * @param gen is the JSON generator to write the result.
+	 * A file and files to be compared with it.  It is a unit of parallel comparison.
+	 */
+	private static class Row {
+
+		private FileEntity e1;
+		private List<FileEntity> others;
+
+		public Row(FileEntity e1, List<FileEntity> others) {
+			this.e1 = e1;
+			this.others = others;
+		}
+	}
+
+	/**
+	 * @return rows of file pairs in the output order.
+	 */
+	private ArrayList<Row> createRows() {
+		ArrayList<Row> rows = new ArrayList<>();
+		if (compareGroups) {
+			// Compare across groups
+			ArrayList<FileGroup> groupList = new ArrayList<>(groups.values());
+			for (int i=0; i<groupList.size(); i++) {
+				for (int j=i+1; j<groupList.size(); j++) {
+					ArrayList<FileEntity> files2 = groupList.get(j).getFiles();
+					for (FileEntity e1: groupList.get(i).getFiles()) {
+						rows.add(new Row(e1, files2));
+					}
+				}
+			}
+		} else {
+			// Compare within groups
+			for (FileGroup g: groups.values()) {
+				ArrayList<FileEntity> files = g.getFiles();
+				for (int i=0; i<files.size(); i++) {
+					rows.add(new Row(files.get(i), files.subList(i+1, files.size())));
+				}
+			}
+		}
+		return rows;
+	}
+
+	/**
+	 * Compare file pairs and write the results in the order of rows.
+	 * Rows are compared in parallel, while the number of rows in progress is limited
+	 * so that only the results of a small number of rows are kept in memory.
+	 * @param executor executes comparison.  If null, rows are compared in the main thread.
+	 */
+	private void compareRows(JsonGenerator gen, List<Row> rows, ExecutorService executor) throws IOException {
+		if (executor == null) {
+			for (Row row: rows) {
+				write(gen, compare(row));
+			}
+			return;
+		}
+
+		ArrayDeque<Future<List<SimilarityRecord>>> running = new ArrayDeque<>();
+		int next = 0;
+		while (next < rows.size() || !running.isEmpty()) {
+			while (next < rows.size() && running.size() < threads * ROWS_PER_THREAD) {
+				Row row = rows.get(next++);
+				running.add(executor.submit(() -> compare(row)));
+			}
+			write(gen, FutureUtil.get(running.poll()));
+		}
+	}
+
+	/**
+	 * Compare files in a row.  This method may be executed in parallel.
+	 * @return the records to be written.
+	 */
+	private List<SimilarityRecord> compare(Row row) {
+		ArrayList<SimilarityRecord> result = new ArrayList<>();
+		for (FileEntity e2: row.others) {
+			SimilarityRecord r = compare(row.e1, e2);
+			if (r != null) result.add(r);
+		}
+		return result;
+	}
+
+	/**
+	 * Compare two files.
+	 * The values of the selected metrics are calculated in this method, so that writing the result does not calculate them.
 	 * @param e1 is the first file, written as "index1".
 	 * @param e2 is the second file, written as "index2".
+	 * @return the similarity values of the pair.
+	 * null if the files are written in different languages,
+	 * or the pair is excluded by the thresholds (-thej, -thenj, -th, -thnj) or the filters.
+	 */
+	private SimilarityRecord compare(FileEntity e1, FileEntity e2) {
+		// Compare them if they are written in the same language
+		if (!e1.isSameLanguage(e2)) return null;
+
+		// skip actual calculation if estimated similarity is low
+		if (thresholdEstimatedJaccard > 0 && e1.estimateSimilarity(e2) < thresholdEstimatedJaccard) return null;
+		if (thresholdEstimatedNormalizedJaccard > 0 && e1.estimateNormalizedSimilarity(e2) < thresholdEstimatedNormalizedJaccard) return null;
+
+		SimilarityRecord similarityValues = new SimilarityRecord(new FilePair(e1, e2));
+		if (isLessThan(similarityValues, threshold)) return null;
+
+		// skip actual similarity is lower than threshold
+		if (thresholdNormalizedJaccard > 0 && similarityValues.getValue(jaccard) < thresholdNormalizedJaccard) return null;
+
+		for (Predicate<SimilarityRecord> filter: filters) {
+			if (!filter.test(similarityValues)) return null;
+		}
+
+		for (SimilarityMetric m: metrics) {
+			similarityValues.getValue(m);
+		}
+		return similarityValues;
+	}
+
+	/**
+	 * Write similarity values as elements of "Pairs".
 	 * @throws IOException if an error occurred while writing the result.
 	 */
-	private void compare(JsonGenerator gen, FileEntity e1, FileEntity e2) throws IOException {
-		// Compare them if they are written in the same language
-		if (e1.isSameLanguage(e2)) {
-			// skip actual calculation if estimated similarity is low
-			if (thresholdEstimatedJaccard > 0 && e1.estimateSimilarity(e2) < thresholdEstimatedJaccard) return;
-			if (thresholdEstimatedNormalizedJaccard > 0 && e1.estimateNormalizedSimilarity(e2) < thresholdEstimatedNormalizedJaccard) return;
-			
-			SimilarityRecord similarityValues = new SimilarityRecord(new FilePair(e1, e2));
-			if (isLessThan(similarityValues, threshold)) return;
-
-			// skip actual similarity is lower than threshold
-			if (thresholdNormalizedJaccard > 0 && similarityValues.getValue(SimilarityMetrics.get(SimilarityMetrics.JACCARD)) < thresholdNormalizedJaccard) return;
-
-			for (Predicate<SimilarityRecord> filter: filters) {
-				if (!filter.test(similarityValues)) return;
-			}
-
+	private void write(JsonGenerator gen, List<SimilarityRecord> records) throws IOException {
+		for (SimilarityRecord r: records) {
 			gen.writeStartObject();
-			gen.writeNumberField("index1", e1.getIndex());
-			gen.writeNumberField("index2", e2.getIndex());
-			similarityValues.writeSimilarity(gen, metrics);
+			gen.writeNumberField("index1", r.getPair().getFirst().getIndex());
+			gen.writeNumberField("index2", r.getPair().getSecond().getIndex());
+			r.writeSimilarity(gen, metrics);
 			gen.writeEndObject();
 		}
-		
 	}
 
 	/**

@@ -8,10 +8,11 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Collectors;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 
 import jp.naist.se.codehash.token.FileType;
+import jp.naist.se.codehash.util.FutureUtil;
 import jp.naist.se.codehash.util.StringDictionary;
 
 public class FileGroup {
@@ -63,12 +64,24 @@ public class FileGroup {
 	/**
 	 * Load files in parallel.
 	 * Indices are assigned to the loaded files in the order of the paths added to this group.
-	 * The parameters are passed to {@link FileEntity#parse(Path, FileType, int, StringDictionary, boolean, boolean)}.
+	 * The other parameters are passed to {@link FileEntity#parse(Path, FileType, int, StringDictionary, boolean, boolean)}.
+	 * @param executor loads files in parallel.  If null, files are loaded in the caller thread.
 	 */
-	public void loadEntities(FileType enforceLanguage, int N, StringDictionary dictionary, boolean computeMinHash, boolean computeNormalizedMinHash) {
-		List<FileEntity> loaded = filePaths.parallelStream()
-				.map(path -> FileEntity.parse(path, enforceLanguage, N, dictionary, computeMinHash, computeNormalizedMinHash))
-				.collect(Collectors.toList());
+	public void loadEntities(FileType enforceLanguage, int N, StringDictionary dictionary, boolean computeMinHash, boolean computeNormalizedMinHash, ExecutorService executor) {
+		ArrayList<FileEntity> loaded = new ArrayList<>(filePaths.size());
+		if (executor == null) {
+			for (Path path: filePaths) {
+				loaded.add(FileEntity.parse(path, enforceLanguage, N, dictionary, computeMinHash, computeNormalizedMinHash));
+			}
+		} else {
+			ArrayList<Future<FileEntity>> tasks = new ArrayList<>(filePaths.size());
+			for (Path path: filePaths) {
+				tasks.add(executor.submit(() -> FileEntity.parse(path, enforceLanguage, N, dictionary, computeMinHash, computeNormalizedMinHash)));
+			}
+			for (Future<FileEntity> task: tasks) {
+				loaded.add(FutureUtil.get(task));
+			}
+		}
 		this.fileEntities = new ArrayList<>(loaded.size());
 		for (FileEntity e: loaded) {
 			if (e != null) {
