@@ -10,9 +10,10 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 
 import org.junit.Assert;
 import org.junit.Test;
@@ -103,8 +104,16 @@ public class DirectComparisonMainTest {
 	 * @return pairs in the output.
 	 */
 	private static List<Pair> run(String... options) throws IOException, URISyntaxException {
+		return run(new TreeMap<>(), options);
+	}
+
+	/**
+	 * Execute the tool and parse the JSON output.
+	 * @param files receives file names in the output with their indices.
+	 * @return pairs in the output.
+	 */
+	private static List<Pair> run(Map<Integer, String> files, String... options) throws IOException, URISyntaxException {
 		String output = execute(options);
-		HashMap<Integer, String> files = new HashMap<>();
 		ArrayList<Pair> pairs = new ArrayList<>();
 		try (JsonParser parser = new JsonFactory().createParser(output)) {
 			Assert.assertEquals(JsonToken.START_OBJECT, parser.nextToken());
@@ -210,6 +219,27 @@ public class DirectComparisonMainTest {
 
 		// A threshold 0 does not skip any pairs
 		Assert.assertEquals(6, run("-thenj:0").size());
+	}
+
+	@Test
+	public void testEstimatedThresholdWithoutNormalization() throws Exception {
+		// No pairs have the same N-grams without normalization
+		Assert.assertEquals(0, run("-thej:1").size());
+		Assert.assertEquals(6, run("-thej:0").size());
+
+		// The renamed copy is excluded since its N-grams are different without normalization
+		Assert.assertEquals(0, run("-thej:1", "-thenj:1").size());
+
+		Assert.assertEquals("", executeWithoutErrorOutput("-thej:1.5"));
+	}
+
+	@Test
+	public void testFileIndices() throws Exception {
+		// Indices are consecutive numbers in the order of command line arguments, even though files are loaded in parallel
+		TreeMap<Integer, String> files = new TreeMap<>();
+		run(files);
+		Assert.assertEquals(Arrays.asList(SAMPLE_FILES), new ArrayList<>(files.values()));
+		Assert.assertEquals(SAMPLE_FILES.length - 1, files.lastKey() - files.firstKey());
 	}
 
 	@Test

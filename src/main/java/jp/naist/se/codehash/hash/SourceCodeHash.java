@@ -34,6 +34,12 @@ public class SourceCodeHash {
 	private StringMultiset normalizedNgrams;
 
 	/**
+	 * N-grams to compute Murmur3 minhash vectors on demand.  null unless a Murmur3 minhash is specified.
+	 */
+	private MurmurMinHash murmurMinHash;
+	private boolean ignoreDuplication;
+
+	/**
 	 * Compute hash values using the default N-gram size.
 	 * @see #SourceCodeHash(FileType, InputStream, long, MinHashType, int)
 	 */
@@ -56,17 +62,12 @@ public class SourceCodeHash {
 		case Murmur3:
 		case Murmur3IgnoreDuplication:
 		{
-			MurmurMinHash h = new MurmurMinHash(MinHashOptions.BIT_COUNT, N, wrapper);
-			if (minhashType == MinHashType.Murmur3IgnoreDuplication) {
-				minhash = HashStringUtil.bytesToHex(h.getHashIgnoreDuplicatedElements());
-				normalizedMinhash = HashStringUtil.bytesToHex(h.getNormalizedHashIgnoreDuplicatedElements());
-			} else {
-				minhash = HashStringUtil.bytesToHex(h.getHash());
-				normalizedMinhash = HashStringUtil.bytesToHex(h.getNormalizedHash());
-			}
-			ngramCount = h.getNgramCount();
-			ngrams = h.getNgramMultiset();
-			normalizedNgrams = h.getNormalizedNgramMultiset();
+			// Minhash vectors are computed on demand, since they are expensive
+			murmurMinHash = new MurmurMinHash(MinHashOptions.BIT_COUNT, N, wrapper);
+			ignoreDuplication = (minhashType == MinHashType.Murmur3IgnoreDuplication);
+			ngramCount = murmurMinHash.getNgramCount();
+			ngrams = murmurMinHash.getNgramMultiset();
+			normalizedNgrams = murmurMinHash.getNormalizedNgramMultiset();
 			break;
 		}
 		case SHA1:
@@ -98,17 +99,25 @@ public class SourceCodeHash {
 	}
 
 	/**
+	 * A Murmur3 minhash vector is computed when this method is called for the first time.
 	 * @return minhash value.  null if MinHashType.None is specified.
 	 */
 	public String getMinHash() {
+		if (minhash == null && murmurMinHash != null) {
+			minhash = HashStringUtil.bytesToHex(ignoreDuplication ? murmurMinHash.getHashIgnoreDuplicatedElements() : murmurMinHash.getHash());
+		}
 		return minhash;
 	}
 
 	/**
 	 * Normalization ignores differences such as variable names, following the rules of each programming language.
+	 * A minhash vector is computed when this method is called for the first time.
 	 * @return minhash value of normalized N-grams.  null unless a Murmur3 minhash is specified.
 	 */
 	public String getNormalizedMinHash() {
+		if (normalizedMinhash == null && murmurMinHash != null) {
+			normalizedMinhash = HashStringUtil.bytesToHex(ignoreDuplication ? murmurMinHash.getNormalizedHashIgnoreDuplicatedElements() : murmurMinHash.getNormalizedHash());
+		}
 		return normalizedMinhash;
 	}
 

@@ -192,6 +192,8 @@ The tool accepts the following options.  Other arguments are regarded as source 
 - `-th:[THRESHOLD]` specifies a similarity threshold (0-1.0).  If all of similarity values for a file pair are less than this threshold, the file pair is excluded from the output.
 - `-thnj:[THRESHOLD]` specifies a similarity threshold for normalized jaccard distance.  If the similarity value for a file pair is less than this threshold, the file pair is excluded from the output.
 - `-thenj:[THRESHOLD]` specifies a threshold for estimated normalized jaccard distance.  If a similarity estimated by b-bit minhash is less than this threshold, an actual comparison is skipped.
+- `-thej:[THRESHOLD]` specifies a threshold for estimated jaccard distance without identifier normalization (i.e. `exact-jaccard`).  If a similarity estimated by b-bit minhash is less than this threshold, an actual comparison is skipped.
+  Minhash vectors are computed only if `-thenj` or `-thej` is specified (with a positive threshold), since the computation takes a long time.
 - `-filter:[EXPRESSION]` specifies a condition to report a file pair.  Only file pairs satisfying the condition are included in the output.  If the option is specified multiple times, a file pair must satisfy all of them.  See "Filter expressions" below.
 - `-metrics:[NAME,NAME,...]` selects similarity metrics written to the output.  All the metrics are written by default.  A filter expression can use metrics that are not selected by this option.
 - `-compare:crossgroup` compares only file pairs across groups.  It skips comparison between file pairs within a group.

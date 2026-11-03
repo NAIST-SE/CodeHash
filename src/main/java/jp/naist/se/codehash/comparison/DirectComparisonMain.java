@@ -19,6 +19,7 @@ import jp.naist.se.codehash.similarity.SimilarityRecord;
 import jp.naist.se.codehash.file.FileEntity;
 import jp.naist.se.codehash.file.FileGroup;
 import jp.naist.se.codehash.hash.MinHashOptions;
+import jp.naist.se.codehash.util.StringDictionary;
 
 /**
  * Compares source files using N-gram multisets of tokens and writes similarity values in JSON to STDOUT.
@@ -48,7 +49,17 @@ public class DirectComparisonMain {
 	 */
 	private static String THRESHOLD_NORMALIZED_JACCARD = "-thnj:";
 
+	/**
+	 * A file pair is compared only if its jaccard estimated by minhash is greater than or equal to this threshold.
+	 * Minhash vectors of normalized N-grams are computed only if this option is specified.
+	 */
 	private static String THRESHOLD_ESTIMATED_NORMALIZED_JACCARD = "-thenj:";
+
+	/**
+	 * A file pair is compared only if its exact-jaccard estimated by minhash is greater than or equal to this threshold.
+	 * Minhash vectors of N-grams (without normalization) are computed only if this option is specified.
+	 */
+	private static String THRESHOLD_ESTIMATED_JACCARD = "-thej:";
 
 	/**
 	 * An option to specify a condition to report a file pair, e.g. "-filter:jaccard>=0.7 or overlap-coefficient>=0.9".
@@ -107,6 +118,7 @@ public class DirectComparisonMain {
 	private double threshold = 0;
 	private double thresholdNormalizedJaccard = -1;
 	private double thresholdEstimatedNormalizedJaccard = -1;
+	private double thresholdEstimatedJaccard = -1;
 	private HashMap<String, FileGroup> groups = new HashMap<>();
 	
 	/**
@@ -145,6 +157,12 @@ public class DirectComparisonMain {
 			} else if (s.startsWith(THRESHOLD_ESTIMATED_NORMALIZED_JACCARD)) {
 				thresholdEstimatedNormalizedJaccard = parseThreshold(THRESHOLD_ESTIMATED_NORMALIZED_JACCARD, s);
 				if (Double.isNaN(thresholdEstimatedNormalizedJaccard)) {
+					invalid = true;
+					return;
+				}
+			} else if (s.startsWith(THRESHOLD_ESTIMATED_JACCARD)) {
+				thresholdEstimatedJaccard = parseThreshold(THRESHOLD_ESTIMATED_JACCARD, s);
+				if (Double.isNaN(thresholdEstimatedJaccard)) {
 					invalid = true;
 					return;
 				}
@@ -221,9 +239,10 @@ public class DirectComparisonMain {
 	public void run() {
 		if (invalid) return;
 		
-		// Load files
+		// Load files.  Minhash vectors are computed only if they are used to skip comparison.
+		StringDictionary dictionary = new StringDictionary();
 		for (FileGroup g: groups.values()) {
-			g.loadEntities(selectedLanguage, N);
+			g.loadEntities(selectedLanguage, N, dictionary, thresholdEstimatedJaccard > 0, thresholdEstimatedNormalizedJaccard > 0);
 		}
 
 		JsonFactory f = new JsonFactory();
@@ -297,7 +316,7 @@ public class DirectComparisonMain {
 	/**
 	 * Compare two files and write their similarity values as an element of "Pairs".
 	 * Nothing is written if the files are written in different languages,
-	 * or the pair is excluded by the thresholds (-thenj, -th, -thnj) or the filters.
+	 * or the pair is excluded by the thresholds (-thej, -thenj, -th, -thnj) or the filters.
 	 * @param gen is the JSON generator to write the result.
 	 * @param e1 is the first file, written as "index1".
 	 * @param e2 is the second file, written as "index2".
@@ -307,6 +326,7 @@ public class DirectComparisonMain {
 		// Compare them if they are written in the same language
 		if (e1.isSameLanguage(e2)) {
 			// skip actual calculation if estimated similarity is low
+			if (thresholdEstimatedJaccard > 0 && e1.estimateSimilarity(e2) < thresholdEstimatedJaccard) return;
 			if (thresholdEstimatedNormalizedJaccard > 0 && e1.estimateNormalizedSimilarity(e2) < thresholdEstimatedNormalizedJaccard) return;
 			
 			SimilarityRecord similarityValues = new SimilarityRecord(new FilePair(e1, e2));

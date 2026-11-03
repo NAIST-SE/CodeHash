@@ -8,8 +8,11 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import jp.naist.se.codehash.token.FileType;
+import jp.naist.se.codehash.util.StringDictionary;
 
 public class FileGroup {
 		
@@ -57,11 +60,19 @@ public class FileGroup {
 		
 	}
 	
-	public void loadEntities(FileType enforceLanguage, int N) {
-		this.fileEntities = new ArrayList<>(filePaths.size()); 
-		for (Path path: filePaths) {
-			FileEntity e = FileEntity.parse(path, enforceLanguage, N);
+	/**
+	 * Load files in parallel.
+	 * Indices are assigned to the loaded files in the order of the paths added to this group.
+	 * The parameters are passed to {@link FileEntity#parse(Path, FileType, int, StringDictionary, boolean, boolean)}.
+	 */
+	public void loadEntities(FileType enforceLanguage, int N, StringDictionary dictionary, boolean computeMinHash, boolean computeNormalizedMinHash) {
+		List<FileEntity> loaded = filePaths.parallelStream()
+				.map(path -> FileEntity.parse(path, enforceLanguage, N, dictionary, computeMinHash, computeNormalizedMinHash))
+				.collect(Collectors.toList());
+		this.fileEntities = new ArrayList<>(loaded.size());
+		for (FileEntity e: loaded) {
 			if (e != null) {
+				e.assignIndex();
 				fileEntities.add(e);
 			}
 		}

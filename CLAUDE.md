@@ -34,15 +34,15 @@ All packages are under `jp.naist.se.codehash`.
   - `SimilarityMatrixMain`: Converts a JSON output of `DirectComparisonMain` into a CSV matrix of a selected metric.
   - `FileTokenizerMain`: Writes tokens of files in JSON.
 - `file`: Files to be compared by `DirectComparisonMain`.
-  - `FileEntity`: A file with its hashes, N-gram multisets, and minhash.
-  - `FileGroup`: A named group of files (`-group` option).
+  - `FileEntity`: A file with its hashes, N-gram multisets (`IntMultiset` of IDs from a `StringDictionary` shared by the files to be compared), and minhash vectors (computed only when `-thej`/`-thenj` is specified).
+  - `FileGroup`: A named group of files (`-group` option).  Loads files in parallel; file indices are assigned sequentially in the order of the paths.
 - `hash`: Hash computation.
   - `FileHash`: SHA-1 of a file content.
-  - `SourceCodeHash`: Tokenizes a source file and computes its codehash and minhash (`MinHashType` selects None, Murmur3, SHA1, or SHA1InPaper).
+  - `SourceCodeHash`: Tokenizes a source file and computes its codehash and minhash (`MinHashType` selects None, Murmur3, SHA1, or SHA1InPaper).  Murmur3 minhash vectors are computed lazily by the getters.
   - `CodeHashTokenReader`: A token reader computing codehash (SHA-1 of tokens ignoring comments and whitespace).
   - `NgramReader`, `NgramMultiset`: N-grams of tokens.
   - `MurmurHash3`, `MurmurMinHash`: b-bit minhash using MurmurHash3.
-  - `BitMinHash`: A 1-bit minhash vector with the number of N-grams; estimates the Jaccard index.  Used by `MinHashEntry` and `FileEntity` (`-thenj` option).
+  - `BitMinHash`: A 1-bit minhash vector with the number of N-grams; estimates the Jaccard index.  Used by `MinHashEntry` and `FileEntity` (`-thej` and `-thenj` options).
   - `MinHashOptions`: Shared minhash parameters (`BIT_COUNT`, `DEFAULT_NGRAM_SIZE`) and command line options `-n:` and `-ignoreduplication` shared by `FileCodeHash` and `GitCodeHash` (`-n:` is also used by `DirectComparisonMain`).
 - `sha1`: b-bit minhash using SHA-1.  `SHA1MinHashMSR2017` reproduces the computation used in the MSR 2017 paper.
 - `similarity`: Similarity metrics and filters for `DirectComparisonMain`.
@@ -55,6 +55,6 @@ All packages are under `jp.naist.se.codehash`.
   - `FileType`: Supported languages (CPP, JAVA, ECMASCRIPT, PYTHON, PHP, CSHARP, PLAINTEXT), mapping from language names and file extensions, and creation of token readers.  `PLAINTEXT` is never selected by a file extension.
   - `TokenReader`: Interface to read tokens.  `AntlrTokenReader` implements it with ANTLR lexers.
 - `normalizer`: Identifier normalization for each language (`Normalizer` and its implementations for C/C++, Java, C#, ECMAScript, and Python).
-- `util`: Utilities (`GitRepositoryUtil` to open a repository, `HashStringUtil`, `StringMultiset`, `Counter`).
+- `util`: Utilities (`GitRepositoryUtil` to open a repository, `HashStringUtil`, `StringMultiset`, `Counter`, `StringDictionary` and `IntMultiset` for fast multiset intersection).
 
 `org.antlr.v4.runtime.CaseChangingCharStream` is a helper for the case-insensitive PHP lexer.
