@@ -9,6 +9,7 @@ import jp.naist.se.codehash.comparison.ComparisonMain;
 import jp.naist.se.codehash.comparison.DirectComparisonMain;
 import jp.naist.se.codehash.comparison.FileTokenizerMain;
 import jp.naist.se.codehash.comparison.SimilarityMatrixMain;
+import jp.naist.se.codehash.viewer.PairViewerMain;
 
 /**
  * The entry point of the jar file.
@@ -64,6 +65,8 @@ public class CodeHashMain {
 		register("git-file-list", GitFileList.class, GitFileList::main, "List blobs reachable from HEAD of a git repository.");
 		register("git-minhash", GitCodeHash.class, GitCodeHash::main, "Compute hashes of blobs in git repositories.");
 		register("tokenize", FileTokenizerMain.class, FileTokenizerMain::main, "Write tokens of files in JSON.");
+		// Launching the viewer is the only reference to the viewer package from other packages
+		register("pair-viewer", PairViewerMain.class, PairViewerMain::main, "View similar file pairs in a JSON output in a web browser.");
 	}
 
 	/**

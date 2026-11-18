@@ -66,7 +66,7 @@ public class CodeHashMainTest {
 	public void testUsage() {
 		Result r = execute(CodeHashMain::main, "help");
 		Assert.assertTrue(r.out.startsWith("Usage:"));
-		for (String command: new String[] { "file-minhash", "minhash-compare", "minhash-compare-json", "file-compare", "json-to-matrix", "git-file-list", "git-minhash", "tokenize" }) {
+		for (String command: new String[] { "file-minhash", "minhash-compare", "minhash-compare-json", "file-compare", "json-to-matrix", "git-file-list", "git-minhash", "tokenize", "pair-viewer" }) {
 			Assert.assertTrue(command, r.out.contains("  " + command + " "));
 		}
 

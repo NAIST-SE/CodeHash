@@ -10,13 +10,15 @@ import org.junit.Test;
 
 import jp.naist.se.codehash.token.FileType;
 import jp.naist.se.codehash.file.FileEntity;
+import jp.naist.se.codehash.util.StringDictionary;
 
 
 public class SimilarityFilterTest {
 
 	private static SimilarityRecord createRecord() {
-		FileEntity e1 = new FileEntity("A.java", FileType.JAVA, "class A { int x = 1; int y = 2; }".getBytes(StandardCharsets.UTF_8), 3);
-		FileEntity e2 = new FileEntity("B.java", FileType.JAVA, "class B { int x = 1; int z = 3; }".getBytes(StandardCharsets.UTF_8), 3);
+		StringDictionary dictionary = new StringDictionary();
+		FileEntity e1 = new FileEntity("A.java", FileType.JAVA, "class A { int x = 1; int y = 2; }".getBytes(StandardCharsets.UTF_8), 3, dictionary, false, false);
+		FileEntity e2 = new FileEntity("B.java", FileType.JAVA, "class B { int x = 1; int z = 3; }".getBytes(StandardCharsets.UTF_8), 3, dictionary, false, false);
 		return new SimilarityRecord(new FilePair(e1, e2));
 	}
 

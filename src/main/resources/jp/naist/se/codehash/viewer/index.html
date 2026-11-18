@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CodeHash Pair Viewer</title>
+<style>
+:root {
+  --bg: #ffffff; --fg: #1f2328; --muted: #656d76; --border: #d0d7de;
+  --panel: #f6f8fa; --selected: #ddf4ff; --common: #fff8c5; --warn: #9a6700; --error: #cf222e;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0d1117; --fg: #e6edf3; --muted: #8d96a0; --border: #30363d;
+    --panel: #161b22; --selected: #1f3a5f; --common: #3b2f00; --warn: #d29922; --error: #f85149;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; height: 100vh; display: flex; background: var(--bg); color: var(--fg); font: 13px/1.4 system-ui, sans-serif; }
+.muted { color: var(--muted); }
+input, select, button { font: inherit; color: inherit; background: var(--bg); border: 1px solid var(--border); border-radius: 4px; padding: 2px 6px; }
+input[type=radio] { padding: 0; }
+button { cursor: pointer; }
+/* The left side lists pairs, and the right side shows the selected pair.  The left side is resizable. */
+nav { width: clamp(240px, 30vw, 420px); min-width: 200px; max-width: 70vw; flex: none; display: flex; flex-direction: column; overflow: hidden; resize: horizontal; border-right: 1px solid var(--border); }
+.controls { display: flex; flex-direction: column; gap: 6px; padding: 8px 10px; border-bottom: 1px solid var(--border); background: var(--panel); }
+.controls .row { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; }
+.controls .title { font-weight: 600; }
+.controls #repo { flex: 1; min-width: 120px; }
+#list { flex: 1; overflow: auto; }
+#list .status { padding: 6px 10px; color: var(--muted); }
+.pair { padding: 4px 10px; cursor: pointer; border-bottom: 1px solid var(--border); }
+.pair:hover { background: var(--panel); }
+.pair.selected { background: var(--selected); }
+.pair .names { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pair .values { color: var(--muted); font-size: 12px; }
+details.cluster { border-bottom: 1px solid var(--border); }
+details.cluster summary { padding: 6px 10px; cursor: pointer; font-weight: 600; }
+details.cluster .files { padding: 0 10px 6px 24px; color: var(--muted); font-size: 12px; }
+details.cluster .pair { padding-left: 24px; }
+#compare { flex: 1; display: flex; min-width: 0; }
+.pane { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.pane + .pane { border-left: 1px solid var(--border); }
+.pane .head { padding: 4px 8px; border-bottom: 1px solid var(--border); background: var(--panel); word-break: break-all; }
+.pane .head .warn { color: var(--warn); }
+.pane .head .error { color: var(--error); }
+.code { flex: 1; overflow: auto; font: 12px/1.45 ui-monospace, Consolas, monospace; }
+.line { display: flex; white-space: pre; }
+.line .ln { flex: none; width: 4.5em; padding-right: 8px; text-align: right; color: var(--muted); user-select: none; }
+.line.common { background: var(--common); }
+.legend { padding: 8px; color: var(--muted); }
+.legend span { background: var(--common); padding: 0 4px; }
+/* On a narrow screen, the two files are stacked in the right side */
+@media (max-width: 1000px) {
+  #compare { flex-direction: column; }
+  .pane { min-height: 0; }
+  .pane + .pane { border-left: none; border-top: 1px solid var(--border); }
+}
+</style>
+</head>
+<body>
+<nav>
+  <div class="controls">
+    <div class="row"><span class="title">CodeHash Pair Viewer</span></div>
+    <div id="summary" class="muted"></div>
+    <div class="row">
+      <label>Metric <select id="metric"></select></label>
+      <label>&ge; <input id="threshold" type="number" min="0" max="1" step="0.01" value="0.8" size="5"></label>
+    </div>
+    <div class="row">
+      <label><input type="radio" name="view" value="pairs" checked> Pairs</label>
+      <label><input type="radio" name="view" value="clusters"> Clusters</label>
+      <button id="show">Show</button>
+    </div>
+    <div class="row">
+      <input id="repo" placeholder="Git repository path">
+      <button id="addRepo">Add Git repository</button>
+    </div>
+    <div id="repos" class="muted"></div>
+  </div>
+  <div id="list"><div class="status">Loading...</div></div>
+</nav>
+<section id="compare">
+  <div class="pane"><div class="head" id="head1"></div><div class="code" id="code1"><div class="legend">Select a pair in the list.  Lines that also appear in the other file are <span>highlighted</span>.</div></div></div>
+  <div class="pane"><div class="head" id="head2"></div><div class="code" id="code2"></div></div>
+</section>
+<script>
+"use strict";
+const LIMIT = 1000;
+const $ = id => document.getElementById(id);
+let currentPair = null;
+
+async function api(url, options) {
+  const response = await fetch(url, options);
+  const body = await response.json();
+  if (!response.ok) throw new Error(body.error || response.statusText);
+  return body;
+}
+
+function el(tag, className, text) {
+  const e = document.createElement(tag);
+  if (className) e.className = className;
+  if (text !== undefined) e.textContent = text;
+  return e;
+}
+
+function baseName(path) {
+  if (!path) return "(unknown)";
+  const s = path.replace(/[\\/]+$/, "");
+  return s.substring(Math.max(s.lastIndexOf("/"), s.lastIndexOf("\\")) + 1);
+}
+
+function format(v) {
+  return Number.isInteger(v) ? String(v) : v.toFixed(4);
+}
+
+function count(n, unit) {
+  return n + " " + unit + (n === 1 ? "" : "s");
+}
+
+/** Metric values of a pair; the selected metric comes first. */
+function formatValues(values) {
+  const selected = $("metric").value;
+  const entries = Object.entries(values).sort(([a], [b]) => (b === selected) - (a === selected));
+  return entries.map(([k, v]) => k + " " + format(v)).join(", ");
+}
+
+function showRepositories(repositories) {
+  $("repos").textContent = repositories.length ? "Git: " + repositories.join(", ") : "";
+}
+
+async function init() {
+  const info = await api("/api/info");
+  $("summary").textContent = baseName(info.json) + ": " + info.fileCount + " files, " + info.pairCount + " pairs" +
+    (info.similarity ? " (" + info.similarity + ")" : "");
+  $("summary").title = info.json;
+  for (const m of info.metrics) {
+    $("metric").appendChild(new Option(m, m, false, m === "jaccard"));
+  }
+  showRepositories(info.repositories);
+  if (info.metrics.length) await show(); else $("list").replaceChildren(el("div", "status", "No pairs."));
+}
+
+async function show() {
+  const view = document.querySelector("input[name=view]:checked").value;
+  const query = "metric=" + encodeURIComponent($("metric").value) + "&threshold=" + encodeURIComponent($("threshold").value) + "&limit=" + LIMIT;
+  const list = $("list");
+  list.replaceChildren(el("div", "status", "Loading..."));
+  try {
+    const result = await api("/api/" + view + "?" + query);
+    if (view === "pairs") {
+      list.replaceChildren(el("div", "status", status(result.total, result.pairs.length, "pair")));
+      for (const p of result.pairs) list.appendChild(pairItem(p));
+    } else {
+      list.replaceChildren(el("div", "status", status(result.total, result.clusters.length, "cluster")));
+      for (const c of result.clusters) list.appendChild(clusterItem(c));
+    }
+  } catch (e) {
+    list.replaceChildren(el("div", "status", "Error: " + e.message));
+  }
+}
+
+function status(total, shown, unit) {
+  return count(total, unit) + (shown < total ? " (showing " + shown + ")" : "");
+}
+
+function pairItem(p) {
+  const item = el("div", "pair");
+  item.appendChild(el("div", "names", baseName(p.file1.path) + "  ↔  " + baseName(p.file2.path)));
+  item.appendChild(el("div", "values", formatValues(p.values)));
+  item.title = p.file1.path + "\n" + p.file2.path;
+  item.addEventListener("click", () => {
+    document.querySelectorAll(".pair.selected").forEach(e => e.classList.remove("selected"));
+    item.classList.add("selected");
+    openPair(p);
+  });
+  return item;
+}
+
+function clusterItem(c) {
+  const details = el("details", "cluster");
+  // A cluster is complete if every pair of the files satisfies the threshold
+  const complete = c.pairCount === c.files.length * (c.files.length - 1) / 2;
+  details.appendChild(el("summary", null, count(c.files.length, "file") + ", " + count(c.pairCount, "pair") + (complete ? " (all pairs)" : "")));
+  const files = el("div", "files");
+  for (const f of c.files) {
+    const line = el("div", null, baseName(f.path));
+    line.title = f.path;
+    files.appendChild(line);
+  }
+  details.appendChild(files);
+  for (const p of c.pairs) details.appendChild(pairItem(p));
+  if (c.pairs.length < c.pairCount) details.appendChild(el("div", "status", "showing " + count(c.pairs.length, "pair")));
+  return details;
+}
+
+async function openPair(p) {
+  currentPair = p;
+  const [f1, f2] = await Promise.all([p.file1, p.file2].map(f => api("/api/file?index=" + f.index).catch(e => ({ path: f.path, status: "UNAVAILABLE", message: e.message, text: null }))));
+  if (currentPair !== p) return;
+  const lines1 = f1.text !== null ? f1.text.split(/\r\n|\r|\n/) : [];
+  const lines2 = f2.text !== null ? f2.text.split(/\r\n|\r|\n/) : [];
+  const values = formatValues(p.values);
+  render($("head1"), $("code1"), f1, lines1, keys(lines2), values);
+  render($("head2"), $("code2"), f2, lines2, keys(lines1), "");
+}
+
+/** Normalize a line to find lines appearing in the other file. */
+function key(line) {
+  return line.trim().replace(/\s+/g, " ");
+}
+
+function keys(lines) {
+  return new Set(lines.map(key).filter(k => k.length > 0));
+}
+
+function render(head, code, file, lines, otherKeys, values) {
+  head.replaceChildren(el("div", null, file.path));
+  if (values) head.appendChild(el("div", "muted", values));
+  if (file.message) head.appendChild(el("div", file.status === "UNAVAILABLE" ? "error" : "warn", file.message));
+  const fragment = document.createDocumentFragment();
+  lines.forEach((line, i) => {
+    const k = key(line);
+    const row = el("div", k.length > 0 && otherKeys.has(k) ? "line common" : "line");
+    row.appendChild(el("span", "ln", String(i + 1)));
+    row.appendChild(el("span", null, line));
+    fragment.appendChild(row);
+  });
+  code.replaceChildren(fragment);
+  code.scrollTop = 0;
+}
+
+async function addRepository() {
+  const path = $("repo").value.trim();
+  if (!path) return;
+  try {
+    const result = await api("/api/repositories", { method: "POST", body: path });
+    showRepositories(result.repositories);
+    $("repo").value = "";
+    if (currentPair) openPair(currentPair);
+  } catch (e) {
+    alert(e.message);
+  }
+}
+
+$("show").addEventListener("click", show);
+$("threshold").addEventListener("keydown", e => { if (e.key === "Enter") show(); });
+$("metric").addEventListener("change", show);
+document.querySelectorAll("input[name=view]").forEach(e => e.addEventListener("change", show));
+$("addRepo").addEventListener("click", addRepository);
+$("repo").addEventListener("keydown", e => { if (e.key === "Enter") addRepository(); });
+init().catch(e => $("list").replaceChildren(el("div", "status", "Error: " + e.message)));
+</script>
+</body>
+</html>

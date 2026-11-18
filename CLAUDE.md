@@ -24,25 +24,25 @@ Commands:
 All packages are under `jp.naist.se.codehash`.
 
 - (root) `jp.naist.se.codehash`: Main classes for files and git repositories.
-  - `CodeHashMain`: The `Main-Class` of the jar with dependencies.  Dispatches a command (e.g. `file-compare`) to a main class.  A new main class must be registered here and listed in README.md.
+  - `CodeHashMain`: The `Main-Class` of the jar with dependencies.  Dispatches a command (e.g. `file-compare`) to a main class.  A new main class must be registered here and listed in README.md.  `PairViewerMain` (`pair-viewer`) is the only reference from other packages to the `viewer` package.
   - `FileCodeHash`: Computes hashes and 1-bit minhash vectors of files on disk.
   - `GitCodeHash`: Computes hashes of blobs in git repositories, given a CSV of file lists or a repository directory.
   - `GitFileList`: Lists non-binary blobs reachable from HEAD.  `visitBlobs` is also used by `GitCodeHash`.
 - `comparison`: Main classes to compare files.
   - `ComparisonMain`: Estimates similarity from minhash vectors produced by `FileCodeHash` or `GitCodeHash` (`MinHashEntry` represents a line).  `MinHashEntry` is used only by `ComparisonMain`.  Handles `-th:` and `-compare:crossgroup` (each input file is a group) options shared with `DirectComparisonMain`.  `-json` writes the result in the JSON format of `DirectComparisonMain` (the `minhash-compare-json` command).
-  - `DirectComparisonMain`: Compares files directly and writes JSON.  Handles `-lang`, `-group`, `-n`, `-th*`, `-filter`, `-metrics`, `-compare` options.
+  - `DirectComparisonMain`: Compares files directly and writes JSON.  Handles `-lang`, `-group`, `-n`, `-th*`, `-filter`, `-metrics`, `-compare`, `-threads` options.  Loads files and compares rows of file pairs (a file and the files compared with it) using `-threads` worker threads; results are written in the row order, keeping a bounded number of rows in progress.
   - `SimilarityMatrixMain`: Converts a JSON output of `DirectComparisonMain` into a CSV matrix of a selected metric.
   - `FileTokenizerMain`: Writes tokens of files in JSON.
 - `file`: Files to be compared by `DirectComparisonMain`.
-  - `FileEntity`: A file with its hashes, N-gram multisets, and minhash.
-  - `FileGroup`: A named group of files (`-group` option).
+  - `FileEntity`: A file with its hashes, N-gram multisets (`IntMultiset` of IDs from a `StringDictionary` shared by the files to be compared), and minhash vectors (computed only when `-thej`/`-thenj` is specified).
+  - `FileGroup`: A named group of files (`-group` option).  Loads files in parallel using a given `ExecutorService`; file indices are assigned sequentially in the order of the paths.
 - `hash`: Hash computation.
   - `FileHash`: SHA-1 of a file content.
-  - `SourceCodeHash`: Tokenizes a source file and computes its codehash and minhash (`MinHashType` selects None, Murmur3, SHA1, or SHA1InPaper).
+  - `SourceCodeHash`: Tokenizes a source file and computes its codehash and minhash (`MinHashType` selects None, Murmur3, SHA1, or SHA1InPaper).  Murmur3 minhash vectors are computed lazily by the getters.
   - `CodeHashTokenReader`: A token reader computing codehash (SHA-1 of tokens ignoring comments and whitespace).
   - `NgramReader`, `NgramMultiset`: N-grams of tokens.
   - `MurmurHash3`, `MurmurMinHash`: b-bit minhash using MurmurHash3.
-  - `BitMinHash`: A 1-bit minhash vector with the number of N-grams; estimates the Jaccard index.  Used by `MinHashEntry` and `FileEntity` (`-thenj` option).
+  - `BitMinHash`: A 1-bit minhash vector with the number of N-grams; estimates the Jaccard index.  Used by `MinHashEntry` and `FileEntity` (`-thej` and `-thenj` options).
   - `MinHashOptions`: Shared minhash parameters (`BIT_COUNT`, `DEFAULT_NGRAM_SIZE`) and command line options `-n:` and `-ignoreduplication` shared by `FileCodeHash` and `GitCodeHash` (`-n:` is also used by `DirectComparisonMain`).
 - `sha1`: b-bit minhash using SHA-1.  `SHA1MinHashMSR2017` reproduces the computation used in the MSR 2017 paper.
 - `similarity`: Similarity metrics and filters for `DirectComparisonMain`.
@@ -55,6 +55,7 @@ All packages are under `jp.naist.se.codehash`.
   - `FileType`: Supported languages (CPP, JAVA, ECMASCRIPT, PYTHON, PHP, CSHARP, PLAINTEXT), mapping from language names and file extensions, and creation of token readers.  `PLAINTEXT` is never selected by a file extension.
   - `TokenReader`: Interface to read tokens.  `AntlrTokenReader` implements it with ANTLR lexers.
 - `normalizer`: Identifier normalization for each language (`Normalizer` and its implementations for C/C++, Java, C#, ECMAScript, and Python).
-- `util`: Utilities (`GitRepositoryUtil` to open a repository, `HashStringUtil`, `StringMultiset`, `Counter`).
+- `util`: Utilities (`GitRepositoryUtil` to open a repository, `HashStringUtil`, `StringMultiset`, `Counter`, `StringDictionary` and `IntMultiset` for fast multiset intersection, `FutureUtil`).
+- `viewer`: A local web viewer of similar file pairs in a JSON output (`PairViewerMain`).  `PairData` reads the JSON and computes clusters, `SourceLoader` reads local files and git blobs, and `PairViewerServer` serves the page (`src/main/resources/jp/naist/se/codehash/viewer/index.html`, plain HTML/JS without a build step) and a JSON API using the JDK HTTP server.  The viewer may depend on other packages, but other packages must not depend on the viewer so that it can be separated from the project (checked by `ViewerDependencyTest`).  The only exception is `CodeHashMain` registering `PairViewerMain`; if the viewer is separated, remove the registration.
 
 `org.antlr.v4.runtime.CaseChangingCharStream` is a helper for the case-insensitive PHP lexer.
